@@ -85,6 +85,18 @@ import { PosSaleItem } from './posSaleItem';
 import { PosSalePayment } from './posSalePayment';
 import { PosReturn } from './posReturn';
 import { PosOfflineQueue } from './posOfflineQueue';
+import { Supplier } from './supplier';
+import { SupplierContact } from './supplierContact';
+import { SupplierBankAccount } from './supplierBankAccount';
+import { PurchaseRequest } from './purchaseRequest';
+import { PurchaseRequestItem } from './purchaseRequestItem';
+import { PurchaseOrder } from './purchaseOrder';
+import { PurchaseOrderItem } from './purchaseOrderItem';
+import { GoodsReceipt } from './goodsReceipt';
+import { GoodsReceiptItem } from './goodsReceiptItem';
+import { SupplierReturn } from './supplierReturn';
+import { PurchaseInvoice } from './purchaseInvoice';
+import { SupplierPayment } from './supplierPayment';
 
 // Step 11 Models
 import { Category } from './category';
@@ -602,6 +614,24 @@ PosSaleItem.belongsTo(PosSale, { foreignKey: 'sale_id', as: 'sale' });
 PosSale.hasMany(PosSalePayment, { foreignKey: 'sale_id', as: 'payments' });
 PosSalePayment.belongsTo(PosSale, { foreignKey: 'sale_id', as: 'sale' });
 
+Supplier.hasMany(SupplierContact, { foreignKey: 'supplier_id', as: 'contacts' });
+SupplierContact.belongsTo(Supplier, { foreignKey: 'supplier_id', as: 'supplier' });
+
+Supplier.hasMany(SupplierBankAccount, { foreignKey: 'supplier_id', as: 'bankAccounts' });
+SupplierBankAccount.belongsTo(Supplier, { foreignKey: 'supplier_id', as: 'supplier' });
+
+PurchaseRequest.hasMany(PurchaseRequestItem, { foreignKey: 'request_id', as: 'items' });
+PurchaseRequestItem.belongsTo(PurchaseRequest, { foreignKey: 'request_id', as: 'request' });
+
+PurchaseOrder.hasMany(PurchaseOrderItem, { foreignKey: 'po_id', as: 'items' });
+PurchaseOrderItem.belongsTo(PurchaseOrder, { foreignKey: 'po_id', as: 'po' });
+
+GoodsReceipt.hasMany(GoodsReceiptItem, { foreignKey: 'grn_id', as: 'items' });
+GoodsReceiptItem.belongsTo(GoodsReceipt, { foreignKey: 'grn_id', as: 'grn' });
+
+PurchaseInvoice.hasMany(SupplierPayment, { foreignKey: 'invoice_id', as: 'payments' });
+SupplierPayment.belongsTo(PurchaseInvoice, { foreignKey: 'invoice_id', as: 'invoice' });
+
 // POS Associations
 POSRegister.hasMany(POSSession, { foreignKey: 'register_id', as: 'sessions' });
 POSSession.belongsTo(POSRegister, { foreignKey: 'register_id', as: 'register' });
@@ -778,4 +808,16 @@ export {
   PosSalePayment,
   PosReturn,
   PosOfflineQueue,
+  Supplier,
+  SupplierContact,
+  SupplierBankAccount,
+  PurchaseRequest,
+  PurchaseRequestItem,
+  PurchaseOrder,
+  PurchaseOrderItem,
+  GoodsReceipt,
+  GoodsReceiptItem,
+  SupplierReturn,
+  PurchaseInvoice,
+  SupplierPayment,
 };

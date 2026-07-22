@@ -1,6 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { app } from '../../app';
 import supertest from 'supertest';
-import { User, UserRole, UserProfile, Tenant, Store, Notification } from '../models';
+import { User, Tenant, Store, Notification } from '../models';
 import { logger } from '../../shared/logging/logger';
 import { AuthService } from '../../services/auth.service';
 import { connectDatabase, sequelize } from '../../config/database';

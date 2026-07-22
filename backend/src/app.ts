@@ -189,12 +189,14 @@ import { swaggerSpec } from './config/swagger';
 import sellerApplicationRoutes from './routes/sellerApplication.routes';
 import adminSellerApplicationRoutes from './routes/adminSellerApplication.routes';
 import adminSellerRoutes from './routes/adminSeller.routes';
+import adminDashboardRoutes from './routes/adminDashboard.routes';
 
 app.use('/api/v1/webhooks', webhookRoutes);
 app.use('/api/v1/integrations', integrationRoutes);
 app.use('/api/v1/seller-applications', sellerApplicationRoutes);
 app.use('/api/v1/admin/seller-applications', adminSellerApplicationRoutes);
 app.use('/api/v1/admin/sellers', adminSellerRoutes);
+app.use('/api/v1/admin', adminDashboardRoutes);
 
 // Swagger OpenAPI Documentation UI
 app.use('/api/v1/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));

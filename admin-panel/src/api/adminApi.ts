@@ -176,6 +176,34 @@ export const adminApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ['Seller'],
     }),
+    getAdminDashboardMetrics: builder.query<any, void>({
+      query: () => '/admin/dashboard',
+      providesTags: ['Seller', 'SellerApplication', 'Tenant', 'Store'],
+    }),
+    getSellersReport: builder.query<any, any>({
+      query: (params) => ({
+        url: '/admin/reports/sellers',
+        params,
+      }),
+    }),
+    getApplicationsReport: builder.query<any, any>({
+      query: (params) => ({
+        url: '/admin/reports/applications',
+        params,
+      }),
+    }),
+    getTenantsReport: builder.query<any, any>({
+      query: (params) => ({
+        url: '/admin/reports/tenants',
+        params,
+      }),
+    }),
+    getStoresReport: builder.query<any, any>({
+      query: (params) => ({
+        url: '/admin/reports/stores',
+        params,
+      }),
+    }),
   }),
 });
 
@@ -203,4 +231,9 @@ export const {
   useActivateSellerMutation,
   useResetSellerPasswordMutation,
   useDeleteSellerMutation,
+  useGetAdminDashboardMetricsQuery,
+  useGetSellersReportQuery,
+  useGetApplicationsReportQuery,
+  useGetTenantsReportQuery,
+  useGetStoresReportQuery,
 } = adminApi;

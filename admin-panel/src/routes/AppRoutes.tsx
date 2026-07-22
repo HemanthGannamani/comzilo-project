@@ -11,7 +11,7 @@ import { StoresPage } from '../pages/stores/StoresPage';
 import { SubscriptionPlansPage } from '../pages/subscriptions/SubscriptionPlansPage';
 import { PlatformUsersPage } from '../pages/users/PlatformUsersPage';
 import { RolesPermissionsPage } from '../pages/roles/RolesPermissionsPage';
-import { PlatformReportsPage } from '../pages/reports/PlatformReportsPage';
+import { ReportsPage } from '../pages/reports/ReportsPage';
 import { FeatureFlagsPage } from '../pages/flags/FeatureFlagsPage';
 import { SystemSettingsPage } from '../pages/settings/SystemSettingsPage';
 import { AdminIntegrationsPage } from '../pages/integrations/AdminIntegrationsPage';
@@ -42,7 +42,7 @@ export const AppRoutes: React.FC = () => {
             <Route path="/subscriptions" element={<SubscriptionPlansPage />} />
             <Route path="/users" element={<PlatformUsersPage />} />
             <Route path="/roles" element={<RolesPermissionsPage />} />
-            <Route path="/reports" element={<PlatformReportsPage />} />
+            <Route path="/reports" element={<ReportsPage />} />
             <Route path="/feature-flags" element={<FeatureFlagsPage />} />
             <Route path="/settings" element={<SystemSettingsPage />} />
             <Route path="/integrations" element={<AdminIntegrationsPage />} />

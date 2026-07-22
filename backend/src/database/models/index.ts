@@ -60,6 +60,14 @@ import { RewardTransaction } from './rewardTransaction';
 import { SupportTicket } from './supportTicket';
 import { TicketReply } from './ticketReply';
 import { CustomerCommunicationLog } from './customerCommunicationLog';
+import { MarketingPromotion } from './marketingPromotion';
+import { Coupon } from './coupon';
+import { CouponRedemption } from './couponRedemption';
+import { GiftCard } from './giftCard';
+import { GiftCardTransaction } from './giftCardTransaction';
+import { ReferralProgram } from './referralProgram';
+import { MarketingCampaign } from './marketingCampaign';
+import { MarketingAutomation } from './marketingAutomation';
 
 // Step 11 Models
 import { Category } from './category';
@@ -547,6 +555,12 @@ RewardTransaction.belongsTo(LoyaltyAccount, {
 SupportTicket.hasMany(TicketReply, { foreignKey: 'ticket_id', as: 'replies' });
 TicketReply.belongsTo(SupportTicket, { foreignKey: 'ticket_id', as: 'ticket' });
 
+Coupon.hasMany(CouponRedemption, { foreignKey: 'coupon_id', as: 'redemptions' });
+CouponRedemption.belongsTo(Coupon, { foreignKey: 'coupon_id', as: 'coupon' });
+
+GiftCard.hasMany(GiftCardTransaction, { foreignKey: 'gift_card_id', as: 'transactions' });
+GiftCardTransaction.belongsTo(GiftCard, { foreignKey: 'gift_card_id', as: 'giftCard' });
+
 // POS Associations
 POSRegister.hasMany(POSSession, { foreignKey: 'register_id', as: 'sessions' });
 POSSession.belongsTo(POSRegister, { foreignKey: 'register_id', as: 'register' });
@@ -698,4 +712,12 @@ export {
   SupportTicket,
   TicketReply,
   CustomerCommunicationLog,
+  MarketingPromotion,
+  Coupon,
+  CouponRedemption,
+  GiftCard,
+  GiftCardTransaction,
+  ReferralProgram,
+  MarketingCampaign,
+  MarketingAutomation,
 };

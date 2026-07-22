@@ -8,6 +8,8 @@ const controller = new SellerApplicationController();
 
 // Public routes (no authentication middleware needed)
 router.post('/', validate(createSellerApplicationSchema), controller.createApplication);
+router.post('/register', validate(createSellerApplicationSchema), controller.createApplication);
 router.get('/:applicationNumber', controller.getApplicationStatus);
+router.get('/status/:applicationNumber', controller.getApplicationStatus);
 
 export default router;

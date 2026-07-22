@@ -8,6 +8,7 @@ import { PermissionGuard } from './PermissionGuard';
 import { PageLoader } from '../components/common/PageLoader';
 
 import { LoginPage } from '../pages/auth/LoginPage';
+import { SellerRegisterPage } from '../pages/auth/SellerRegisterPage';
 import { ForgotPasswordPage } from '../pages/auth/ForgotPasswordPage';
 import { ResetPasswordPage } from '../pages/auth/ResetPasswordPage';
 import { ProfilePage } from '../pages/auth/ProfilePage';
@@ -49,6 +50,7 @@ export const AppRoutes: React.FC = () => {
         {/* Public Auth Routes */}
         <Route element={<AuthLayout />}>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/seller/register" element={<SellerRegisterPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
         </Route>

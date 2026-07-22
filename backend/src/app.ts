@@ -208,6 +208,8 @@ import storeAnalyticsRoutes from './routes/storeAnalytics.routes';
 app.use('/api/v1/webhooks', webhookRoutes);
 app.use('/api/v1/integrations', integrationRoutes);
 app.use('/api/v1/seller-applications', sellerApplicationRoutes);
+app.use('/api/v1/public/seller', sellerApplicationRoutes);
+app.use('/api/v1/public/seller-applications', sellerApplicationRoutes);
 app.use('/api/v1/admin/seller-applications', adminSellerApplicationRoutes);
 app.use('/api/v1/admin/sellers', adminSellerRoutes);
 app.use('/api/v1/admin/dashboard', adminDashboardRoutes);

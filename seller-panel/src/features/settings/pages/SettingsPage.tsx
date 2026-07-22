@@ -19,19 +19,19 @@ export const SettingsPage: React.FC = () => {
         </Typography>
 
         <Grid container spacing={3}>
-          <Grid size={{ xs: 12, sm: 6 }}>
+          <Grid item xs={12} sm={6}>
             <TextField label="Platform Name" fullWidth defaultValue={data?.data?.siteName || 'Comzilo ERP'} />
           </Grid>
 
-          <Grid size={{ xs: 12, sm: 6 }}>
+          <Grid item xs={12} sm={6}>
             <TextField label="Default Currency" fullWidth defaultValue={data?.data?.currency || 'USD'} />
           </Grid>
 
-          <Grid size={{ xs: 12, sm: 6 }}>
+          <Grid item xs={12} sm={6}>
             <TextField label="Timezone" fullWidth defaultValue={data?.data?.timezone || 'America/New_York'} />
           </Grid>
 
-          <Grid size={{ xs: 12, sm: 6 }}>
+          <Grid item xs={12} sm={6}>
             <TextField label="Support Email" fullWidth defaultValue={data?.data?.supportEmail || 'support@comzilo.com'} />
           </Grid>
         </Grid>

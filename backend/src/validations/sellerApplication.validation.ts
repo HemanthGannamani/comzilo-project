@@ -21,8 +21,8 @@ export const createSellerApplicationSchema = {
     password: Joi.string().min(8).required(),
     confirmPassword: Joi.string().required().valid(Joi.ref('password')),
     logo: Joi.string().allow('', null).optional(),
-    license: Joi.string().required(),
+    license: Joi.string().allow('', null).optional(),
     gstCertificate: Joi.string().allow('', null).optional(),
-    identityProof: Joi.string().required(),
+    identityProof: Joi.string().allow('', null).optional(),
   }),
 };

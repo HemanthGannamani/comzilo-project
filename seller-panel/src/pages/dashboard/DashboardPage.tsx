@@ -41,7 +41,7 @@ export const DashboardPage: React.FC = () => {
   return (
     <PageContainer title="Executive Dashboard" subtitle="Overview of real-time sales performance and business metrics">
       <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+        <Grid item xs={12} sm={6} md={3}>
           <Card>
             <CardContent>
               <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
@@ -59,7 +59,7 @@ export const DashboardPage: React.FC = () => {
           </Card>
         </Grid>
 
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+        <Grid item xs={12} sm={6} md={3}>
           <Card>
             <CardContent>
               <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
@@ -77,7 +77,7 @@ export const DashboardPage: React.FC = () => {
           </Card>
         </Grid>
 
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+        <Grid item xs={12} sm={6} md={3}>
           <Card>
             <CardContent>
               <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
@@ -95,7 +95,7 @@ export const DashboardPage: React.FC = () => {
           </Card>
         </Grid>
 
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+        <Grid item xs={12} sm={6} md={3}>
           <Card>
             <CardContent>
               <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>

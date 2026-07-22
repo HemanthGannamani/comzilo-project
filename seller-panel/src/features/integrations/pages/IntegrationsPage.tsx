@@ -22,7 +22,7 @@ export const IntegrationsPage: React.FC = () => {
     <PageContainer title="Marketplace Integrations" subtitle="Connect external channels, marketplaces, and payment processors">
       <Grid container spacing={3}>
         {apps.map((app: any) => (
-          <Grid key={app.id} size={{ xs: 12, sm: 6, md: 4 }}>
+          <Grid item key={app.id} xs={12} sm={6} md={4}>
             <Paper sx={{ p: 3, borderRadius: 3, display: 'flex', flexDirection: 'column', gap: 2 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 {app.icon || <Webhook size={28} />}

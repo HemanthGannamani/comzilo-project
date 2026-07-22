@@ -109,6 +109,15 @@ export const LoginPage: React.FC = () => {
       >
         {isLoading ? 'Signing in...' : 'Sign In'}
       </Button>
+
+      <Box sx={{ textAlign: 'center', mt: 3 }}>
+        <Typography variant="body2" color="text.secondary">
+          Don't have a Seller Account?{' '}
+          <Link component={RouterLink} to="/seller/register" variant="body2" sx={{ fontWeight: 700 }}>
+            Apply as Seller
+          </Link>
+        </Typography>
+      </Box>
     </Box>
   );
 };

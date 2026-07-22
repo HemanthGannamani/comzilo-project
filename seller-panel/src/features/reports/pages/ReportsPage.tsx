@@ -41,7 +41,7 @@ export const ReportsPage: React.FC = () => {
       onAction={handleExportCSV}
     >
       <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+        <Grid item xs={12} sm={6} md={3}>
           <Paper sx={{ p: 2.5 }}>
             <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
               <Box>
@@ -57,7 +57,7 @@ export const ReportsPage: React.FC = () => {
           </Paper>
         </Grid>
 
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+        <Grid item xs={12} sm={6} md={3}>
           <Paper sx={{ p: 2.5 }}>
             <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
               <Box>
@@ -73,7 +73,7 @@ export const ReportsPage: React.FC = () => {
           </Paper>
         </Grid>
 
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+        <Grid item xs={12} sm={6} md={3}>
           <Paper sx={{ p: 2.5 }}>
             <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
               <Box>
@@ -89,7 +89,7 @@ export const ReportsPage: React.FC = () => {
           </Paper>
         </Grid>
 
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+        <Grid item xs={12} sm={6} md={3}>
           <Paper sx={{ p: 2.5 }}>
             <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
               <Box>

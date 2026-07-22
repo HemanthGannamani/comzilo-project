@@ -28,7 +28,7 @@ export const ProfilePage: React.FC = () => {
   return (
     <PageContainer title="User Profile" subtitle="Manage your account profile details and assigned roles">
       <Grid container spacing={3}>
-        <Grid size={{ xs: 12, md: 4 }}>
+        <Grid item xs={12} md={4}>
           <Card sx={{ textAlign: 'center', p: 3 }}>
             <Avatar
               sx={{
@@ -58,7 +58,7 @@ export const ProfilePage: React.FC = () => {
           </Card>
         </Grid>
 
-        <Grid size={{ xs: 12, md: 8 }}>
+        <Grid item xs={12} md={8}>
           <Card>
             <CardContent>
               <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
@@ -67,7 +67,7 @@ export const ProfilePage: React.FC = () => {
               <Divider sx={{ mb: 2 }} />
 
               <Grid container spacing={2}>
-                <Grid size={{ xs: 12, sm: 6 }}>
+                <Grid item xs={12} sm={6}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
                     <Mail size={20} color="#64748B" />
                     <Box>
@@ -81,7 +81,7 @@ export const ProfilePage: React.FC = () => {
                   </Box>
                 </Grid>
 
-                <Grid size={{ xs: 12, sm: 6 }}>
+                <Grid item xs={12} sm={6}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
                     <Building size={20} color="#64748B" />
                     <Box>
@@ -95,7 +95,7 @@ export const ProfilePage: React.FC = () => {
                   </Box>
                 </Grid>
 
-                <Grid size={{ xs: 12 }}>
+                <Grid item xs={12}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
                     <Shield size={20} color="#64748B" />
                     <Box>

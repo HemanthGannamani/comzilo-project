@@ -72,8 +72,19 @@ export const adminApi = baseApi.injectEndpoints({
       providesTags: ['Settings'],
     }),
 
-    // SELLER APPLICATIONS
-    getSellerApplications: builder.query<any, { page?: number; limit?: number; search?: string; status?: string; sort?: string }>({
+    getSellerApplications: builder.query<
+      any,
+      {
+        page?: number;
+        limit?: number;
+        search?: string;
+        status?: string;
+        businessType?: string;
+        startDate?: string;
+        endDate?: string;
+        sort?: string;
+      }
+    >({
       query: (params) => ({
         url: '/admin/seller-applications',
         params,

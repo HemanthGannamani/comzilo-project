@@ -1,4 +1,12 @@
-import { User, UserRole, UserProfile, Tenant, Store, Role } from '../database/models';
+import {
+  User,
+  UserRole,
+  UserProfile,
+  Tenant,
+  Store,
+  Role,
+  SellerApplication,
+} from '../database/models';
 import { sequelize } from '../config/database';
 import { ValidationError, ConflictError } from '../shared/errors/AppError';
 import { createAuditLog } from '../utils/auditHelper';
@@ -6,6 +14,8 @@ import bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
 
 export interface CreateSellerInput {
+  sellerApplicationId?: number;
+  passwordHash?: string;
   ownerName: string;
   email: string;
   phone: string;
@@ -85,8 +95,11 @@ export class AdminSellerService {
     }
 
     // Hash Password
-    const password = input.password || 'TemporarySecurePassword2026!';
-    const passwordHash = await bcrypt.hash(password, 10);
+    let passwordHash = input.passwordHash;
+    if (!passwordHash) {
+      const password = input.password || 'TemporarySecurePassword2026!';
+      passwordHash = await bcrypt.hash(password, 10);
+    }
 
     const t = await sequelize.transaction();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -243,6 +256,33 @@ export class AdminSellerService {
         },
         context: { ...context, tenantId },
       });
+
+      if (input.sellerApplicationId) {
+        const application = await SellerApplication.findByPk(input.sellerApplicationId, {
+          transaction: t,
+        });
+        if (!application) {
+          throw new ValidationError('Seller application not found');
+        }
+        if (application.status !== 'Pending') {
+          throw new ValidationError('Only Pending applications can be approved');
+        }
+        application.status = 'Approved';
+        application.reviewedAt = new Date();
+        application.reviewedBy = context?.authenticatedUserId || null;
+        await application.save({ transaction: t });
+
+        // Collect Application Approved Audit
+        auditLogsToCreate.push({
+          payload: {
+            action: 'seller_application.approved',
+            entityType: 'seller_application',
+            entityId: String(application.id),
+            newValues: { status: 'Approved' },
+          },
+          context: { ...context, tenantId },
+        });
+      }
 
       await t.commit();
 

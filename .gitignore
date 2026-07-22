@@ -45,3 +45,6 @@
 **/scratch/
 **/*.webp
 **/*.png
+
+# Local upload files
+**/uploads/

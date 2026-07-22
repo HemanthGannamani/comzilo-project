@@ -11,6 +11,9 @@ export const SellerApplicationsPage: React.FC = () => {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
+  const [businessType, setBusinessType] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [sort, setSort] = useState('newest');
 
   const { data, isLoading, refetch } = useGetSellerApplicationsQuery({
@@ -18,6 +21,9 @@ export const SellerApplicationsPage: React.FC = () => {
     limit: 10,
     search,
     status,
+    businessType,
+    startDate,
+    endDate,
     sort,
   });
 
@@ -106,6 +112,18 @@ export const SellerApplicationsPage: React.FC = () => {
       valueFormatter: (value) => new Date(value).toLocaleDateString(),
     },
     {
+      field: 'reviewedBy',
+      headerName: 'Reviewed By',
+      width: 130,
+      valueGetter: (_, row) => row.reviewedBy ? `Admin #${row.reviewedBy}` : 'N/A',
+    },
+    {
+      field: 'reviewedAt',
+      headerName: 'Reviewed Date',
+      width: 160,
+      valueGetter: (_, row) => row.reviewedAt ? new Date(row.reviewedAt).toLocaleDateString() : 'N/A',
+    },
+    {
       field: 'actions',
       headerName: 'Actions',
       width: 100,
@@ -132,10 +150,10 @@ export const SellerApplicationsPage: React.FC = () => {
       {/* Filters & Search Header */}
       <Paper sx={{ p: 3, mb: 4, border: '1px solid #E2E8F0', boxShadow: 'none', borderRadius: 3 }}>
         <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} sm={4}>
+          <Grid item xs={12} sm={2}>
             <TextField
               size="small"
-              placeholder="Search applications..."
+              placeholder="Search..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               slotProps={{
@@ -147,7 +165,7 @@ export const SellerApplicationsPage: React.FC = () => {
             />
           </Grid>
 
-          <Grid item xs={12} sm={3}>
+          <Grid item xs={12} sm={2}>
             <FormControl fullWidth size="small">
               <InputLabel>Status</InputLabel>
               <Select value={status} label="Status" onChange={(e) => setStatus(e.target.value)}>
@@ -159,7 +177,44 @@ export const SellerApplicationsPage: React.FC = () => {
             </FormControl>
           </Grid>
 
-          <Grid item xs={12} sm={3}>
+          <Grid item xs={12} sm={2}>
+            <FormControl fullWidth size="small">
+              <InputLabel>Business Type</InputLabel>
+              <Select value={businessType} label="Business Type" onChange={(e) => setBusinessType(e.target.value)}>
+                <MenuItem value="">All Types</MenuItem>
+                <MenuItem value="Retail">Retail</MenuItem>
+                <MenuItem value="Wholesale">Wholesale</MenuItem>
+                <MenuItem value="Manufacturer">Manufacturer</MenuItem>
+                <MenuItem value="Distributor">Distributor</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+
+          <Grid item xs={12} sm={2}>
+            <TextField
+              label="Start Date"
+              type="date"
+              size="small"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+              fullWidth
+            />
+          </Grid>
+
+          <Grid item xs={12} sm={2}>
+            <TextField
+              label="End Date"
+              type="date"
+              size="small"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+              fullWidth
+            />
+          </Grid>
+
+          <Grid item xs={12} sm={2}>
             <FormControl fullWidth size="small">
               <InputLabel>Sort By</InputLabel>
               <Select value={sort} label="Sort By" onChange={(e) => setSort(e.target.value)}>

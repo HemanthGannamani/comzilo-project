@@ -24,7 +24,7 @@ export const AuditLogsPage: React.FC = () => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [page, setPage] = useState(0);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, _setPageSize] = useState(10);
 
   const { data: auditData, isLoading } = useGetAuditLogsQuery({
     search,

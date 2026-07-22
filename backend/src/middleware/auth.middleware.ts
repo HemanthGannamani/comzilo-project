@@ -3,6 +3,10 @@ import jwt from 'jsonwebtoken';
 import { env } from '../config/env';
 import { AuthenticationError, AuthorizationError } from '../shared/errors/AppError';
 
+import { AuthorizationService } from '../services/authorization.service';
+
+const authzService = new AuthorizationService();
+
 export interface TokenPayload {
   userId: number;
   userUuid: string;
@@ -11,7 +15,11 @@ export interface TokenPayload {
   email: string;
 }
 
-export const authenticate = (req: Request, _res: Response, next: NextFunction): void => {
+export const authenticate = async (
+  req: Request,
+  _res: Response,
+  next: NextFunction
+): Promise<void> => {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -23,9 +31,12 @@ export const authenticate = (req: Request, _res: Response, next: NextFunction): 
   try {
     const decoded = jwt.verify(token, env.JWT_ACCESS_SECRET) as TokenPayload;
 
-    // Tenant Isolation Check: Verify token tenant matches current resolved tenant context
+    // Tenant Isolation Check: Verify token tenant matches current resolved tenant context (Super Admin bypass)
     if (req.context.tenantId !== null && req.context.tenantId !== decoded.tenantId) {
-      throw new AuthorizationError('Authenticated user does not belong to this tenant');
+      const isSuper = await authzService.isSuperAdmin(decoded.userId);
+      if (!isSuper) {
+        throw new AuthorizationError('Authenticated user does not belong to this tenant');
+      }
     }
 
     // Set credentials on request context

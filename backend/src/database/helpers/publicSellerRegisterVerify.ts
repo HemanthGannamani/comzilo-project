@@ -10,16 +10,19 @@ async function runVerification() {
 
   const testEmail = `zenith.seller.${Date.now()}@example.com`;
   const testGst = `GST${Date.now().toString().slice(-10)}`;
+  const testPhone = `+1800${Date.now().toString().slice(-7)}`;
+  const testBiz = `Zenith Enterprise ${Date.now()}`;
+  const testStore = `Zenith Store ${Date.now()}`;
 
   // 1. PUBLIC SELLER REGISTRATION SUBMISSION
   logger.info('--- 1. SUBMITTING PUBLIC SELLER REGISTRATION ---');
   const regRes = await supertest(app).post('/api/v1/public/seller/register').send({
-    businessName: 'Zenith Retail Enterprise Ltd',
+    businessName: testBiz,
     businessType: 'Retail',
-    preferredStoreName: 'Zenith Store',
+    preferredStoreName: testStore,
     ownerName: 'Alexander Vance',
     email: testEmail,
-    phone: '+18005559988',
+    phone: testPhone,
     gstNumber: testGst,
     panNumber: 'ZENITH9900',
     addressLine1: '450 Innovation Way',

@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: comzilo-backend-app
+    restart: always
+    ports:
+      - "5000:5000"
+    environment:
+      - NODE_ENV=production
+      - PORT=5000
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_NAME=comzilo_prod
+      - DB_USER=comzilo_user
+      - DB_PASSWORD=comzilo_password
+      - JWT_ACCESS_SECRET=prod_super_secret_access_key_comzilo_2026
+      - JWT_REFRESH_SECRET=prod_super_secret_refresh_key_comzilo_2026
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - comzilo-network
+
+  db:
+    image: mysql:8.0
+    container_name: comzilo-backend-db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password_comzilo
+      MYSQL_DATABASE: comzilo_prod
+      MYSQL_USER: comzilo_user
+      MYSQL_PASSWORD: comzilo_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - comzilo-network
+
+volumes:
+  mysql_data:
+
+networks:
+  comzilo-network:
+    driver: bridge

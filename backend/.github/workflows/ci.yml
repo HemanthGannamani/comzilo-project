@@ -1,0 +1,121 @@
+name: Comzilo Backend CI Pipeline
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  quality-gate:
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: comzilo_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
+    steps:
+      - name: Checkout Codebase
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js Environment
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Code Formatting Check
+        run: npm run format
+
+      - name: Code Linting Check
+        run: npm run lint
+
+      - name: TypeScript Compilation Build
+        run: npm run build
+
+      - name: Reset Database Schema
+        run: npm run db:test:reset
+        env:
+          NODE_ENV: test
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_USER: root
+          DB_PASSWORD: root
+          DB_NAME: comzilo_test
+
+      - name: Run Database Migrations
+        run: npm run db:test:migrate
+        env:
+          NODE_ENV: test
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_USER: root
+          DB_PASSWORD: root
+          DB_NAME: comzilo_test
+
+      - name: Run Database Seeders
+        run: npm run db:test:seed
+        env:
+          NODE_ENV: test
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_USER: root
+          DB_PASSWORD: root
+          DB_NAME: comzilo_test
+
+      - name: Execute Full Test Suite
+        run: npm run test
+        env:
+          NODE_ENV: test
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_USER: root
+          DB_PASSWORD: root
+          DB_NAME: comzilo_test
+          JWT_ACCESS_SECRET: test_access_secret_key_123
+          JWT_REFRESH_SECRET: test_refresh_secret_key_123
+
+      - name: Execute Integration Tests
+        run: npm run test:integration
+        env:
+          NODE_ENV: test
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_USER: root
+          DB_PASSWORD: root
+          DB_NAME: comzilo_test
+          JWT_ACCESS_SECRET: test_access_secret_key_123
+          JWT_REFRESH_SECRET: test_refresh_secret_key_123
+
+      - name: Verify Migration Rollback (Undo All)
+        run: npm run db:test:migrate:undo:all
+        env:
+          NODE_ENV: test
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_USER: root
+          DB_PASSWORD: root
+          DB_NAME: comzilo_test
+
+      - name: Re-run Migrations
+        run: npm run db:test:migrate
+        env:
+          NODE_ENV: test
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_USER: root
+          DB_PASSWORD: root
+          DB_NAME: comzilo_test

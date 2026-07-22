@@ -1,0 +1,152 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { Request, Response, NextFunction } from 'express';
+import { QueryTypes } from 'sequelize';
+import { sequelize } from '../config/database';
+import { TenantNotFoundError } from '../shared/errors/AppError';
+import { logger } from '../shared/logging/logger';
+import { env } from '../config/env';
+
+export const tenantResolver = async (
+  req: Request,
+  _res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    let tenantId: number | null = null;
+    let tenantUuid: string | null = null;
+
+    // 1. Resolve via headers
+    const headerUuid = req.headers['x-tenant-uuid'] as string;
+    const headerSlug = req.headers['x-tenant-slug'] as string;
+    const headerStoreSlug = req.headers['x-store-slug'] as string;
+
+    if (headerUuid) {
+      const [results]: any = await sequelize.query(
+        'SELECT id, uuid FROM tenants WHERE uuid = :uuid AND status = "active" LIMIT 1',
+        {
+          replacements: { uuid: headerUuid },
+          type: QueryTypes.SELECT,
+        }
+      );
+      if (results) {
+        tenantId = Number(results.id);
+        tenantUuid = results.uuid;
+      }
+    } else if (headerSlug || headerStoreSlug) {
+      const slug = headerSlug || headerStoreSlug;
+      const [results]: any = await sequelize.query(
+        'SELECT id, uuid FROM tenants WHERE slug = :slug AND status = "active" LIMIT 1',
+        {
+          replacements: { slug },
+          type: QueryTypes.SELECT,
+        }
+      );
+      if (!results) {
+        const [storeRes]: any = await sequelize.query(
+          'SELECT tenant_id FROM stores WHERE slug = :slug AND status = "active" LIMIT 1',
+          {
+            replacements: { slug },
+            type: QueryTypes.SELECT,
+          }
+        );
+        if (storeRes) {
+          const tId = storeRes.tenant_id;
+          const [tRes]: any = await sequelize.query(
+            'SELECT id, uuid FROM tenants WHERE id = :tId AND status = "active" LIMIT 1',
+            {
+              replacements: { tId },
+              type: QueryTypes.SELECT,
+            }
+          );
+          if (tRes) {
+            tenantId = Number(tRes.id);
+            tenantUuid = tRes.uuid;
+          }
+        }
+      } else {
+        tenantId = Number(results.id);
+        tenantUuid = results.uuid;
+      }
+    }
+
+    // 2. Resolve via Hostname parsing (subdomains or custom domains)
+    if (!tenantId) {
+      const hostname = req.hostname;
+      const [domainRes]: any = await sequelize.query(
+        'SELECT tenant_id FROM store_domains WHERE domain = :hostname AND verification_status = "verified" LIMIT 1',
+        {
+          replacements: { hostname },
+          type: QueryTypes.SELECT,
+        }
+      );
+
+      let finalTenantId = domainRes ? domainRes.tenant_id : null;
+
+      if (!finalTenantId) {
+        const parts = hostname.split('.');
+        if (parts.length > 2) {
+          const subdomain = parts[0];
+          if (subdomain !== 'www' && subdomain !== 'app' && subdomain !== 'admin') {
+            const [storeRes]: any = await sequelize.query(
+              'SELECT tenant_id FROM stores WHERE slug = :subdomain AND status = "active" LIMIT 1',
+              {
+                replacements: { subdomain },
+                type: QueryTypes.SELECT,
+              }
+            );
+            if (storeRes) {
+              finalTenantId = storeRes.tenant_id;
+            }
+          }
+        }
+      }
+
+      // 3. Fallback to default active tenant if hostname is localhost or local IP
+      if (
+        !finalTenantId &&
+        (hostname === 'localhost' || hostname === '127.0.0.1' || env.NODE_ENV !== 'production')
+      ) {
+        const [defaultTenant]: any = await sequelize.query(
+          'SELECT id, uuid FROM tenants WHERE status = "active" ORDER BY id ASC LIMIT 1',
+          {
+            type: QueryTypes.SELECT,
+          }
+        );
+        if (defaultTenant) {
+          tenantId = Number(defaultTenant.id);
+          tenantUuid = defaultTenant.uuid;
+        }
+      } else if (finalTenantId) {
+        const [tRes]: any = await sequelize.query(
+          'SELECT id, uuid FROM tenants WHERE id = :tenantId AND status = "active" LIMIT 1',
+          {
+            replacements: { tenantId: finalTenantId },
+            type: QueryTypes.SELECT,
+          }
+        );
+        if (tRes) {
+          tenantId = Number(tRes.id);
+          tenantUuid = tRes.uuid;
+        }
+      }
+    }
+
+    if (!tenantId) {
+      throw new TenantNotFoundError();
+    }
+
+    // Store resolved context parameters
+    req.context.tenantId = tenantId;
+    req.context.tenantUuid = tenantUuid;
+    req.tenantId = tenantUuid || undefined;
+
+    next();
+  } catch (error: any) {
+    logger.error(`[TenantResolver Error] ${error?.message || error}`, {
+      path: req.path,
+      hostname: req.hostname,
+      stack: error?.stack,
+    });
+    next(error);
+  }
+};

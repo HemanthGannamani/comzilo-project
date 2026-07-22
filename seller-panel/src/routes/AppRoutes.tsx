@@ -1,0 +1,105 @@
+import React, { Suspense } from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { AuthLayout } from '../layouts/AuthLayout';
+import { MainLayout } from '../layouts/MainLayout';
+import { PosLayout } from '../layouts/PosLayout';
+import { ProtectedRoute } from './ProtectedRoute';
+import { PermissionGuard } from './PermissionGuard';
+import { PageLoader } from '../components/common/PageLoader';
+
+import { LoginPage } from '../pages/auth/LoginPage';
+import { ForgotPasswordPage } from '../pages/auth/ForgotPasswordPage';
+import { ResetPasswordPage } from '../pages/auth/ResetPasswordPage';
+import { ProfilePage } from '../pages/auth/ProfilePage';
+import { DashboardPage } from '../pages/dashboard/DashboardPage';
+
+import { ProductsPage } from '../features/products/pages/ProductsPage';
+import { CategoriesPage } from '../features/products/pages/CategoriesPage';
+import { BrandsPage } from '../features/products/pages/BrandsPage';
+import { CollectionsPage } from '../features/products/pages/CollectionsPage';
+import { TagsPage } from '../features/products/pages/TagsPage';
+
+import { WarehousesPage } from '../features/inventory/pages/WarehousesPage';
+import { WarehouseLocationsPage } from '../features/inventory/pages/WarehouseLocationsPage';
+import { StockBalancesPage } from '../features/inventory/pages/StockBalancesPage';
+import { StockMovementsPage } from '../features/inventory/pages/StockMovementsPage';
+import { StockAdjustmentsPage } from '../features/inventory/pages/StockAdjustmentsPage';
+import { StockTransfersPage } from '../features/inventory/pages/StockTransfersPage';
+import { StockReservationsPage } from '../features/inventory/pages/StockReservationsPage';
+
+import { CustomersPage } from '../features/customers/pages/CustomersPage';
+import { CustomerAddressesPage } from '../features/customers/pages/CustomerAddressesPage';
+import { CustomerDocumentsPage } from '../features/customers/pages/CustomerDocumentsPage';
+import { OrdersPage } from '../features/orders/pages/OrdersPage';
+import { InvoicesPage } from '../features/orders/pages/InvoicesPage';
+import { PaymentsPage } from '../features/payments/pages/PaymentsPage';
+import { RefundsPage } from '../features/payments/pages/RefundsPage';
+
+import { PosTerminalPage } from '../features/pos/pages/PosTerminalPage';
+import { ReceiptsPage } from '../features/pos/pages/ReceiptsPage';
+import { ReportsPage } from '../features/reports/pages/ReportsPage';
+import { NotificationsPage } from '../features/notifications/pages/NotificationsPage';
+import { SettingsPage } from '../features/settings/pages/SettingsPage';
+import { IntegrationsPage } from '../features/integrations/pages/IntegrationsPage';
+
+export const AppRoutes: React.FC = () => {
+  return (
+    <Suspense fallback={<PageLoader />}>
+      <Routes>
+        {/* Public Auth Routes */}
+        <Route element={<AuthLayout />}>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
+        </Route>
+
+        {/* Protected Seller Routes */}
+        <Route element={<ProtectedRoute />}>
+          <Route element={<MainLayout />}>
+            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
+
+            {/* Catalog Routes */}
+            <Route path="/products" element={<PermissionGuard permission="product.read"><ProductsPage /></PermissionGuard>} />
+            <Route path="/categories" element={<PermissionGuard permission="category.read"><CategoriesPage /></PermissionGuard>} />
+            <Route path="/brands" element={<PermissionGuard permission="brand.read"><BrandsPage /></PermissionGuard>} />
+            <Route path="/collections" element={<PermissionGuard permission="collection.read"><CollectionsPage /></PermissionGuard>} />
+            <Route path="/tags" element={<PermissionGuard permission="tag.read"><TagsPage /></PermissionGuard>} />
+
+            {/* Inventory Routes */}
+            <Route path="/warehouses" element={<PermissionGuard permission="warehouse.read"><WarehousesPage /></PermissionGuard>} />
+            <Route path="/warehouse-locations" element={<PermissionGuard permission="warehouse_location.read"><WarehouseLocationsPage /></PermissionGuard>} />
+            <Route path="/inventory" element={<PermissionGuard permission="inventory.read"><StockBalancesPage /></PermissionGuard>} />
+            <Route path="/stock-movements" element={<PermissionGuard permission="stock_movement.read"><StockMovementsPage /></PermissionGuard>} />
+            <Route path="/stock-adjustments" element={<PermissionGuard permission="stock_adjustment.read"><StockAdjustmentsPage /></PermissionGuard>} />
+            <Route path="/stock-transfers" element={<PermissionGuard permission="stock_transfer.read"><StockTransfersPage /></PermissionGuard>} />
+            <Route path="/stock-reservations" element={<PermissionGuard permission="stock_reservation.read"><StockReservationsPage /></PermissionGuard>} />
+
+            {/* Sales & Financials Routes */}
+            <Route path="/customers" element={<PermissionGuard permission="customer.read"><CustomersPage /></PermissionGuard>} />
+            <Route path="/customer-addresses" element={<PermissionGuard permission="customer.read"><CustomerAddressesPage /></PermissionGuard>} />
+            <Route path="/customer-documents" element={<PermissionGuard permission="customer.read"><CustomerDocumentsPage /></PermissionGuard>} />
+            <Route path="/orders" element={<PermissionGuard permission="order.read"><OrdersPage /></PermissionGuard>} />
+            <Route path="/invoices" element={<PermissionGuard permission="invoice.read"><InvoicesPage /></PermissionGuard>} />
+            <Route path="/payments" element={<PermissionGuard permission="payment.read"><PaymentsPage /></PermissionGuard>} />
+            <Route path="/refunds" element={<PermissionGuard permission="refund.read"><RefundsPage /></PermissionGuard>} />
+
+            {/* Platform Extensions & Reports */}
+            <Route path="/receipts" element={<PermissionGuard permission="receipt.read"><ReceiptsPage /></PermissionGuard>} />
+            <Route path="/reports" element={<PermissionGuard permission="report.read"><ReportsPage /></PermissionGuard>} />
+            <Route path="/notifications" element={<PermissionGuard permission="notification.read"><NotificationsPage /></PermissionGuard>} />
+            <Route path="/settings" element={<PermissionGuard permission="settings.read"><SettingsPage /></PermissionGuard>} />
+            <Route path="/integrations" element={<PermissionGuard permission="marketplace.read"><IntegrationsPage /></PermissionGuard>} />
+          </Route>
+
+          <Route element={<PosLayout />}>
+            <Route path="/pos" element={<PermissionGuard permission="pos.access"><PosTerminalPage /></PermissionGuard>} />
+          </Route>
+        </Route>
+
+        {/* Fallback Catch-All */}
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      </Routes>
+    </Suspense>
+  );
+};

@@ -204,6 +204,86 @@ export const adminApi = baseApi.injectEndpoints({
         params,
       }),
     }),
+    getSystemSettings: builder.query<any, void>({
+      query: () => '/admin/settings',
+      providesTags: ['Setting' as any],
+    }),
+    saveSystemSettings: builder.mutation<any, any[]>({
+      query: (settings) => ({
+        url: '/admin/settings',
+        method: 'POST',
+        body: settings,
+      }),
+      invalidatesTags: ['Setting' as any],
+    }),
+    getEmailTemplates: builder.query<any, void>({
+      query: () => '/admin/email-templates',
+      providesTags: ['EmailTemplate' as any],
+    }),
+    saveEmailTemplate: builder.mutation<any, any>({
+      query: (template) => ({
+        url: '/admin/email-templates',
+        method: 'POST',
+        body: template,
+      }),
+      invalidatesTags: ['EmailTemplate' as any],
+    }),
+    getNotifications: builder.query<any, any>({
+      query: (params) => ({
+        url: '/admin/notifications',
+        params,
+      }),
+      providesTags: ['Notification' as any],
+    }),
+    markNotificationRead: builder.mutation<any, string | number>({
+      query: (id) => ({
+        url: `/admin/notifications/${id}/read`,
+        method: 'PATCH',
+      }),
+      invalidatesTags: ['Notification' as any],
+    }),
+    markNotificationUnread: builder.mutation<any, string | number>({
+      query: (id) => ({
+        url: `/admin/notifications/${id}/unread`,
+        method: 'PATCH',
+      }),
+      invalidatesTags: ['Notification' as any],
+    }),
+    getSystemHealth: builder.query<any, void>({
+      query: () => '/admin/system-health',
+    }),
+    getBackups: builder.query<any, void>({
+      query: () => '/admin/backups',
+      providesTags: ['Backup' as any],
+    }),
+    createBackup: builder.mutation<any, void>({
+      query: () => ({
+        url: '/admin/backups',
+        method: 'POST',
+      }),
+      invalidatesTags: ['Backup' as any],
+    }),
+    deleteBackup: builder.mutation<any, string>({
+      query: (filename) => ({
+        url: `/admin/backups/${filename}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['Backup' as any],
+    }),
+    restoreBackup: builder.mutation<any, { filename: string; confirm: boolean }>({
+      query: ({ filename, confirm }) => ({
+        url: `/admin/backups/${filename}/restore`,
+        method: 'POST',
+        body: { confirm },
+      }),
+      invalidatesTags: ['Seller', 'SellerApplication', 'Tenant', 'Store', 'Backup' as any],
+    }),
+    getAuditLogs: builder.query<any, any>({
+      query: (params) => ({
+        url: '/admin/audit-logs',
+        params,
+      }),
+    }),
   }),
 });
 
@@ -236,4 +316,17 @@ export const {
   useGetApplicationsReportQuery,
   useGetTenantsReportQuery,
   useGetStoresReportQuery,
+  useGetSystemSettingsQuery,
+  useSaveSystemSettingsMutation,
+  useGetEmailTemplatesQuery,
+  useSaveEmailTemplateMutation,
+  useGetNotificationsQuery,
+  useMarkNotificationReadMutation,
+  useMarkNotificationUnreadMutation,
+  useGetSystemHealthQuery,
+  useGetBackupsQuery,
+  useCreateBackupMutation,
+  useDeleteBackupMutation,
+  useRestoreBackupMutation,
+  useGetAuditLogsQuery,
 } = adminApi;

@@ -32,6 +32,7 @@ import {
   HeartPulse,
   LogOut,
   ShieldAlert,
+  Bell,
 } from 'lucide-react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
@@ -79,6 +80,7 @@ export const AdminLayout: React.FC = () => {
     { label: 'Integrations & Webhooks', path: '/integrations', icon: <Webhook size={20} /> },
     { label: 'Audit & Activity Logs', path: '/logs', icon: <Activity size={20} /> },
     { label: 'System Health Status', path: '/health', icon: <HeartPulse size={20} /> },
+    { label: 'Notification Center', path: '/notifications', icon: <Bell size={20} /> },
   ];
 
   const drawerContent = (

@@ -68,6 +68,16 @@ import { GiftCardTransaction } from './giftCardTransaction';
 import { ReferralProgram } from './referralProgram';
 import { MarketingCampaign } from './marketingCampaign';
 import { MarketingAutomation } from './marketingAutomation';
+import { CmsTheme } from './cmsTheme';
+import { CmsPage } from './cmsPage';
+import { CmsPageVersion } from './cmsPageVersion';
+import { CmsSection } from './cmsSection';
+import { CmsNavigationMenu } from './cmsNavigationMenu';
+import { CmsNavigationItem } from './cmsNavigationItem';
+import { CmsBlogPost } from './cmsBlogPost';
+import { CmsMediaAsset } from './cmsMediaAsset';
+import { CmsForm } from './cmsForm';
+import { CmsFormSubmission } from './cmsFormSubmission';
 
 // Step 11 Models
 import { Category } from './category';
@@ -561,6 +571,18 @@ CouponRedemption.belongsTo(Coupon, { foreignKey: 'coupon_id', as: 'coupon' });
 GiftCard.hasMany(GiftCardTransaction, { foreignKey: 'gift_card_id', as: 'transactions' });
 GiftCardTransaction.belongsTo(GiftCard, { foreignKey: 'gift_card_id', as: 'giftCard' });
 
+CmsPage.hasMany(CmsSection, { foreignKey: 'page_id', as: 'sections' });
+CmsSection.belongsTo(CmsPage, { foreignKey: 'page_id', as: 'page' });
+
+CmsPage.hasMany(CmsPageVersion, { foreignKey: 'page_id', as: 'versions' });
+CmsPageVersion.belongsTo(CmsPage, { foreignKey: 'page_id', as: 'page' });
+
+CmsNavigationMenu.hasMany(CmsNavigationItem, { foreignKey: 'menu_id', as: 'items' });
+CmsNavigationItem.belongsTo(CmsNavigationMenu, { foreignKey: 'menu_id', as: 'menu' });
+
+CmsForm.hasMany(CmsFormSubmission, { foreignKey: 'form_id', as: 'submissions' });
+CmsFormSubmission.belongsTo(CmsForm, { foreignKey: 'form_id', as: 'form' });
+
 // POS Associations
 POSRegister.hasMany(POSSession, { foreignKey: 'register_id', as: 'sessions' });
 POSSession.belongsTo(POSRegister, { foreignKey: 'register_id', as: 'register' });
@@ -720,4 +742,14 @@ export {
   ReferralProgram,
   MarketingCampaign,
   MarketingAutomation,
+  CmsTheme,
+  CmsPage,
+  CmsPageVersion,
+  CmsSection,
+  CmsNavigationMenu,
+  CmsNavigationItem,
+  CmsBlogPost,
+  CmsMediaAsset,
+  CmsForm,
+  CmsFormSubmission,
 };

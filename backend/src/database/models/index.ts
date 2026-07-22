@@ -41,6 +41,11 @@ import { InventoryCycleCount } from './inventoryCycleCount';
 import { StoreOrderShipment } from './storeOrderShipment';
 import { StoreOrderReturn } from './storeOrderReturn';
 import { StoreOrderStatusHistory } from './storeOrderStatusHistory';
+import { ShippingZone } from './shippingZone';
+import { ShippingMethod } from './shippingMethod';
+import { ShippingCarrier } from './shippingCarrier';
+import { ShipmentTrackingEvent } from './shipmentTrackingEvent';
+import { ShipmentPickup } from './shipmentPickup';
 
 // Step 11 Models
 import { Category } from './category';
@@ -510,6 +515,9 @@ StoreOrderReturn.belongsTo(Order, { foreignKey: 'order_id', as: 'order' });
 Order.hasMany(StoreOrderStatusHistory, { foreignKey: 'order_id', as: 'statusHistory' });
 StoreOrderStatusHistory.belongsTo(Order, { foreignKey: 'order_id', as: 'order' });
 
+ShippingZone.hasMany(ShippingMethod, { foreignKey: 'zone_id', as: 'methods' });
+ShippingMethod.belongsTo(ShippingZone, { foreignKey: 'zone_id', as: 'zone' });
+
 // POS Associations
 POSRegister.hasMany(POSSession, { foreignKey: 'register_id', as: 'sessions' });
 POSSession.belongsTo(POSRegister, { foreignKey: 'register_id', as: 'register' });
@@ -642,4 +650,9 @@ export {
   StoreOrderShipment,
   StoreOrderReturn,
   StoreOrderStatusHistory,
+  ShippingZone,
+  ShippingMethod,
+  ShippingCarrier,
+  ShipmentTrackingEvent,
+  ShipmentPickup,
 };

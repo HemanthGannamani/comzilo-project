@@ -35,6 +35,9 @@ import { BrandSeo } from './brandSeo';
 import { CollectionRule } from './collectionRule';
 import { ProductAttribute } from './productAttribute';
 import { ProductAttributeValue } from './productAttributeValue';
+import { InventoryBatch } from './inventoryBatch';
+import { InventorySerial } from './inventorySerial';
+import { InventoryCycleCount } from './inventoryCycleCount';
 
 // Step 11 Models
 import { Category } from './category';
@@ -621,4 +624,7 @@ export {
   CollectionRule,
   ProductAttribute,
   ProductAttributeValue,
+  InventoryBatch,
+  InventorySerial,
+  InventoryCycleCount,
 };

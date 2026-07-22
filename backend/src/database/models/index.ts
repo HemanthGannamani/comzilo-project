@@ -78,6 +78,13 @@ import { CmsBlogPost } from './cmsBlogPost';
 import { CmsMediaAsset } from './cmsMediaAsset';
 import { CmsForm } from './cmsForm';
 import { CmsFormSubmission } from './cmsFormSubmission';
+import { PosRegisterSession } from './posRegisterSession';
+import { PosCashMovement } from './posCashMovement';
+import { PosSale } from './posSale';
+import { PosSaleItem } from './posSaleItem';
+import { PosSalePayment } from './posSalePayment';
+import { PosReturn } from './posReturn';
+import { PosOfflineQueue } from './posOfflineQueue';
 
 // Step 11 Models
 import { Category } from './category';
@@ -583,6 +590,18 @@ CmsNavigationItem.belongsTo(CmsNavigationMenu, { foreignKey: 'menu_id', as: 'men
 CmsForm.hasMany(CmsFormSubmission, { foreignKey: 'form_id', as: 'submissions' });
 CmsFormSubmission.belongsTo(CmsForm, { foreignKey: 'form_id', as: 'form' });
 
+PosRegisterSession.hasMany(PosCashMovement, { foreignKey: 'session_id', as: 'cashMovements' });
+PosCashMovement.belongsTo(PosRegisterSession, { foreignKey: 'session_id', as: 'session' });
+
+PosRegisterSession.hasMany(PosSale, { foreignKey: 'session_id', as: 'sales' });
+PosSale.belongsTo(PosRegisterSession, { foreignKey: 'session_id', as: 'session' });
+
+PosSale.hasMany(PosSaleItem, { foreignKey: 'sale_id', as: 'items' });
+PosSaleItem.belongsTo(PosSale, { foreignKey: 'sale_id', as: 'sale' });
+
+PosSale.hasMany(PosSalePayment, { foreignKey: 'sale_id', as: 'payments' });
+PosSalePayment.belongsTo(PosSale, { foreignKey: 'sale_id', as: 'sale' });
+
 // POS Associations
 POSRegister.hasMany(POSSession, { foreignKey: 'register_id', as: 'sessions' });
 POSSession.belongsTo(POSRegister, { foreignKey: 'register_id', as: 'register' });
@@ -752,4 +771,11 @@ export {
   CmsMediaAsset,
   CmsForm,
   CmsFormSubmission,
+  PosRegisterSession,
+  PosCashMovement,
+  PosSale,
+  PosSaleItem,
+  PosSalePayment,
+  PosReturn,
+  PosOfflineQueue,
 };

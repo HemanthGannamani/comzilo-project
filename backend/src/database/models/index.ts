@@ -46,6 +46,12 @@ import { ShippingMethod } from './shippingMethod';
 import { ShippingCarrier } from './shippingCarrier';
 import { ShipmentTrackingEvent } from './shipmentTrackingEvent';
 import { ShipmentPickup } from './shipmentPickup';
+import { PaymentGatewayConfig } from './paymentGatewayConfig';
+import { PaymentTransactionAttempt } from './paymentTransactionAttempt';
+import { PaymentSettlement } from './paymentSettlement';
+import { PaymentReconciliation } from './paymentReconciliation';
+import { CreditNote } from './creditNote';
+import { WalletTransaction } from './walletTransaction';
 
 // Step 11 Models
 import { Category } from './category';
@@ -655,4 +661,10 @@ export {
   ShippingCarrier,
   ShipmentTrackingEvent,
   ShipmentPickup,
+  PaymentGatewayConfig,
+  PaymentTransactionAttempt,
+  PaymentSettlement,
+  PaymentReconciliation,
+  CreditNote,
+  WalletTransaction,
 };

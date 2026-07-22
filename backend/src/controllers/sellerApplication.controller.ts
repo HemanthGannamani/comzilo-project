@@ -3,6 +3,7 @@ import { SellerApplication, User } from '../database/models';
 import { created, success } from '../shared/responses';
 import { ValidationError, ConflictError, NotFoundError } from '../shared/errors/AppError';
 import { createAuditLog } from '../utils/auditHelper';
+import { NotificationService } from '../services/notification.service';
 import bcrypt from 'bcrypt';
 import fs from 'fs';
 import path from 'path';
@@ -153,6 +154,15 @@ export class SellerApplicationController {
           req.context
         );
       }
+
+      // Send Email Notification
+      const notificationService = new NotificationService();
+      await notificationService.sendNotification(1, null, {
+        recipient: email,
+        channel: 'email',
+        title: 'Seller Application Submitted',
+        content: `Dear ${ownerName}, your application for ${businessName} has been submitted successfully and is under review.`,
+      });
 
       created(res, 'Seller Application Submitted Successfully', {
         applicationNumber: application.applicationNumber,

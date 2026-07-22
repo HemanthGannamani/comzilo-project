@@ -2,11 +2,13 @@ import { Request, Response, NextFunction } from 'express';
 import { User, UserRole, UserProfile, Tenant, Store, Role } from '../database/models';
 import { sequelize } from '../config/database';
 import { AdminSellerService } from '../services/adminSeller.service';
+import { NotificationService } from '../services/notification.service';
 import { success } from '../shared/responses';
 import { NotFoundError, ValidationError } from '../shared/errors/AppError';
 import { createAuditLog } from '../utils/auditHelper';
 import { Op } from 'sequelize';
 import Joi from 'joi';
+import bcrypt from 'bcrypt';
 
 const sellerService = new AdminSellerService();
 
@@ -64,6 +66,9 @@ export const updateSellerValidationSchema = Joi.object({
   state: Joi.string().allow('', null).max(100).optional(),
   country: Joi.string().allow('', null).max(100).optional(),
   postalCode: Joi.string().allow('', null).max(20).optional(),
+  storeId: Joi.number().allow(null).optional(),
+  roleCode: Joi.string().valid('tenant_owner', 'manager', 'staff').optional(),
+  status: Joi.string().valid('invited', 'active', 'suspended', 'locked', 'disabled').optional(),
 });
 
 export class AdminSellerController {
@@ -243,6 +248,12 @@ export class AdminSellerController {
         throw new NotFoundError('Seller not found');
       }
 
+      if (value.email && user.email !== value.email) {
+        if (user.emailVerifiedAt) {
+          throw new ValidationError('Email cannot be changed as it is already verified');
+        }
+      }
+
       const t = await sequelize.transaction();
 
       try {
@@ -255,8 +266,24 @@ export class AdminSellerController {
 
         if (value.email) user.email = value.email;
         if (value.phone) user.mobile = value.phone;
+        if (value.status) user.status = value.status;
 
         await user.save({ transaction: t });
+
+        // Update Store / Role mappings if requested
+        if (value.storeId !== undefined || value.roleCode !== undefined) {
+          const userRole = await UserRole.findOne({ where: { userId: user.id } });
+          if (userRole) {
+            if (value.storeId !== undefined) userRole.storeId = value.storeId;
+            if (value.roleCode) {
+              const role = await Role.findOne({ where: { code: value.roleCode } });
+              if (role) {
+                userRole.roleId = role.id;
+              }
+            }
+            await userRole.save({ transaction: t });
+          }
+        }
 
         // Update Profile
         const profile = await UserProfile.findOne({ where: { userId: user.id } });
@@ -288,6 +315,16 @@ export class AdminSellerController {
           },
           req.context
         );
+
+        // Send Email Notification
+        const notificationService = new NotificationService();
+        await notificationService.sendNotification(user.tenantId, null, {
+          userId: user.id,
+          recipient: user.email,
+          channel: 'email',
+          title: 'Seller Account Updated',
+          content: `Dear ${user.firstName}, your seller account details have been updated by the administrator.`,
+        });
 
         success(res, 'Seller updated successfully', user);
       } catch (err) {
@@ -336,6 +373,126 @@ export class AdminSellerController {
     }
   };
 
+  public suspendSeller = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { id } = req.params;
+      const { reason } = req.body;
+
+      if (!reason) {
+        throw new ValidationError('Reason is required for suspension');
+      }
+
+      const user = await User.findByPk(id);
+      if (!user) {
+        throw new NotFoundError('Seller not found');
+      }
+
+      user.status = 'suspended';
+      await user.save();
+
+      await createAuditLog(
+        {
+          action: 'seller.suspended',
+          entityType: 'user',
+          entityId: String(user.id),
+          newValues: { reason },
+        },
+        req.context
+      );
+
+      // Send Email Notification
+      const notificationService = new NotificationService();
+      await notificationService.sendNotification(user.tenantId, null, {
+        userId: user.id,
+        recipient: user.email,
+        channel: 'email',
+        title: 'Account Suspended',
+        content: `Dear ${user.firstName}, your account has been suspended. Reason: ${reason}`,
+      });
+
+      success(res, 'Seller suspended successfully', user);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public activateSeller = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const { id } = req.params;
+      const user = await User.findByPk(id);
+      if (!user) {
+        throw new NotFoundError('Seller not found');
+      }
+
+      user.status = 'active';
+      await user.save();
+
+      await createAuditLog(
+        {
+          action: 'seller.activated',
+          entityType: 'user',
+          entityId: String(user.id),
+        },
+        req.context
+      );
+
+      // Send Email Notification
+      const notificationService = new NotificationService();
+      await notificationService.sendNotification(user.tenantId, null, {
+        userId: user.id,
+        recipient: user.email,
+        channel: 'email',
+        title: 'Account Activated',
+        content: `Dear ${user.firstName}, your account has been activated. You can now log in again.`,
+      });
+
+      success(res, 'Seller activated successfully', user);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public resetPassword = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { id } = req.params;
+      const user = await User.findByPk(id);
+      if (!user) {
+        throw new NotFoundError('Seller not found');
+      }
+
+      const tempPassword = Math.random().toString(36).slice(-8) + 'Reset!';
+      user.passwordHash = await bcrypt.hash(tempPassword, 10);
+      await user.save();
+
+      await createAuditLog(
+        {
+          action: 'password.reset',
+          entityType: 'user',
+          entityId: String(user.id),
+        },
+        req.context
+      );
+
+      // Send Email Notification
+      const notificationService = new NotificationService();
+      await notificationService.sendNotification(user.tenantId, null, {
+        userId: user.id,
+        recipient: user.email,
+        channel: 'email',
+        title: 'Password Reset Notification',
+        content: `Dear ${user.firstName}, your temporary password is: ${tempPassword}`,
+      });
+
+      success(res, 'Password reset successfully', { temporaryPassword: tempPassword });
+    } catch (error) {
+      next(error);
+    }
+  };
+
   public deleteSeller = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { id } = req.params;
@@ -348,7 +505,7 @@ export class AdminSellerController {
 
       await createAuditLog(
         {
-          action: 'user.deleted',
+          action: 'seller.deleted',
           entityType: 'user',
           entityId: String(user.id),
         },

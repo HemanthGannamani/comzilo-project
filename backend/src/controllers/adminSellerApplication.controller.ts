@@ -4,6 +4,7 @@ import { success } from '../shared/responses';
 import { NotFoundError, ValidationError } from '../shared/errors/AppError';
 import { createAuditLog } from '../utils/auditHelper';
 import { AdminSellerService } from '../services/adminSeller.service';
+import { NotificationService } from '../services/notification.service';
 import { Op } from 'sequelize';
 
 const sellerService = new AdminSellerService();
@@ -140,7 +141,7 @@ export class AdminSellerApplicationController {
       }
 
       // Reuse the existing onboarding service logic
-      await sellerService.createSeller(
+      const user = await sellerService.createSeller(
         {
           sellerApplicationId: application.id,
           passwordHash: application.passwordHash,
@@ -177,6 +178,15 @@ export class AdminSellerApplicationController {
 
       // Refresh application model state
       await application.reload();
+
+      // Welcome / Approved Notification
+      const notificationService = new NotificationService();
+      await notificationService.sendNotification(user.tenantId || 1, null, {
+        recipient: application.email,
+        channel: 'email',
+        title: 'Welcome to Comzilo - Application Approved!',
+        content: `Dear ${application.ownerName}, your application for ${application.businessName} has been approved. Welcome to the platform!`,
+      });
 
       success(
         res,
@@ -227,6 +237,15 @@ export class AdminSellerApplicationController {
         },
         req.context
       );
+
+      // Rejected Notification
+      const notificationService = new NotificationService();
+      await notificationService.sendNotification(1, null, {
+        recipient: application.email,
+        channel: 'email',
+        title: 'Seller Application Rejected',
+        content: `Dear ${application.ownerName}, your application for ${application.businessName} has been rejected. Reason: ${reason}`,
+      });
 
       success(res, 'Seller application rejected successfully', application);
     } catch (error) {

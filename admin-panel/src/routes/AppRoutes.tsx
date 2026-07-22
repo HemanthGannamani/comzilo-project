@@ -20,6 +20,7 @@ import { SystemHealthPage } from '../pages/health/SystemHealthPage';
 import { SellerApplicationsPage } from '../pages/SellerApplicationsPage';
 import { SellersListPage } from '../pages/SellersListPage';
 import { AddSellerPage } from '../pages/AddSellerPage';
+import { SellerDetailsPage } from '../pages/SellerDetailsPage';
 
 export const AppRoutes: React.FC = () => {
   return (
@@ -36,6 +37,7 @@ export const AppRoutes: React.FC = () => {
             <Route path="/seller-applications" element={<SellerApplicationsPage />} />
             <Route path="/sellers" element={<SellersListPage />} />
             <Route path="/sellers/add" element={<AddSellerPage />} />
+            <Route path="/sellers/:id" element={<SellerDetailsPage />} />
             <Route path="/stores" element={<StoresPage />} />
             <Route path="/subscriptions" element={<SubscriptionPlansPage />} />
             <Route path="/users" element={<PlatformUsersPage />} />

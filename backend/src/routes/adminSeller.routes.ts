@@ -17,6 +17,9 @@ router.get('/:id', requirePermission('tenant.read'), controller.getSeller);
 router.post('/', requirePermission('tenant.update'), controller.createSeller);
 router.patch('/:id', requirePermission('tenant.update'), controller.updateSeller);
 router.patch('/:id/status', requirePermission('tenant.update'), controller.updateSellerStatus);
+router.patch('/:id/suspend', requirePermission('tenant.update'), controller.suspendSeller);
+router.patch('/:id/activate', requirePermission('tenant.update'), controller.activateSeller);
+router.patch('/:id/reset-password', requirePermission('tenant.update'), controller.resetPassword);
 router.delete('/:id', requirePermission('tenant.update'), controller.deleteSeller);
 
 export default router;

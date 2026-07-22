@@ -147,6 +147,28 @@ export const adminApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ['Seller'],
     }),
+    suspendSeller: builder.mutation<any, { id: number | string; reason: string }>({
+      query: ({ id, reason }) => ({
+        url: `/admin/sellers/${id}/suspend`,
+        method: 'PATCH',
+        body: { reason },
+      }),
+      invalidatesTags: ['Seller'],
+    }),
+    activateSeller: builder.mutation<any, number | string>({
+      query: (id) => ({
+        url: `/admin/sellers/${id}/activate`,
+        method: 'PATCH',
+      }),
+      invalidatesTags: ['Seller'],
+    }),
+    resetSellerPassword: builder.mutation<any, number | string>({
+      query: (id) => ({
+        url: `/admin/sellers/${id}/reset-password`,
+        method: 'PATCH',
+      }),
+      invalidatesTags: ['Seller'],
+    }),
     deleteSeller: builder.mutation<any, number | string>({
       query: (id) => ({
         url: `/admin/sellers/${id}`,
@@ -177,5 +199,8 @@ export const {
   useCreateSellerMutation,
   useUpdateSellerMutation,
   useUpdateSellerStatusMutation,
+  useSuspendSellerMutation,
+  useActivateSellerMutation,
+  useResetSellerPasswordMutation,
   useDeleteSellerMutation,
 } = adminApi;

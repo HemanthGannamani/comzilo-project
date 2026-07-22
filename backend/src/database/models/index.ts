@@ -52,6 +52,14 @@ import { PaymentSettlement } from './paymentSettlement';
 import { PaymentReconciliation } from './paymentReconciliation';
 import { CreditNote } from './creditNote';
 import { WalletTransaction } from './walletTransaction';
+import { CustomerSegment } from './customerSegment';
+import { CustomerWishlist } from './customerWishlist';
+import { WishlistItem } from './wishlistItem';
+import { LoyaltyAccount } from './loyaltyAccount';
+import { RewardTransaction } from './rewardTransaction';
+import { SupportTicket } from './supportTicket';
+import { TicketReply } from './ticketReply';
+import { CustomerCommunicationLog } from './customerCommunicationLog';
 
 // Step 11 Models
 import { Category } from './category';
@@ -524,6 +532,21 @@ StoreOrderStatusHistory.belongsTo(Order, { foreignKey: 'order_id', as: 'order' }
 ShippingZone.hasMany(ShippingMethod, { foreignKey: 'zone_id', as: 'methods' });
 ShippingMethod.belongsTo(ShippingZone, { foreignKey: 'zone_id', as: 'zone' });
 
+CustomerWishlist.hasMany(WishlistItem, { foreignKey: 'wishlist_id', as: 'items' });
+WishlistItem.belongsTo(CustomerWishlist, { foreignKey: 'wishlist_id', as: 'wishlist' });
+
+LoyaltyAccount.hasMany(RewardTransaction, {
+  foreignKey: 'loyalty_account_id',
+  as: 'rewardTransactions',
+});
+RewardTransaction.belongsTo(LoyaltyAccount, {
+  foreignKey: 'loyalty_account_id',
+  as: 'loyaltyAccount',
+});
+
+SupportTicket.hasMany(TicketReply, { foreignKey: 'ticket_id', as: 'replies' });
+TicketReply.belongsTo(SupportTicket, { foreignKey: 'ticket_id', as: 'ticket' });
+
 // POS Associations
 POSRegister.hasMany(POSSession, { foreignKey: 'register_id', as: 'sessions' });
 POSSession.belongsTo(POSRegister, { foreignKey: 'register_id', as: 'register' });
@@ -667,4 +690,12 @@ export {
   PaymentReconciliation,
   CreditNote,
   WalletTransaction,
+  CustomerSegment,
+  CustomerWishlist,
+  WishlistItem,
+  LoyaltyAccount,
+  RewardTransaction,
+  SupportTicket,
+  TicketReply,
+  CustomerCommunicationLog,
 };

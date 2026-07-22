@@ -105,6 +105,11 @@ import { FinanceVendorBill } from './financeVendorBill';
 import { FinanceCustomerInvoice } from './financeCustomerInvoice';
 import { FinanceBankAccount } from './financeBankAccount';
 import { FinanceBankReconciliation } from './financeBankReconciliation';
+import { AnalyticsDashboard } from './analyticsDashboard';
+import { AnalyticsWidget } from './analyticsWidget';
+import { AnalyticsSavedReport } from './analyticsSavedReport';
+import { AnalyticsKpi } from './analyticsKpi';
+import { AnalyticsForecast } from './analyticsForecast';
 
 // Step 11 Models
 import { Category } from './category';
@@ -661,6 +666,9 @@ FinanceBankReconciliation.belongsTo(FinanceBankAccount, {
   as: 'bankAccount',
 });
 
+AnalyticsDashboard.hasMany(AnalyticsWidget, { foreignKey: 'dashboard_id', as: 'widgets' });
+AnalyticsWidget.belongsTo(AnalyticsDashboard, { foreignKey: 'dashboard_id', as: 'dashboard' });
+
 // POS Associations
 POSRegister.hasMany(POSSession, { foreignKey: 'register_id', as: 'sessions' });
 POSSession.belongsTo(POSRegister, { foreignKey: 'register_id', as: 'register' });
@@ -857,4 +865,9 @@ export {
   FinanceCustomerInvoice,
   FinanceBankAccount,
   FinanceBankReconciliation,
+  AnalyticsDashboard,
+  AnalyticsWidget,
+  AnalyticsSavedReport,
+  AnalyticsKpi,
+  AnalyticsForecast,
 };

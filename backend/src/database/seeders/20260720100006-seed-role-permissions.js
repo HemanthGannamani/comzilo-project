@@ -4,10 +4,9 @@
 module.exports = {
   async up(queryInterface, Sequelize) {
     // 1. Query roles dynamically
-    const roles = await queryInterface.sequelize.query(
-      'SELECT id, code FROM roles',
-      { type: queryInterface.sequelize.QueryTypes.SELECT }
-    );
+    const roles = await queryInterface.sequelize.query('SELECT id, code FROM roles', {
+      type: queryInterface.sequelize.QueryTypes.SELECT,
+    });
     const superAdminRole = roles.find((r) => r.code === 'super_admin');
     const tenantOwnerRole = roles.find((r) => r.code === 'tenant_owner');
 
@@ -16,10 +15,9 @@ module.exports = {
     }
 
     // 2. Query permissions dynamically
-    const permissions = await queryInterface.sequelize.query(
-      'SELECT id, code FROM permissions',
-      { type: queryInterface.sequelize.QueryTypes.SELECT }
-    );
+    const permissions = await queryInterface.sequelize.query('SELECT id, code FROM permissions', {
+      type: queryInterface.sequelize.QueryTypes.SELECT,
+    });
 
     const rolePermissions = [];
     const now = new Date();

@@ -5,18 +5,18 @@ export const catalogApi = baseApi.injectEndpoints({
     // PRODUCTS
     getProducts: builder.query<any, { page?: number; limit?: number; search?: string; categoryId?: number; brandId?: number; collectionId?: number; status?: string }>({
       query: (params) => ({
-        url: '/products',
+        url: '/store/products',
         params,
       }),
       providesTags: ['Product'],
     }),
     getProductById: builder.query<any, number | string>({
-      query: (id) => `/products/${id}`,
+      query: (id) => `/store/products/${id}`,
       providesTags: ['Product'],
     }),
     createProduct: builder.mutation<any, any>({
       query: (data) => ({
-        url: '/products',
+        url: '/store/products',
         method: 'POST',
         body: data,
       }),
@@ -24,15 +24,15 @@ export const catalogApi = baseApi.injectEndpoints({
     }),
     updateProduct: builder.mutation<any, { id: number | string; data: any }>({
       query: ({ id, data }) => ({
-        url: `/products/${id}`,
-        method: 'PUT',
+        url: `/store/products/${id}`,
+        method: 'PATCH',
         body: data,
       }),
       invalidatesTags: ['Product'],
     }),
     deleteProduct: builder.mutation<any, number | string>({
       query: (id) => ({
-        url: `/products/${id}`,
+        url: `/store/products/${id}`,
         method: 'DELETE',
       }),
       invalidatesTags: ['Product'],

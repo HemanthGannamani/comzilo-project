@@ -52,7 +52,7 @@ module.exports = {
       amount: {
         type: Sequelize.DECIMAL(15, 4),
         allowNull: false,
-        defaultValue: 0.0000,
+        defaultValue: 0.0,
       },
       reason: {
         type: Sequelize.STRING(255),

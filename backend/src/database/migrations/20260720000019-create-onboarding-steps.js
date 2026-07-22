@@ -4,8 +4,8 @@
 module.exports = {
   async up(queryInterface, Sequelize) {
     // Ensure clean state: drop existing table if it exists
-await queryInterface.dropTable('onboarding_steps').catch(() => {});
-await queryInterface.createTable(
+    await queryInterface.dropTable('onboarding_steps').catch(() => {});
+    await queryInterface.createTable(
       'onboarding_steps',
       {
         id: {

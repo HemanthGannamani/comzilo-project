@@ -57,7 +57,6 @@ module.exports = {
       }
     );
 
-
     // Add unique composite constraint on tenant_id + code
     // Note: in MySQL, unique indexes allow multiple NULL values. To ensure global uniqueness
     // where tenant_id is null, we will define a unique index on (tenant_id, code).

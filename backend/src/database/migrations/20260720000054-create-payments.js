@@ -54,7 +54,15 @@ module.exports = {
         allowNull: false,
       },
       payment_status: {
-        type: Sequelize.ENUM('pending', 'authorized', 'paid', 'failed', 'cancelled', 'refunded', 'partially_refunded'),
+        type: Sequelize.ENUM(
+          'pending',
+          'authorized',
+          'paid',
+          'failed',
+          'cancelled',
+          'refunded',
+          'partially_refunded'
+        ),
         allowNull: false,
         defaultValue: 'pending',
       },
@@ -74,7 +82,7 @@ module.exports = {
       amount: {
         type: Sequelize.DECIMAL(15, 4),
         allowNull: false,
-        defaultValue: 0.0000,
+        defaultValue: 0.0,
       },
       currency: {
         type: Sequelize.STRING(10),
@@ -84,7 +92,7 @@ module.exports = {
       exchange_rate: {
         type: Sequelize.DECIMAL(15, 6),
         allowNull: false,
-        defaultValue: 1.000000,
+        defaultValue: 1.0,
       },
       paid_at: {
         type: Sequelize.DATE,

@@ -50,7 +50,14 @@ module.exports = {
         onDelete: 'CASCADE',
       },
       status: {
-        type: Sequelize.ENUM('draft', 'pending', 'confirmed', 'processing', 'completed', 'cancelled'),
+        type: Sequelize.ENUM(
+          'draft',
+          'pending',
+          'confirmed',
+          'processing',
+          'completed',
+          'cancelled'
+        ),
         allowNull: false,
         defaultValue: 'draft',
       },
@@ -67,27 +74,27 @@ module.exports = {
       subtotal: {
         type: Sequelize.DECIMAL(15, 4),
         allowNull: false,
-        defaultValue: 0.0000,
+        defaultValue: 0.0,
       },
       discount_amount: {
         type: Sequelize.DECIMAL(15, 4),
         allowNull: false,
-        defaultValue: 0.0000,
+        defaultValue: 0.0,
       },
       tax_amount: {
         type: Sequelize.DECIMAL(15, 4),
         allowNull: false,
-        defaultValue: 0.0000,
+        defaultValue: 0.0,
       },
       shipping_amount: {
         type: Sequelize.DECIMAL(15, 4),
         allowNull: false,
-        defaultValue: 0.0000,
+        defaultValue: 0.0,
       },
       total_amount: {
         type: Sequelize.DECIMAL(15, 4),
         allowNull: false,
-        defaultValue: 0.0000,
+        defaultValue: 0.0,
       },
       currency: {
         type: Sequelize.STRING(10),

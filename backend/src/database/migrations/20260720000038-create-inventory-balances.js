@@ -105,10 +105,14 @@ module.exports = {
       },
     });
 
-    await queryInterface.addIndex('inventory_balances', ['tenant_id', 'store_id', 'warehouse_id', 'warehouse_location_id', 'product_id'], {
-      unique: true,
-      name: 'uq_inv_bal_scope',
-    });
+    await queryInterface.addIndex(
+      'inventory_balances',
+      ['tenant_id', 'store_id', 'warehouse_id', 'warehouse_location_id', 'product_id'],
+      {
+        unique: true,
+        name: 'uq_inv_bal_scope',
+      }
+    );
   },
 
   down: async (queryInterface, Sequelize) => {

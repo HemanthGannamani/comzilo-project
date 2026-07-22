@@ -19,6 +19,17 @@ import { Subscription } from './subscription';
 import { Media } from './media';
 import { Product } from './product';
 import { ProductMedia } from './productMedia';
+import { ProductType } from './productType';
+import { ProductVariant } from './productVariant';
+import { ProductOptionSet } from './productOptionSet';
+import { ProductOptionValue } from './productOptionValue';
+import { ProductPrice } from './productPrice';
+import { ProductDownload } from './productDownload';
+import { ProductSeo } from './productSeo';
+import { ProductShipping } from './productShipping';
+import { ProductVirtual } from './productVirtual';
+import { ProductPodTemplate } from './productPodTemplate';
+import { ProductVersion } from './productVersion';
 
 // Step 11 Models
 import { Category } from './category';
@@ -205,6 +216,49 @@ Product.belongsTo(Tenant, { foreignKey: 'tenant_id', as: 'tenant' });
 // Store <-> Product
 Store.hasMany(Product, { foreignKey: 'store_id', as: 'products' });
 Product.belongsTo(Store, { foreignKey: 'store_id', as: 'store' });
+
+// Product <-> ProductType
+ProductType.hasMany(Product, { foreignKey: 'product_type_id', as: 'products' });
+Product.belongsTo(ProductType, { foreignKey: 'product_type_id', as: 'productType' });
+
+// Product <-> ProductVariant
+Product.hasMany(ProductVariant, { foreignKey: 'product_id', as: 'variants' });
+ProductVariant.belongsTo(Product, { foreignKey: 'product_id', as: 'product' });
+
+// Product <-> ProductOptionSet & ProductOptionValue
+Product.hasMany(ProductOptionSet, { foreignKey: 'product_id', as: 'optionSets' });
+ProductOptionSet.belongsTo(Product, { foreignKey: 'product_id', as: 'product' });
+
+ProductOptionSet.hasMany(ProductOptionValue, { foreignKey: 'option_set_id', as: 'values' });
+ProductOptionValue.belongsTo(ProductOptionSet, { foreignKey: 'option_set_id', as: 'optionSet' });
+
+// Product <-> ProductPrice
+Product.hasMany(ProductPrice, { foreignKey: 'product_id', as: 'prices' });
+ProductPrice.belongsTo(Product, { foreignKey: 'product_id', as: 'product' });
+
+// Product <-> ProductDownload
+Product.hasMany(ProductDownload, { foreignKey: 'product_id', as: 'downloads' });
+ProductDownload.belongsTo(Product, { foreignKey: 'product_id', as: 'product' });
+
+// Product <-> ProductSeo
+Product.hasOne(ProductSeo, { foreignKey: 'product_id', as: 'seoRecord' });
+ProductSeo.belongsTo(Product, { foreignKey: 'product_id', as: 'product' });
+
+// Product <-> ProductShipping
+Product.hasOne(ProductShipping, { foreignKey: 'product_id', as: 'shippingRecord' });
+ProductShipping.belongsTo(Product, { foreignKey: 'product_id', as: 'product' });
+
+// Product <-> ProductVirtual
+Product.hasOne(ProductVirtual, { foreignKey: 'product_id', as: 'virtualRecord' });
+ProductVirtual.belongsTo(Product, { foreignKey: 'product_id', as: 'product' });
+
+// Product <-> ProductPodTemplate
+Product.hasOne(ProductPodTemplate, { foreignKey: 'product_id', as: 'podTemplateRecord' });
+ProductPodTemplate.belongsTo(Product, { foreignKey: 'product_id', as: 'product' });
+
+// Product <-> ProductVersion
+Product.hasMany(ProductVersion, { foreignKey: 'product_id', as: 'versions' });
+ProductVersion.belongsTo(Product, { foreignKey: 'product_id', as: 'product' });
 
 // User <-> Product (Creator/Updater)
 User.hasMany(Product, { foreignKey: 'created_by', as: 'createdProducts' });
@@ -542,4 +596,15 @@ export {
   Integration,
   IntegrationSyncLog,
   SellerApplication,
+  ProductType,
+  ProductVariant,
+  ProductOptionSet,
+  ProductOptionValue,
+  ProductPrice,
+  ProductDownload,
+  ProductSeo,
+  ProductShipping,
+  ProductVirtual,
+  ProductPodTemplate,
+  ProductVersion,
 };

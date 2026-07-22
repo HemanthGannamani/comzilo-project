@@ -191,14 +191,16 @@ import adminSellerApplicationRoutes from './routes/adminSellerApplication.routes
 import adminSellerRoutes from './routes/adminSeller.routes';
 import adminDashboardRoutes from './routes/adminDashboard.routes';
 import adminSystemRoutes from './routes/adminSystem.routes';
+import storeProductRoutes from './routes/storeProduct.routes';
 
 app.use('/api/v1/webhooks', webhookRoutes);
 app.use('/api/v1/integrations', integrationRoutes);
 app.use('/api/v1/seller-applications', sellerApplicationRoutes);
 app.use('/api/v1/admin/seller-applications', adminSellerApplicationRoutes);
 app.use('/api/v1/admin/sellers', adminSellerRoutes);
-app.use('/api/v1/admin', adminDashboardRoutes);
+app.use('/api/v1/admin/dashboard', adminDashboardRoutes);
 app.use('/api/v1/admin', adminSystemRoutes);
+app.use('/api/v1/store/products', storeProductRoutes);
 
 // Swagger OpenAPI Documentation UI
 app.use('/api/v1/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));

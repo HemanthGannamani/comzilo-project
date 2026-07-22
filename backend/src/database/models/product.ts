@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Model, DataTypes, Optional } from 'sequelize';
 import { sequelize } from '../../config/database';
 
@@ -5,13 +6,14 @@ export interface ProductAttributes {
   id: number;
   tenantId: number;
   storeId: number;
+  productTypeId?: number | null;
   name: string;
   slug: string;
   sku: string;
   shortDescription: string | null;
   description: string | null;
-  status: 'draft' | 'active' | 'archived' | 'deleted';
-  visibility: 'public' | 'private' | 'hidden';
+  status: 'draft' | 'active' | 'published' | 'private' | 'archived' | 'deleted';
+  visibility: 'public' | 'private' | 'hidden' | 'password_protected';
   brand: string | null;
   brandId: number | null;
   category: string | null;
@@ -36,6 +38,7 @@ export interface ProductAttributes {
 export type ProductCreationAttributes = Optional<
   ProductAttributes,
   | 'id'
+  | 'productTypeId'
   | 'shortDescription'
   | 'description'
   | 'status'
@@ -66,13 +69,14 @@ export class Product
   declare id: number;
   declare tenantId: number;
   declare storeId: number;
+  declare productTypeId: number | null;
   declare name: string;
   declare slug: string;
   declare sku: string;
   declare shortDescription: string | null;
   declare description: string | null;
-  declare status: 'draft' | 'active' | 'archived' | 'deleted';
-  declare visibility: 'public' | 'private' | 'hidden';
+  declare status: 'draft' | 'active' | 'published' | 'private' | 'archived' | 'deleted';
+  declare visibility: 'public' | 'private' | 'hidden' | 'password_protected';
   declare brand: string | null;
   declare brandId: number | null;
   declare category: string | null;
@@ -90,14 +94,21 @@ export class Product
   declare createdBy: number | null;
   declare updatedBy: number | null;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  declare productType?: any;
   declare categories?: any[];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   declare brandRecord?: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   declare collections?: any[];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   declare tags?: any[];
+  declare variants?: any[];
+  declare media?: any[];
+  declare downloads?: any[];
+  declare seoRecord?: any;
+  declare shippingRecord?: any;
+  declare virtualRecord?: any;
+  declare podTemplateRecord?: any;
+  declare prices?: any[];
+  declare optionSets?: any[];
+  declare versions?: any[];
 
   declare readonly createdAt: Date;
   declare readonly updatedAt: Date;
@@ -122,6 +133,11 @@ Product.init(
       allowNull: false,
       field: 'store_id',
     },
+    productTypeId: {
+      type: DataTypes.BIGINT.UNSIGNED,
+      allowNull: true,
+      field: 'product_type_id',
+    },
     name: {
       type: DataTypes.STRING(255),
       allowNull: false,
@@ -144,12 +160,12 @@ Product.init(
       allowNull: true,
     },
     status: {
-      type: DataTypes.ENUM('draft', 'active', 'archived', 'deleted'),
+      type: DataTypes.STRING(20),
       allowNull: false,
       defaultValue: 'draft',
     },
     visibility: {
-      type: DataTypes.ENUM('public', 'private', 'hidden'),
+      type: DataTypes.STRING(20),
       allowNull: false,
       defaultValue: 'public',
     },

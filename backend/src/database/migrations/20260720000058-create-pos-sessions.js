@@ -58,7 +58,7 @@ module.exports = {
       opening_cash: {
         type: Sequelize.DECIMAL(15, 4),
         allowNull: false,
-        defaultValue: 0.0000,
+        defaultValue: 0.0,
       },
       closing_cash: {
         type: Sequelize.DECIMAL(15, 4),
@@ -75,12 +75,12 @@ module.exports = {
       total_sales: {
         type: Sequelize.DECIMAL(15, 4),
         allowNull: false,
-        defaultValue: 0.0000,
+        defaultValue: 0.0,
       },
       total_refunds: {
         type: Sequelize.DECIMAL(15, 4),
         allowNull: false,
-        defaultValue: 0.0000,
+        defaultValue: 0.0,
       },
       status: {
         type: Sequelize.ENUM('open', 'closed'),

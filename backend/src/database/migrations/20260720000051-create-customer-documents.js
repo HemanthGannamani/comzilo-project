@@ -50,7 +50,13 @@ module.exports = {
         onDelete: 'CASCADE',
       },
       document_type: {
-        type: Sequelize.ENUM('gst_certificate', 'tax_document', 'identity_proof', 'business_license', 'other'),
+        type: Sequelize.ENUM(
+          'gst_certificate',
+          'tax_document',
+          'identity_proof',
+          'business_license',
+          'other'
+        ),
         allowNull: false,
         defaultValue: 'other',
       },

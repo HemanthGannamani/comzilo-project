@@ -51,7 +51,7 @@ module.exports = {
       opening_amount: {
         type: Sequelize.DECIMAL(15, 4),
         allowNull: false,
-        defaultValue: 0.0000,
+        defaultValue: 0.0,
       },
       opening_time: {
         type: Sequelize.DATE,

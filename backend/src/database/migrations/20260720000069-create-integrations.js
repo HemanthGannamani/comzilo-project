@@ -40,7 +40,14 @@ module.exports = {
           onDelete: 'CASCADE',
         },
         provider: {
-          type: Sequelize.ENUM('shopify', 'woocommerce', 'stripe', 'quickbooks', 'zapier', 'custom'),
+          type: Sequelize.ENUM(
+            'shopify',
+            'woocommerce',
+            'stripe',
+            'quickbooks',
+            'zapier',
+            'custom'
+          ),
           allowNull: false,
         },
         name: {

@@ -194,6 +194,7 @@ import adminSystemRoutes from './routes/adminSystem.routes';
 import storeProductRoutes from './routes/storeProduct.routes';
 import storeCatalogRoutes from './routes/storeCatalog.routes';
 import storeInventoryRoutes from './routes/storeInventory.routes';
+import storeOrderRoutes from './routes/storeOrder.routes';
 
 app.use('/api/v1/webhooks', webhookRoutes);
 app.use('/api/v1/integrations', integrationRoutes);
@@ -204,6 +205,7 @@ app.use('/api/v1/admin/dashboard', adminDashboardRoutes);
 app.use('/api/v1/admin/system', adminSystemRoutes);
 app.use('/api/v1/store/products', storeProductRoutes);
 app.use('/api/v1/store/inventory', storeInventoryRoutes);
+app.use('/api/v1/store/orders', storeOrderRoutes);
 app.use('/api/v1/store', storeCatalogRoutes);
 
 // Swagger OpenAPI Documentation UI

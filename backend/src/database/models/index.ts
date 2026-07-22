@@ -38,6 +38,9 @@ import { ProductAttributeValue } from './productAttributeValue';
 import { InventoryBatch } from './inventoryBatch';
 import { InventorySerial } from './inventorySerial';
 import { InventoryCycleCount } from './inventoryCycleCount';
+import { StoreOrderShipment } from './storeOrderShipment';
+import { StoreOrderReturn } from './storeOrderReturn';
+import { StoreOrderStatusHistory } from './storeOrderStatusHistory';
 
 // Step 11 Models
 import { Category } from './category';
@@ -498,6 +501,15 @@ Refund.belongsTo(Payment, { foreignKey: 'payment_id', as: 'payment' });
 Refund.belongsTo(Tenant, { foreignKey: 'tenant_id', as: 'tenant' });
 Refund.belongsTo(Store, { foreignKey: 'store_id', as: 'store' });
 
+Order.hasMany(StoreOrderShipment, { foreignKey: 'order_id', as: 'shipments' });
+StoreOrderShipment.belongsTo(Order, { foreignKey: 'order_id', as: 'order' });
+
+Order.hasMany(StoreOrderReturn, { foreignKey: 'order_id', as: 'returns' });
+StoreOrderReturn.belongsTo(Order, { foreignKey: 'order_id', as: 'order' });
+
+Order.hasMany(StoreOrderStatusHistory, { foreignKey: 'order_id', as: 'statusHistory' });
+StoreOrderStatusHistory.belongsTo(Order, { foreignKey: 'order_id', as: 'order' });
+
 // POS Associations
 POSRegister.hasMany(POSSession, { foreignKey: 'register_id', as: 'sessions' });
 POSSession.belongsTo(POSRegister, { foreignKey: 'register_id', as: 'register' });
@@ -627,4 +639,7 @@ export {
   InventoryBatch,
   InventorySerial,
   InventoryCycleCount,
+  StoreOrderShipment,
+  StoreOrderReturn,
+  StoreOrderStatusHistory,
 };

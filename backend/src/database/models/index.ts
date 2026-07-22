@@ -30,6 +30,11 @@ import { ProductShipping } from './productShipping';
 import { ProductVirtual } from './productVirtual';
 import { ProductPodTemplate } from './productPodTemplate';
 import { ProductVersion } from './productVersion';
+import { CategorySeo } from './categorySeo';
+import { BrandSeo } from './brandSeo';
+import { CollectionRule } from './collectionRule';
+import { ProductAttribute } from './productAttribute';
+import { ProductAttributeValue } from './productAttributeValue';
 
 // Step 11 Models
 import { Category } from './category';
@@ -297,6 +302,10 @@ Category.hasMany(Category, { foreignKey: 'parent_id', as: 'children' });
 Category.belongsTo(Media, { foreignKey: 'image_media_id', as: 'image' });
 Category.belongsTo(User, { foreignKey: 'created_by', as: 'creator' });
 Category.belongsTo(User, { foreignKey: 'updated_by', as: 'updater' });
+Category.hasOne(CategorySeo, { foreignKey: 'category_id', as: 'seoRecord' });
+CategorySeo.belongsTo(Category, { foreignKey: 'category_id', as: 'category' });
+ProductAttribute.hasMany(ProductAttributeValue, { foreignKey: 'attribute_id', as: 'values' });
+ProductAttributeValue.belongsTo(ProductAttribute, { foreignKey: 'attribute_id', as: 'attribute' });
 Category.belongsToMany(Product, {
   through: ProductCategory,
   foreignKey: 'category_id',
@@ -607,4 +616,9 @@ export {
   ProductVirtual,
   ProductPodTemplate,
   ProductVersion,
+  CategorySeo,
+  BrandSeo,
+  CollectionRule,
+  ProductAttribute,
+  ProductAttributeValue,
 };

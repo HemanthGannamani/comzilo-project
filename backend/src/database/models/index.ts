@@ -97,6 +97,14 @@ import { GoodsReceiptItem } from './goodsReceiptItem';
 import { SupplierReturn } from './supplierReturn';
 import { PurchaseInvoice } from './purchaseInvoice';
 import { SupplierPayment } from './supplierPayment';
+import { FinanceChartOfAccount } from './financeChartOfAccount';
+import { FinanceJournalEntry } from './financeJournalEntry';
+import { FinanceJournalLine } from './financeJournalLine';
+import { FinanceGeneralLedger } from './financeGeneralLedger';
+import { FinanceVendorBill } from './financeVendorBill';
+import { FinanceCustomerInvoice } from './financeCustomerInvoice';
+import { FinanceBankAccount } from './financeBankAccount';
+import { FinanceBankReconciliation } from './financeBankReconciliation';
 
 // Step 11 Models
 import { Category } from './category';
@@ -632,6 +640,27 @@ GoodsReceiptItem.belongsTo(GoodsReceipt, { foreignKey: 'grn_id', as: 'grn' });
 PurchaseInvoice.hasMany(SupplierPayment, { foreignKey: 'invoice_id', as: 'payments' });
 SupplierPayment.belongsTo(PurchaseInvoice, { foreignKey: 'invoice_id', as: 'invoice' });
 
+FinanceJournalEntry.hasMany(FinanceJournalLine, { foreignKey: 'entry_id', as: 'lines' });
+FinanceJournalLine.belongsTo(FinanceJournalEntry, { foreignKey: 'entry_id', as: 'entry' });
+
+FinanceJournalLine.belongsTo(FinanceChartOfAccount, { foreignKey: 'account_id', as: 'account' });
+FinanceChartOfAccount.hasMany(FinanceJournalLine, { foreignKey: 'account_id', as: 'lines' });
+
+FinanceGeneralLedger.belongsTo(FinanceChartOfAccount, { foreignKey: 'account_id', as: 'account' });
+FinanceChartOfAccount.hasMany(FinanceGeneralLedger, {
+  foreignKey: 'account_id',
+  as: 'ledgerEntries',
+});
+
+FinanceBankAccount.hasMany(FinanceBankReconciliation, {
+  foreignKey: 'bank_account_id',
+  as: 'reconciliations',
+});
+FinanceBankReconciliation.belongsTo(FinanceBankAccount, {
+  foreignKey: 'bank_account_id',
+  as: 'bankAccount',
+});
+
 // POS Associations
 POSRegister.hasMany(POSSession, { foreignKey: 'register_id', as: 'sessions' });
 POSSession.belongsTo(POSRegister, { foreignKey: 'register_id', as: 'register' });
@@ -820,4 +849,12 @@ export {
   SupplierReturn,
   PurchaseInvoice,
   SupplierPayment,
+  FinanceChartOfAccount,
+  FinanceJournalEntry,
+  FinanceJournalLine,
+  FinanceGeneralLedger,
+  FinanceVendorBill,
+  FinanceCustomerInvoice,
+  FinanceBankAccount,
+  FinanceBankReconciliation,
 };

@@ -27,8 +27,50 @@ import { axiosInstance } from '../../api/axiosInstance';
 import toast from 'react-hot-toast';
 import { Truck, CheckCircle2, ShieldCheck, RefreshCw, Settings, MapPin, Package, FileText, Activity, Globe, Send } from 'lucide-react';
 
-export const ShippingProvidersPage: React.FC = () => {
-  const [tabIndex, setTabIndex] = useState(0);
+import { useLocation, useNavigate } from 'react-router-dom';
+
+interface ShippingProvidersPageProps {
+  defaultTab?: number;
+}
+
+export const ShippingProvidersPage: React.FC<ShippingProvidersPageProps> = ({ defaultTab }) => {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const getInitialTab = (): number => {
+    if (defaultTab !== undefined) return defaultTab;
+    const path = location.pathname;
+    if (path.includes('/zones')) return 1;
+    if (path.includes('/methods')) return 2;
+    if (path.includes('/pickup-addresses')) return 3;
+    if (path.includes('/packaging')) return 4;
+    if (path.includes('/labels')) return 5;
+    if (path.includes('/logs')) return 6;
+    return 0;
+  };
+
+  const [tabIndex, setTabIndex] = useState<number>(getInitialTab);
+
+  useEffect(() => {
+    setTabIndex(getInitialTab());
+  }, [location.pathname, defaultTab]);
+
+  const handleTabChange = (_: any, newIndex: number) => {
+    setTabIndex(newIndex);
+    const routePaths = [
+      '/settings/shipping-providers',
+      '/settings/shipping/zones',
+      '/settings/shipping/methods',
+      '/settings/shipping/pickup-addresses',
+      '/settings/shipping/packaging',
+      '/settings/shipping/labels',
+      '/settings/shipping/logs',
+    ];
+    if (routePaths[newIndex]) {
+      navigate(routePaths[newIndex]);
+    }
+  };
+
   const [providers, setProviders] = useState<any[]>([]);
   const [zones, setZones] = useState<any[]>([]);
   const [methods, setMethods] = useState<any[]>([]);
@@ -144,7 +186,7 @@ export const ShippingProvidersPage: React.FC = () => {
   return (
     <PageContainer title="Shipping & Logistics Management" subtitle="Configure 18+ multi-carrier logistics, shipping zones, rates, packages, and live tracking">
       <Paper sx={{ mb: 3, borderRadius: 3 }}>
-        <Tabs value={tabIndex} onChange={(_, val) => setTabIndex(val)} variant="scrollable" scrollButtons="auto">
+        <Tabs value={tabIndex} onChange={handleTabChange} variant="scrollable" scrollButtons="auto">
           <Tab label="Shipping Providers (18)" icon={<Truck size={18} />} iconPosition="start" />
           <Tab label="Shipping Zones" icon={<Globe size={18} />} iconPosition="start" />
           <Tab label="Shipping Methods" icon={<Send size={18} />} iconPosition="start" />

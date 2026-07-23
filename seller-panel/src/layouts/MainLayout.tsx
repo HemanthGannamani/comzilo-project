@@ -36,6 +36,13 @@ import {
   LogOut,
   Sun,
   Moon,
+  Truck,
+  Globe,
+  Send,
+  MapPin,
+  FileText,
+  Activity,
+  PackageCheck,
 } from 'lucide-react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
@@ -46,9 +53,10 @@ const DRAWER_WIDTH = 260;
 
 interface NavItem {
   label: string;
-  path: string;
-  icon: React.ReactNode;
+  path?: string;
+  icon?: React.ReactNode;
   permission?: string;
+  isHeader?: boolean;
 }
 
 export const MainLayout: React.FC = () => {
@@ -83,6 +91,17 @@ export const MainLayout: React.FC = () => {
     { label: 'Sales Orders', path: '/orders', icon: <ShoppingCart size={20} />, permission: 'order.read' },
     { label: 'Invoices', path: '/invoices', icon: <Receipt size={20} />, permission: 'invoice.read' },
     { label: 'Payments', path: '/payments', icon: <CreditCard size={20} />, permission: 'payment.read' },
+
+    { isHeader: true, label: 'Shipping' },
+    { label: 'Shipping Providers', path: '/settings/shipping-providers', icon: <Truck size={20} /> },
+    { label: 'Shipping Zones', path: '/settings/shipping/zones', icon: <Globe size={20} /> },
+    { label: 'Shipping Methods', path: '/settings/shipping/methods', icon: <Send size={20} /> },
+    { label: 'Pickup Addresses', path: '/settings/shipping/pickup-addresses', icon: <MapPin size={20} /> },
+    { label: 'Packaging', path: '/settings/shipping/packaging', icon: <PackageCheck size={20} /> },
+    { label: 'Shipping Labels', path: '/settings/shipping/labels', icon: <FileText size={20} /> },
+    { label: 'Shipment Logs', path: '/settings/shipping/logs', icon: <Activity size={20} /> },
+
+    { isHeader: true, label: 'Store Management' },
     { label: 'POS Terminal', path: '/pos', icon: <MonitorCheck size={20} />, permission: 'pos.access' },
     { label: 'Reports & Export', path: '/reports', icon: <BarChart3 size={20} />, permission: 'report.read' },
     { label: 'Notifications', path: '/notifications', icon: <Bell size={20} />, permission: 'notification.read' },
@@ -112,15 +131,37 @@ export const MainLayout: React.FC = () => {
       </Box>
       <Divider />
       <List sx={{ flexGrow: 1, px: 1.5, py: 1, overflowY: 'auto' }}>
-        {navItems.map((item) => {
+        {navItems.map((item, index) => {
+          if (item.isHeader) {
+            return (
+              <Typography
+                key={`header-${index}`}
+                variant="caption"
+                sx={{
+                  display: 'block',
+                  px: 1.5,
+                  pt: 2,
+                  pb: 0.5,
+                  fontSize: '0.68rem',
+                  fontWeight: 800,
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                  color: 'text.secondary',
+                }}
+              >
+                {item.label}
+              </Typography>
+            );
+          }
+
           if (!hasPermission(item.permission)) return null;
 
-          const isSelected = location.pathname.startsWith(item.path);
+          const isSelected = item.path ? location.pathname === item.path || location.pathname.startsWith(item.path + '/') : false;
 
           return (
             <ListItemButton
-              key={item.path}
-              onClick={() => navigate(item.path)}
+              key={item.path || `item-${index}`}
+              onClick={() => item.path && navigate(item.path)}
               selected={isSelected}
               sx={{
                 borderRadius: 2,

@@ -92,7 +92,17 @@ export const AppRoutes: React.FC = () => {
             <Route path="/reports" element={<PermissionGuard permission="report.read"><ReportsPage /></PermissionGuard>} />
             <Route path="/notifications" element={<PermissionGuard permission="notification.read"><NotificationsPage /></PermissionGuard>} />
             <Route path="/settings" element={<PermissionGuard permission="settings.read"><SettingsPage /></PermissionGuard>} />
-            <Route path="/settings/shipping-providers" element={<PermissionGuard permission="store.view"><ShippingProvidersPage /></PermissionGuard>} />
+
+            {/* Shipping Routes */}
+            <Route path="/shipping-providers" element={<ShippingProvidersPage defaultTab={0} />} />
+            <Route path="/settings/shipping-providers" element={<ShippingProvidersPage defaultTab={0} />} />
+            <Route path="/settings/shipping/zones" element={<ShippingProvidersPage defaultTab={1} />} />
+            <Route path="/settings/shipping/methods" element={<ShippingProvidersPage defaultTab={2} />} />
+            <Route path="/settings/shipping/pickup-addresses" element={<ShippingProvidersPage defaultTab={3} />} />
+            <Route path="/settings/shipping/packaging" element={<ShippingProvidersPage defaultTab={4} />} />
+            <Route path="/settings/shipping/labels" element={<ShippingProvidersPage defaultTab={5} />} />
+            <Route path="/settings/shipping/logs" element={<ShippingProvidersPage defaultTab={6} />} />
+
             <Route path="/integrations" element={<PermissionGuard permission="marketplace.read"><IntegrationsPage /></PermissionGuard>} />
           </Route>
 

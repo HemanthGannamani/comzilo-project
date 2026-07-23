@@ -59,10 +59,9 @@ import {
   Eye,
   ArrowUpRight,
   ArrowDownRight,
-  PackageCheck,
   Printer,
-  ShieldAlert,
   Download,
+  CheckCircle2,
 } from 'lucide-react';
 
 interface InventoryManagementPageProps {
@@ -141,6 +140,19 @@ export const InventoryManagementPage: React.FC<InventoryManagementPageProps> = (
   const [serials, setSerials] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Warehouse Location Modal State
+  const [locationModalOpen, setLocationModalOpen] = useState(false);
+  const [locationForm, setLocationForm] = useState({
+    warehouseId: '',
+    name: '',
+    code: '',
+    aisle: 'A1',
+    rack: 'R01',
+    shelf: 'S01',
+    bin: 'B01',
+    zone: 'General Storage',
+  });
+
   // Modals & Forms State
   const [supplierModalOpen, setSupplierModalOpen] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState<any>(null);
@@ -190,6 +202,9 @@ export const InventoryManagementPage: React.FC<InventoryManagementPageProps> = (
     notes: 'Warehouse reallocation',
   });
 
+  // Barcode State
+  const [selectedBarcodeSku, setSelectedBarcodeSku] = useState('SKU-88492019');
+
   const fetchAllData = async () => {
     try {
       const [
@@ -233,9 +248,7 @@ export const InventoryManagementPage: React.FC<InventoryManagementPageProps> = (
       if (prodRes.status === 'fulfilled') {
         const raw = prodRes.value.data.data;
         const list = Array.isArray(raw) ? raw : (raw?.rows || raw?.items || raw?.products || []);
-        setProducts(list.length > 0 ? list : [{ id: 1, name: 'Store Main Product (SKU-001)' }]);
-      } else {
-        setProducts([{ id: 1, name: 'Store Main Product (SKU-001)' }]);
+        setProducts(list);
       }
       if (grnRes.status === 'fulfilled') setGrns(grnRes.value.data.data || []);
       if (ginRes.status === 'fulfilled') setGins(ginRes.value.data.data || []);
@@ -251,6 +264,57 @@ export const InventoryManagementPage: React.FC<InventoryManagementPageProps> = (
   useEffect(() => {
     fetchAllData();
   }, []);
+
+  // WAREHOUSE LOCATION HANDLERS
+  const handleOpenLocationModal = () => {
+    setLocationForm({
+      warehouseId: warehouses.length > 0 ? String(warehouses[0].id) : '1',
+      name: 'Aisle 1 Rack 2 Bin 5',
+      code: `LOC-${Date.now().toString().slice(-4)}`,
+      aisle: 'A1',
+      rack: 'R02',
+      shelf: 'S01',
+      bin: 'B05',
+      zone: 'Fast Moving',
+    });
+    setLocationModalOpen(true);
+  };
+
+  const handleSaveLocation = async () => {
+    if (!locationForm.name || !locationForm.warehouseId) {
+      toast.error('Warehouse and Location Name are required');
+      return;
+    }
+
+    try {
+      const res = await axiosInstance.post('/store/inventory-management/locations', {
+        warehouseId: Number(locationForm.warehouseId),
+        name: locationForm.name,
+        code: locationForm.code,
+        aisle: locationForm.aisle,
+        rack: locationForm.rack,
+        shelf: locationForm.shelf,
+        bin: locationForm.bin,
+        zone: locationForm.zone,
+      });
+      toast.success('Warehouse location created successfully');
+      setLocations([res.data.data, ...locations]);
+      setLocationModalOpen(false);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Failed to create warehouse location');
+    }
+  };
+
+  const handleDeleteLocation = async (id: number) => {
+    if (!window.confirm('Are you sure you want to delete this location?')) return;
+    try {
+      await axiosInstance.delete(`/store/inventory-management/locations/${id}`);
+      toast.success('Location deleted successfully');
+      setLocations(locations.filter((l) => l.id !== id));
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Failed to delete location');
+    }
+  };
 
   // TRANSFER HANDLERS
   const handleOpenTransferModal = () => {
@@ -459,6 +523,36 @@ export const InventoryManagementPage: React.FC<InventoryManagementPageProps> = (
     }
   };
 
+  // EXPORT CSV HANDLER
+  const handleExportCsv = () => {
+    if (balances.length === 0) {
+      toast.error('No stock balance data to export');
+      return;
+    }
+    let csv = 'Product ID,Product Name,Warehouse ID,On Hand Qty,Available Qty,Reserved Qty,Unit Cost (INR),Total Valuation (INR)\n';
+    balances.forEach((b: any) => {
+      const qty = Number(b.onHandQuantity || b.quantityOnHand || 0);
+      const cost = Number(b.unitCost || b.averageCost || 100);
+      csv += `"${b.productId}","${b.product?.name || 'Product #' + b.productId}","${b.warehouseId}","${qty}","${b.availableQuantity || 0}","${b.quantityReserved || 0}","${cost}","${qty * cost}"\n`;
+    });
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `Inventory_Valuation_Report_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success('Inventory valuation CSV report downloaded');
+  };
+
+  // Calculate live totals from database
+  const liveValuationSum = balances.reduce((sum, b) => {
+    const qty = Number(b.onHandQuantity || b.quantityOnHand || 0);
+    const cost = Number(b.unitCost || b.averageCost || 100);
+    return sum + qty * cost;
+  }, 0);
+
   if (loading) return <PageLoader message="Loading Enterprise Inventory Management..." />;
 
   return (
@@ -495,21 +589,21 @@ export const InventoryManagementPage: React.FC<InventoryManagementPageProps> = (
               <Card sx={{ p: 2.5, borderRadius: 3, border: '1px solid #E2E8F0' }}>
                 <Typography variant="caption" color="text.secondary">Total Stock Valuation</Typography>
                 <Typography variant="h4" sx={{ fontWeight: 800, color: '#0F172A', mt: 0.5 }}>
-                  ₹{stats?.totalInventoryValue || '1,250,000'}
+                  ₹{liveValuationSum > 0 ? liveValuationSum.toLocaleString() : (stats?.totalInventoryValue || '0')}
                 </Typography>
               </Card>
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
               <Card sx={{ p: 2.5, borderRadius: 3, border: '1px solid #E2E8F0' }}>
-                <Typography variant="caption" color="text.secondary">Total Active Warehouses</Typography>
+                <Typography variant="caption" color="text.secondary">Fulfillment Warehouses</Typography>
                 <Typography variant="h4" sx={{ fontWeight: 800, color: '#0284C7', mt: 0.5 }}>
-                  {stats?.totalWarehouses || warehouses.length}
+                  {warehouses.length}
                 </Typography>
               </Card>
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
               <Card sx={{ p: 2.5, borderRadius: 3, border: '1px solid #E2E8F0' }}>
-                <Typography variant="caption" color="text.secondary">Low Stock Items</Typography>
+                <Typography variant="caption" color="text.secondary">Low Stock SKUs</Typography>
                 <Typography variant="h4" sx={{ fontWeight: 800, color: '#F59E0B', mt: 0.5 }}>
                   {stats?.lowStockItems || 0}
                 </Typography>
@@ -517,7 +611,7 @@ export const InventoryManagementPage: React.FC<InventoryManagementPageProps> = (
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
               <Card sx={{ p: 2.5, borderRadius: 3, border: '1px solid #E2E8F0' }}>
-                <Typography variant="caption" color="text.secondary">Total Suppliers</Typography>
+                <Typography variant="caption" color="text.secondary">Active Suppliers</Typography>
                 <Typography variant="h4" sx={{ fontWeight: 800, color: '#10B981', mt: 0.5 }}>
                   {suppliers.length}
                 </Typography>
@@ -533,23 +627,30 @@ export const InventoryManagementPage: React.FC<InventoryManagementPageProps> = (
           <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
             <Typography variant="h6" sx={{ fontWeight: 700 }}>Fulfillment Warehouses</Typography>
           </Box>
-          <Grid container spacing={2}>
-            {(warehouses.length > 0 ? warehouses : [
-              { id: 1, name: 'Central Distribution Hub', code: 'WH-HYD01', city: 'Hyderabad', isDefault: true },
-            ]).map((w: any) => (
-              <Grid item xs={12} sm={6} key={w.id || w.code}>
-                <Card sx={{ p: 2.5, border: '1px solid #E2E8F0', borderRadius: 2 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{w.name}</Typography>
-                    {w.isDefault && <Chip label="PRIMARY" color="primary" size="small" />}
-                  </Box>
-                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                    Code: {w.code} | Location: {w.city || 'Hyderabad'}
-                  </Typography>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
+          {warehouses.length === 0 ? (
+            <Box sx={{ textAlign: 'center', py: 6, border: '1px dashed #CBD5E1', borderRadius: 3, bgcolor: '#F8FAFC' }}>
+              <WarehouseIcon size={48} color="#94A3B8" />
+              <Typography variant="h6" sx={{ mt: 2, fontWeight: 700, color: '#334155' }}>
+                No active warehouses registered
+              </Typography>
+            </Box>
+          ) : (
+            <Grid container spacing={2}>
+              {warehouses.map((w: any) => (
+                <Grid item xs={12} sm={6} key={w.id || w.code}>
+                  <Card sx={{ p: 2.5, border: '1px solid #E2E8F0', borderRadius: 2 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{w.name}</Typography>
+                      {w.isDefault && <Chip label="PRIMARY" color="primary" size="small" />}
+                    </Box>
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                      Code: {w.code} | City: {w.city || 'Default Location'}
+                    </Typography>
+                  </Card>
+                </Grid>
+              ))}
+            </Grid>
+          )}
         </Paper>
       )}
 
@@ -561,71 +662,114 @@ export const InventoryManagementPage: React.FC<InventoryManagementPageProps> = (
               <Typography variant="h6" sx={{ fontWeight: 700 }}>Warehouse Bin Locations</Typography>
               <Typography variant="body2" color="text.secondary">Aisle, Rack, Shelf, and Bin level location mappings</Typography>
             </Box>
+            <Button variant="contained" startIcon={<Plus size={18} />} onClick={handleOpenLocationModal}>
+              Create Location
+            </Button>
           </Box>
-          <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2 }}>
-            <Table>
-              <TableHead sx={{ bgcolor: '#F8FAFC' }}>
-                <TableRow>
-                  <TableCell sx={{ fontWeight: 700 }}>Location Code</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Warehouse</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Aisle / Rack / Bin</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Zone</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {(locations.length > 0 ? locations : [
-                  { code: 'A1-R02-B05', warehouseName: 'Central Hub', zone: 'Fast Moving', status: 'active' },
-                  { code: 'B2-R01-B12', warehouseName: 'Central Hub', zone: 'Cold Storage', status: 'active' },
-                ]).map((loc: any, idx: number) => (
-                  <TableRow key={idx}>
-                    <TableCell><Chip label={loc.code || `LOC-${idx + 1}`} size="small" color="primary" sx={{ fontWeight: 700 }} /></TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>{loc.warehouseName || 'Central Hub'}</TableCell>
-                    <TableCell>{loc.code || 'Aisle A'}</TableCell>
-                    <TableCell>{loc.zone || 'General Storage'}</TableCell>
-                    <TableCell><Chip label="ACTIVE" color="success" size="small" /></TableCell>
+          {locations.length === 0 ? (
+            <Box sx={{ textAlign: 'center', py: 6, border: '1px dashed #CBD5E1', borderRadius: 3, bgcolor: '#F8FAFC' }}>
+              <MapPin size={48} color="#94A3B8" />
+              <Typography variant="h6" sx={{ mt: 2, fontWeight: 700, color: '#334155' }}>
+                No bin locations created yet
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                Map your physical warehouse aisles, racks, and shelf bins to track precise item locations.
+              </Typography>
+              <Button variant="contained" startIcon={<Plus size={18} />} onClick={handleOpenLocationModal}>
+                Create Location
+              </Button>
+            </Box>
+          ) : (
+            <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2 }}>
+              <Table>
+                <TableHead sx={{ bgcolor: '#F8FAFC' }}>
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: 700 }}>Location Code</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Location Name</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Warehouse ID</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Zone</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 700 }}>Actions</TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                </TableHead>
+                <TableBody>
+                  {locations.map((loc: any) => (
+                    <TableRow key={loc.id} hover>
+                      <TableCell>
+                        <Chip label={loc.code || `LOC-${loc.id}`} size="small" color="primary" sx={{ fontWeight: 700 }} />
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>{loc.name}</TableCell>
+                      <TableCell>Warehouse #{loc.warehouseId}</TableCell>
+                      <TableCell>{loc.zone || 'General Storage'}</TableCell>
+                      <TableCell align="right">
+                        <IconButton size="small" onClick={() => handleDeleteLocation(loc.id)} color="error">
+                          <Trash2 size={16} />
+                        </IconButton>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
         </Paper>
       )}
 
       {/* TAB 3: STOCK BALANCES */}
       {tabIndex === 3 && (
         <Paper sx={{ p: 3, borderRadius: 3 }}>
-          <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>Live Stock Balances & Valuation</Typography>
-          <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2 }}>
-            <Table>
-              <TableHead sx={{ bgcolor: '#F8FAFC' }}>
-                <TableRow>
-                  <TableCell sx={{ fontWeight: 700 }}>Product ID / Name</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Warehouse</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>On Hand Qty</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Available Qty</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Reserved Qty</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Valuation (₹)</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {(balances.length > 0 ? balances : [
-                  { id: 1, productId: 1, warehouseId: 1, onHandQuantity: 150, availableQuantity: 140, quantityReserved: 10, unitCost: 100 },
-                ]).map((b: any, idx: number) => (
-                  <TableRow key={idx}>
-                    <TableCell sx={{ fontWeight: 700, color: '#0F172A' }}>
-                      {b.product?.name || `Product #${b.productId}`}
-                    </TableCell>
-                    <TableCell>Warehouse #{b.warehouseId || 1}</TableCell>
-                    <TableCell sx={{ fontWeight: 700, color: '#0284C7' }}>{b.onHandQuantity || b.quantityOnHand || 150} units</TableCell>
-                    <TableCell sx={{ fontWeight: 700, color: '#10B981' }}>{b.availableQuantity || 140} units</TableCell>
-                    <TableCell sx={{ color: '#F59E0B' }}>{b.quantityReserved || 10} units</TableCell>
-                    <TableCell sx={{ fontWeight: 800 }}>₹{((b.onHandQuantity || 150) * (b.unitCost || 100)).toLocaleString()}</TableCell>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Typography variant="h6" sx={{ fontWeight: 700 }}>Live Stock Balances & Valuation</Typography>
+            <Button variant="outlined" startIcon={<Plus size={18} />} onClick={handleOpenAdjModal}>
+              Record Stock Adjustment
+            </Button>
+          </Box>
+          {balances.length === 0 ? (
+            <Box sx={{ textAlign: 'center', py: 6, border: '1px dashed #CBD5E1', borderRadius: 3, bgcolor: '#F8FAFC' }}>
+              <Boxes size={48} color="#94A3B8" />
+              <Typography variant="h6" sx={{ mt: 2, fontWeight: 700, color: '#334155' }}>
+                No stock balance records found
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                Perform a Stock Adjustment or Goods Receipt (GRN) to populate live stock inventory balances.
+              </Typography>
+              <Button variant="contained" startIcon={<Plus size={18} />} onClick={handleOpenAdjModal}>
+                Record Stock Adjustment
+              </Button>
+            </Box>
+          ) : (
+            <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2 }}>
+              <Table>
+                <TableHead sx={{ bgcolor: '#F8FAFC' }}>
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: 700 }}>Product ID / Name</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Warehouse</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>On Hand Qty</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Available Qty</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Reserved Qty</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Valuation (₹)</TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                </TableHead>
+                <TableBody>
+                  {balances.map((b: any) => {
+                    const qty = Number(b.onHandQuantity || b.quantityOnHand || 0);
+                    const cost = Number(b.unitCost || b.averageCost || 100);
+                    return (
+                      <TableRow key={b.id} hover>
+                        <TableCell sx={{ fontWeight: 700, color: '#0F172A' }}>
+                          {b.product?.name || `Product #${b.productId}`}
+                        </TableCell>
+                        <TableCell>Warehouse #{b.warehouseId}</TableCell>
+                        <TableCell sx={{ fontWeight: 700, color: '#0284C7' }}>{qty} units</TableCell>
+                        <TableCell sx={{ fontWeight: 700, color: '#10B981' }}>{b.availableQuantity || qty} units</TableCell>
+                        <TableCell sx={{ color: '#F59E0B' }}>{b.quantityReserved || 0} units</TableCell>
+                        <TableCell sx={{ fontWeight: 800 }}>₹{(qty * cost).toLocaleString()}</TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
         </Paper>
       )}
 
@@ -645,19 +789,19 @@ export const InventoryManagementPage: React.FC<InventoryManagementPageProps> = (
           <Grid container spacing={3}>
             <Grid item xs={12} sm={4}>
               <Card sx={{ p: 2.5, borderRadius: 2, border: '1px solid #E2E8F0', bgcolor: '#F8FAFC' }}>
-                <Typography variant="subtitle2" color="text.secondary">Active SKUs Tracked</Typography>
-                <Typography variant="h4" sx={{ fontWeight: 800, mt: 1 }}>{products.length || 1}</Typography>
+                <Typography variant="subtitle2" color="text.secondary">Active Product SKUs</Typography>
+                <Typography variant="h4" sx={{ fontWeight: 800, mt: 1 }}>{products.length}</Typography>
               </Card>
             </Grid>
             <Grid item xs={12} sm={4}>
               <Card sx={{ p: 2.5, borderRadius: 2, border: '1px solid #E2E8F0', bgcolor: '#F8FAFC' }}>
-                <Typography variant="subtitle2" color="text.secondary">Recorded Transfers</Typography>
+                <Typography variant="subtitle2" color="text.secondary">Transfers Recorded</Typography>
                 <Typography variant="h4" sx={{ fontWeight: 800, mt: 1 }}>{transfers.length}</Typography>
               </Card>
             </Grid>
             <Grid item xs={12} sm={4}>
               <Card sx={{ p: 2.5, borderRadius: 2, border: '1px solid #E2E8F0', bgcolor: '#F8FAFC' }}>
-                <Typography variant="subtitle2" color="text.secondary">Recorded Adjustments</Typography>
+                <Typography variant="subtitle2" color="text.secondary">Adjustments Recorded</Typography>
                 <Typography variant="h4" sx={{ fontWeight: 800, mt: 1 }}>{adjustments.length}</Typography>
               </Card>
             </Grid>
@@ -677,38 +821,42 @@ export const InventoryManagementPage: React.FC<InventoryManagementPageProps> = (
               New Stock Transfer
             </Button>
           </Box>
-          <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2 }}>
-            <Table>
-              <TableHead sx={{ bgcolor: '#F8FAFC' }}>
-                <TableRow>
-                  <TableCell sx={{ fontWeight: 700 }}>Transfer #</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Source Warehouse</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Destination Warehouse</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Notes / Reason</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {transfers.length === 0 ? (
+          {transfers.length === 0 ? (
+            <Box sx={{ textAlign: 'center', py: 6, border: '1px dashed #CBD5E1', borderRadius: 3, bgcolor: '#F8FAFC' }}>
+              <ArrowRightLeft size={48} color="#94A3B8" />
+              <Typography variant="h6" sx={{ mt: 2, fontWeight: 700, color: '#334155' }}>
+                No stock transfers recorded
+              </Typography>
+              <Button variant="contained" startIcon={<Plus size={18} />} onClick={handleOpenTransferModal} sx={{ mt: 2 }}>
+                New Stock Transfer
+              </Button>
+            </Box>
+          ) : (
+            <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2 }}>
+              <Table>
+                <TableHead sx={{ bgcolor: '#F8FAFC' }}>
                   <TableRow>
-                    <TableCell colSpan={5} align="center" sx={{ py: 4, color: 'text.secondary' }}>
-                      No transfers recorded. Click New Stock Transfer to create one.
-                    </TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Transfer #</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Source Warehouse</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Destination Warehouse</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Notes / Reason</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
                   </TableRow>
-                ) : (
-                  transfers.map((trf: any, idx: number) => (
-                    <TableRow key={idx}>
+                </TableHead>
+                <TableBody>
+                  {transfers.map((trf: any) => (
+                    <TableRow key={trf.id} hover>
                       <TableCell><Chip label={trf.transferNumber || `TRF-${trf.id}`} size="small" color="primary" sx={{ fontWeight: 700 }} /></TableCell>
                       <TableCell>Warehouse #{trf.sourceWarehouseId}</TableCell>
                       <TableCell>Warehouse #{trf.destinationWarehouseId}</TableCell>
                       <TableCell>{trf.notes || 'Stock Reallocation'}</TableCell>
                       <TableCell><Chip label="COMPLETED" color="success" size="small" /></TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
         </Paper>
       )}
 
@@ -724,29 +872,34 @@ export const InventoryManagementPage: React.FC<InventoryManagementPageProps> = (
               Create Stock Adjustment
             </Button>
           </Box>
-          <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2 }}>
-            <Table>
-              <TableHead sx={{ bgcolor: '#F8FAFC' }}>
-                <TableRow>
-                  <TableCell sx={{ fontWeight: 700 }}>Adjustment #</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Product ID</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Warehouse ID</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Type & Quantity</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Reason Code</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {adjustments.length === 0 ? (
+          {adjustments.length === 0 ? (
+            <Box sx={{ textAlign: 'center', py: 6, border: '1px dashed #CBD5E1', borderRadius: 3, bgcolor: '#F8FAFC' }}>
+              <Sliders size={48} color="#94A3B8" />
+              <Typography variant="h6" sx={{ mt: 2, fontWeight: 700, color: '#334155' }}>
+                No stock adjustments recorded
+              </Typography>
+              <Button variant="contained" startIcon={<Plus size={18} />} onClick={handleOpenAdjModal} sx={{ mt: 2 }}>
+                Create Stock Adjustment
+              </Button>
+            </Box>
+          ) : (
+            <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2 }}>
+              <Table>
+                <TableHead sx={{ bgcolor: '#F8FAFC' }}>
                   <TableRow>
-                    <TableCell colSpan={5} align="center" sx={{ py: 4, color: 'text.secondary' }}>
-                      No adjustments recorded. Click Create Stock Adjustment to execute one.
-                    </TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Adjustment #</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Product ID</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Warehouse ID</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Type & Quantity</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Reason Code</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 700 }}>Actions</TableCell>
                   </TableRow>
-                ) : (
-                  adjustments.map((adj: any, idx: number) => {
+                </TableHead>
+                <TableBody>
+                  {adjustments.map((adj: any) => {
                     const isIncrease = adj.adjustmentType === 'increase' || adj.quantity > 0;
                     return (
-                      <TableRow key={idx}>
+                      <TableRow key={adj.id} hover>
                         <TableCell><Chip label={adj.adjustmentNumber || `ADJ-${adj.id}`} size="small" color="primary" sx={{ fontWeight: 700 }} /></TableCell>
                         <TableCell>Product #{adj.productId}</TableCell>
                         <TableCell>Warehouse #{adj.warehouseId}</TableCell>
@@ -759,13 +912,18 @@ export const InventoryManagementPage: React.FC<InventoryManagementPageProps> = (
                           />
                         </TableCell>
                         <TableCell>{adj.reasonCode || 'AUDIT'}</TableCell>
+                        <TableCell align="right">
+                          <IconButton size="small" onClick={() => handleDeleteAdjustment(adj.id)} color="error">
+                            <Trash2 size={16} />
+                          </IconButton>
+                        </TableCell>
                       </TableRow>
                     );
-                  })
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                  })}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
         </Paper>
       )}
 
@@ -778,27 +936,31 @@ export const InventoryManagementPage: React.FC<InventoryManagementPageProps> = (
               Create Supplier
             </Button>
           </Box>
-          <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2 }}>
-            <Table>
-              <TableHead sx={{ bgcolor: '#F8FAFC' }}>
-                <TableRow>
-                  <TableCell sx={{ fontWeight: 700 }}>Code</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Supplier Name</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Company Name</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>GST / Tax ID</TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 700 }}>Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {suppliers.length === 0 ? (
+          {suppliers.length === 0 ? (
+            <Box sx={{ textAlign: 'center', py: 6, border: '1px dashed #CBD5E1', borderRadius: 3, bgcolor: '#F8FAFC' }}>
+              <UsersRound size={48} color="#94A3B8" />
+              <Typography variant="h6" sx={{ mt: 2, fontWeight: 700, color: '#334155' }}>
+                No suppliers created yet
+              </Typography>
+              <Button variant="contained" startIcon={<Plus size={18} />} onClick={() => handleOpenSupplierModal()} sx={{ mt: 2 }}>
+                Create Supplier
+              </Button>
+            </Box>
+          ) : (
+            <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2 }}>
+              <Table>
+                <TableHead sx={{ bgcolor: '#F8FAFC' }}>
                   <TableRow>
-                    <TableCell colSpan={5} align="center" sx={{ py: 4, color: 'text.secondary' }}>
-                      No suppliers recorded. Click Create Supplier to add your first vendor.
-                    </TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Code</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Supplier Name</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Company Name</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>GST / Tax ID</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 700 }}>Actions</TableCell>
                   </TableRow>
-                ) : (
-                  suppliers.map((sup: any) => (
-                    <TableRow key={sup.id}>
+                </TableHead>
+                <TableBody>
+                  {suppliers.map((sup: any) => (
+                    <TableRow key={sup.id} hover>
                       <TableCell><Chip label={sup.code || `SUP-${sup.id}`} size="small" color="primary" sx={{ fontWeight: 700 }} /></TableCell>
                       <TableCell sx={{ fontWeight: 600 }}>{sup.name}</TableCell>
                       <TableCell>{sup.companyName || 'N/A'}</TableCell>
@@ -809,11 +971,11 @@ export const InventoryManagementPage: React.FC<InventoryManagementPageProps> = (
                         </IconButton>
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
         </Paper>
       )}
 
@@ -826,27 +988,31 @@ export const InventoryManagementPage: React.FC<InventoryManagementPageProps> = (
               Create Purchase Order
             </Button>
           </Box>
-          <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2 }}>
-            <Table>
-              <TableHead sx={{ bgcolor: '#F8FAFC' }}>
-                <TableRow>
-                  <TableCell sx={{ fontWeight: 700 }}>PO Number</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Supplier</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Total Amount</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 700 }}>Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {purchaseOrders.length === 0 ? (
+          {purchaseOrders.length === 0 ? (
+            <Box sx={{ textAlign: 'center', py: 6, border: '1px dashed #CBD5E1', borderRadius: 3, bgcolor: '#F8FAFC' }}>
+              <FileSpreadsheet size={48} color="#94A3B8" />
+              <Typography variant="h6" sx={{ mt: 2, fontWeight: 700, color: '#334155' }}>
+                No purchase orders issued yet
+              </Typography>
+              <Button variant="contained" startIcon={<Plus size={18} />} onClick={handleOpenPoModal} sx={{ mt: 2 }}>
+                Create Purchase Order
+              </Button>
+            </Box>
+          ) : (
+            <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2 }}>
+              <Table>
+                <TableHead sx={{ bgcolor: '#F8FAFC' }}>
                   <TableRow>
-                    <TableCell colSpan={5} align="center" sx={{ py: 4, color: 'text.secondary' }}>
-                      No purchase orders recorded. Click Create Purchase Order to issue one.
-                    </TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>PO Number</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Supplier</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Total Amount</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 700 }}>Actions</TableCell>
                   </TableRow>
-                ) : (
-                  purchaseOrders.map((po: any) => (
-                    <TableRow key={po.id}>
+                </TableHead>
+                <TableBody>
+                  {purchaseOrders.map((po: any) => (
+                    <TableRow key={po.id} hover>
                       <TableCell><Chip label={po.poNumber || `PO-${po.id}`} size="small" color="primary" sx={{ fontWeight: 700 }} /></TableCell>
                       <TableCell sx={{ fontWeight: 600 }}>{po.supplier?.name || `Supplier #${po.supplierId}`}</TableCell>
                       <TableCell sx={{ fontWeight: 700 }}>₹{Number(po.totalAmount || po.subtotal || 0).toLocaleString()}</TableCell>
@@ -857,11 +1023,11 @@ export const InventoryManagementPage: React.FC<InventoryManagementPageProps> = (
                         </IconButton>
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
         </Paper>
       )}
 
@@ -870,34 +1036,38 @@ export const InventoryManagementPage: React.FC<InventoryManagementPageProps> = (
         <Paper sx={{ p: 3, borderRadius: 3 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
             <Typography variant="h6" sx={{ fontWeight: 700 }}>Goods Receipt Notes (GRN)</Typography>
-            <Button variant="contained" startIcon={<Plus size={18} />} onClick={() => toast.success('GRN module active')}>
-              Create GRN
-            </Button>
           </Box>
-          <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2 }}>
-            <Table>
-              <TableHead sx={{ bgcolor: '#F8FAFC' }}>
-                <TableRow>
-                  <TableCell sx={{ fontWeight: 700 }}>GRN #</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>PO Reference</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Warehouse</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {(grns.length > 0 ? grns : [
-                  { grnNumber: 'GRN-90812', poRef: 'PO-299413', warehouse: 'Central Hub', status: 'RECEIVED' }
-                ]).map((grn: any, idx: number) => (
-                  <TableRow key={idx}>
-                    <TableCell><Chip label={grn.grnNumber || `GRN-${idx + 1}`} size="small" color="primary" sx={{ fontWeight: 700 }} /></TableCell>
-                    <TableCell>{grn.poRef || 'PO-299413'}</TableCell>
-                    <TableCell>{grn.warehouse || 'Central Hub'}</TableCell>
-                    <TableCell><Chip label="RECEIVED" color="success" size="small" /></TableCell>
+          {grns.length === 0 ? (
+            <Box sx={{ textAlign: 'center', py: 6, border: '1px dashed #CBD5E1', borderRadius: 3, bgcolor: '#F8FAFC' }}>
+              <FileCheck size={48} color="#94A3B8" />
+              <Typography variant="h6" sx={{ mt: 2, fontWeight: 700, color: '#334155' }}>
+                No goods receipt notes recorded
+              </Typography>
+            </Box>
+          ) : (
+            <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2 }}>
+              <Table>
+                <TableHead sx={{ bgcolor: '#F8FAFC' }}>
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: 700 }}>GRN #</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>PO Reference</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Warehouse ID</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                </TableHead>
+                <TableBody>
+                  {grns.map((grn: any) => (
+                    <TableRow key={grn.id} hover>
+                      <TableCell><Chip label={grn.grnNumber || `GRN-${grn.id}`} size="small" color="primary" sx={{ fontWeight: 700 }} /></TableCell>
+                      <TableCell>PO #{grn.poId || 'N/A'}</TableCell>
+                      <TableCell>Warehouse #{grn.warehouseId}</TableCell>
+                      <TableCell><Chip label="RECEIVED" color="success" size="small" /></TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
         </Paper>
       )}
 
@@ -906,34 +1076,38 @@ export const InventoryManagementPage: React.FC<InventoryManagementPageProps> = (
         <Paper sx={{ p: 3, borderRadius: 3 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
             <Typography variant="h6" sx={{ fontWeight: 700 }}>Goods Issue Notes (GIN)</Typography>
-            <Button variant="contained" startIcon={<Plus size={18} />} onClick={() => toast.success('GIN module active')}>
-              Create GIN
-            </Button>
           </Box>
-          <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2 }}>
-            <Table>
-              <TableHead sx={{ bgcolor: '#F8FAFC' }}>
-                <TableRow>
-                  <TableCell sx={{ fontWeight: 700 }}>GIN #</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Order Reference</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Warehouse</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {(gins.length > 0 ? gins : [
-                  { ginNumber: 'GIN-44012', orderRef: 'ORD-77821', warehouse: 'Central Hub', status: 'DISPATCHED' }
-                ]).map((gin: any, idx: number) => (
-                  <TableRow key={idx}>
-                    <TableCell><Chip label={gin.ginNumber || `GIN-${idx + 1}`} size="small" color="primary" sx={{ fontWeight: 700 }} /></TableCell>
-                    <TableCell>{gin.orderRef || 'ORD-77821'}</TableCell>
-                    <TableCell>{gin.warehouse || 'Central Hub'}</TableCell>
-                    <TableCell><Chip label="DISPATCHED" color="info" size="small" /></TableCell>
+          {gins.length === 0 ? (
+            <Box sx={{ textAlign: 'center', py: 6, border: '1px dashed #CBD5E1', borderRadius: 3, bgcolor: '#F8FAFC' }}>
+              <FileText size={48} color="#94A3B8" />
+              <Typography variant="h6" sx={{ mt: 2, fontWeight: 700, color: '#334155' }}>
+                No goods issue notes recorded
+              </Typography>
+            </Box>
+          ) : (
+            <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2 }}>
+              <Table>
+                <TableHead sx={{ bgcolor: '#F8FAFC' }}>
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: 700 }}>GIN #</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Order Reference</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Warehouse ID</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                </TableHead>
+                <TableBody>
+                  {gins.map((gin: any) => (
+                    <TableRow key={gin.id} hover>
+                      <TableCell><Chip label={gin.ginNumber || `GIN-${gin.id}`} size="small" color="primary" sx={{ fontWeight: 700 }} /></TableCell>
+                      <TableCell>{gin.referenceOrder || 'N/A'}</TableCell>
+                      <TableCell>Warehouse #{gin.warehouseId}</TableCell>
+                      <TableCell><Chip label="DISPATCHED" color="info" size="small" /></TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
         </Paper>
       )}
 
@@ -941,15 +1115,29 @@ export const InventoryManagementPage: React.FC<InventoryManagementPageProps> = (
       {tabIndex === 11 && (
         <Paper sx={{ p: 3, borderRadius: 3 }}>
           <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>Barcode & QR Code Generator</Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>Generate and print SKU Barcodes (EAN-13, CODE128) and QR labels</Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>Generate and print SKU Barcodes (CODE128) and QR labels</Typography>
           <Grid container spacing={3}>
             <Grid item xs={12} md={6}>
               <Card sx={{ p: 3, border: '1px solid #E2E8F0', borderRadius: 2 }}>
                 <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>Label Configuration</Typography>
-                <TextField label="Product SKU / Barcode Data" fullWidth defaultValue="SKU-88492019" sx={{ mb: 2 }} />
-                <Button variant="contained" startIcon={<Printer size={18} />} onClick={() => toast.success('Barcode label sent to printer queue')}>
-                  Print Barcode Labels
-                </Button>
+                <TextField
+                  label="Product SKU / Barcode Data"
+                  fullWidth
+                  value={selectedBarcodeSku}
+                  onChange={(e) => setSelectedBarcodeSku(e.target.value)}
+                  sx={{ mb: 3 }}
+                />
+                <Box sx={{ textAlign: 'center', p: 3, border: '1px dashed #94A3B8', borderRadius: 2, bgcolor: '#FFFFFF', mb: 3 }}>
+                  <Box sx={{ letterSpacing: 6, fontSize: 32, fontFamily: 'monospace', fontWeight: 'bold' }}>
+                    |||| ||| ||||| |||| ||
+                  </Box>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 800, mt: 1 }}>{selectedBarcodeSku}</Typography>
+                </Box>
+                <Box sx={{ display: 'flex', gap: 2 }}>
+                  <Button variant="contained" startIcon={<Printer size={18} />} onClick={() => window.print()}>
+                    Print Barcode Labels
+                  </Button>
+                </Box>
               </Card>
             </Grid>
           </Grid>
@@ -960,28 +1148,35 @@ export const InventoryManagementPage: React.FC<InventoryManagementPageProps> = (
       {tabIndex === 12 && (
         <Paper sx={{ p: 3, borderRadius: 3 }}>
           <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>Serialized Item Tracking</Typography>
-          <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2 }}>
-            <Table>
-              <TableHead sx={{ bgcolor: '#F8FAFC' }}>
-                <TableRow>
-                  <TableCell sx={{ fontWeight: 700 }}>Serial Number</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Product</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {(serials.length > 0 ? serials : [
-                  { serialNumber: 'SN-998234-01', productName: 'Store Main Product', status: 'AVAILABLE' }
-                ]).map((ser: any, idx: number) => (
-                  <TableRow key={idx}>
-                    <TableCell><Chip label={ser.serialNumber || `SN-${idx}`} size="small" color="primary" sx={{ fontWeight: 700 }} /></TableCell>
-                    <TableCell>{ser.productName || 'Store Main Product'}</TableCell>
-                    <TableCell><Chip label="AVAILABLE" color="success" size="small" /></TableCell>
+          {serials.length === 0 ? (
+            <Box sx={{ textAlign: 'center', py: 6, border: '1px dashed #CBD5E1', borderRadius: 3, bgcolor: '#F8FAFC' }}>
+              <QrCode size={48} color="#94A3B8" />
+              <Typography variant="h6" sx={{ mt: 2, fontWeight: 700, color: '#334155' }}>
+                No serial numbers tracked
+              </Typography>
+            </Box>
+          ) : (
+            <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2 }}>
+              <Table>
+                <TableHead sx={{ bgcolor: '#F8FAFC' }}>
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: 700 }}>Serial Number</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Product ID</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                </TableHead>
+                <TableBody>
+                  {serials.map((ser: any) => (
+                    <TableRow key={ser.id} hover>
+                      <TableCell><Chip label={ser.serialNumber || `SN-${ser.id}`} size="small" color="primary" sx={{ fontWeight: 700 }} /></TableCell>
+                      <TableCell>Product #{ser.productId}</TableCell>
+                      <TableCell><Chip label={String(ser.status || 'AVAILABLE').toUpperCase()} color="success" size="small" /></TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
         </Paper>
       )}
 
@@ -989,30 +1184,37 @@ export const InventoryManagementPage: React.FC<InventoryManagementPageProps> = (
       {tabIndex === 13 && (
         <Paper sx={{ p: 3, borderRadius: 3 }}>
           <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>Batch & Lot Management</Typography>
-          <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2 }}>
-            <Table>
-              <TableHead sx={{ bgcolor: '#F8FAFC' }}>
-                <TableRow>
-                  <TableCell sx={{ fontWeight: 700 }}>Batch Number</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Product</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Batch Quantity</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Manufactured Date</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {(batches.length > 0 ? batches : [
-                  { batchNumber: 'BAT-202607-A', productName: 'Store Main Product', quantity: 500, mfgDate: '2026-07-01' }
-                ]).map((bat: any, idx: number) => (
-                  <TableRow key={idx}>
-                    <TableCell><Chip label={bat.batchNumber || `BAT-${idx}`} size="small" color="primary" sx={{ fontWeight: 700 }} /></TableCell>
-                    <TableCell>{bat.productName || 'Store Main Product'}</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>{bat.quantity || 500} units</TableCell>
-                    <TableCell>{bat.mfgDate || '2026-07-01'}</TableCell>
+          {batches.length === 0 ? (
+            <Box sx={{ textAlign: 'center', py: 6, border: '1px dashed #CBD5E1', borderRadius: 3, bgcolor: '#F8FAFC' }}>
+              <Layers size={48} color="#94A3B8" />
+              <Typography variant="h6" sx={{ mt: 2, fontWeight: 700, color: '#334155' }}>
+                No active inventory batches created
+              </Typography>
+            </Box>
+          ) : (
+            <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2 }}>
+              <Table>
+                <TableHead sx={{ bgcolor: '#F8FAFC' }}>
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: 700 }}>Batch Number</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Product ID</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Quantity</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Manufactured Date</TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                </TableHead>
+                <TableBody>
+                  {batches.map((bat: any) => (
+                    <TableRow key={bat.id} hover>
+                      <TableCell><Chip label={bat.batchNumber || `BAT-${bat.id}`} size="small" color="primary" sx={{ fontWeight: 700 }} /></TableCell>
+                      <TableCell>Product #{bat.productId}</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>{bat.quantity || 0} units</TableCell>
+                      <TableCell>{bat.manufacturedDate ? new Date(bat.manufacturedDate).toLocaleDateString() : 'N/A'}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
         </Paper>
       )}
 
@@ -1020,17 +1222,30 @@ export const InventoryManagementPage: React.FC<InventoryManagementPageProps> = (
       {tabIndex === 14 && (
         <Paper sx={{ p: 3, borderRadius: 3 }}>
           <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>Expiration Risk Monitor</Typography>
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={6}>
-              <Card sx={{ p: 2.5, border: '1px solid #E2E8F0', borderRadius: 2 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Batch BAT-202607-A</Typography>
-                  <Chip label="LOW RISK (180 Days)" color="success" size="small" />
-                </Box>
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>Expiry Date: 2027-01-20</Typography>
-              </Card>
+          {batches.length === 0 ? (
+            <Box sx={{ textAlign: 'center', py: 6, border: '1px dashed #CBD5E1', borderRadius: 3, bgcolor: '#F8FAFC' }}>
+              <Calendar size={48} color="#94A3B8" />
+              <Typography variant="h6" sx={{ mt: 2, fontWeight: 700, color: '#334155' }}>
+                No batch expiry risks detected
+              </Typography>
+            </Box>
+          ) : (
+            <Grid container spacing={2}>
+              {batches.map((b: any) => (
+                <Grid item xs={12} sm={6} key={b.id}>
+                  <Card sx={{ p: 2.5, border: '1px solid #E2E8F0', borderRadius: 2 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Batch {b.batchNumber}</Typography>
+                      <Chip label="LOW RISK" color="success" size="small" />
+                    </Box>
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                      Expiry Date: {b.expiryDate ? new Date(b.expiryDate).toLocaleDateString() : 'No Expiry Set'}
+                    </Typography>
+                  </Card>
+                </Grid>
+              ))}
             </Grid>
-          </Grid>
+          )}
         </Paper>
       )}
 
@@ -1041,16 +1256,74 @@ export const InventoryManagementPage: React.FC<InventoryManagementPageProps> = (
           <Grid container spacing={3}>
             <Grid item xs={12} sm={6}>
               <Card sx={{ p: 3, border: '1px solid #E2E8F0', borderRadius: 2 }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>Stock Valuation Summary</Typography>
-                <Typography variant="h4" sx={{ fontWeight: 800, color: '#0F172A', mb: 2 }}>₹1,250,000</Typography>
-                <Button variant="outlined" startIcon={<Download size={18} />} onClick={() => toast.success('Report downloaded successfully')}>
-                  Export Valuation PDF
+                <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>Calculated Inventory Valuation</Typography>
+                <Typography variant="h4" sx={{ fontWeight: 800, color: '#0F172A', mb: 2 }}>
+                  ₹{liveValuationSum.toLocaleString()}
+                </Typography>
+                <Button variant="contained" startIcon={<Download size={18} />} onClick={handleExportCsv}>
+                  Export Inventory Valuation CSV
                 </Button>
               </Card>
             </Grid>
           </Grid>
         </Paper>
       )}
+
+      {/* WAREHOUSE LOCATION DIALOG */}
+      <Dialog open={locationModalOpen} onClose={() => setLocationModalOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontWeight: 800 }}>Create Warehouse Location</DialogTitle>
+        <DialogContent dividers>
+          <Grid container spacing={2} sx={{ pt: 1 }}>
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth required>
+                <InputLabel>Target Warehouse</InputLabel>
+                <Select
+                  value={locationForm.warehouseId}
+                  label="Target Warehouse"
+                  onChange={(e) => setLocationForm({ ...locationForm, warehouseId: e.target.value })}
+                >
+                  {warehouses.map((w: any) => (
+                    <MenuItem key={w.id} value={String(w.id)}>
+                      {w.name} ({w.code})
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="Location Name"
+                fullWidth
+                required
+                value={locationForm.name}
+                onChange={(e) => setLocationForm({ ...locationForm, name: e.target.value })}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="Location Code"
+                fullWidth
+                value={locationForm.code}
+                onChange={(e) => setLocationForm({ ...locationForm, code: e.target.value })}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="Zone / Area"
+                fullWidth
+                value={locationForm.zone}
+                onChange={(e) => setLocationForm({ ...locationForm, zone: e.target.value })}
+              />
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions sx={{ p: 2.5 }}>
+          <Button onClick={() => setLocationModalOpen(false)}>Cancel</Button>
+          <Button variant="contained" onClick={handleSaveLocation} sx={{ px: 3, fontWeight: 700 }}>
+            Save Location
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* STOCK TRANSFER DIALOG */}
       <Dialog open={transferModalOpen} onClose={() => setTransferModalOpen(false)} maxWidth="sm" fullWidth>

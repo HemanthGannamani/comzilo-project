@@ -19,14 +19,14 @@ router.use(authorize);
 // Warehouse locations sub-routes under warehouses
 router.get(
   '/:warehouseId/locations',
-  requireAnyPermission(['warehouse_location.read', 'warehouse.read', 'warehouse.view'], 'warehouseId'),
+  requireAnyPermission(['warehouse_location.read', 'warehouse.read', 'warehouse.view']),
   validateRequest({ query: locationValidation.listLocations }),
   locationController.listLocations
 );
 
 router.post(
   '/:warehouseId/locations',
-  requireAnyPermission(['warehouse_location.create', 'warehouse.create', 'warehouse.manage'], 'warehouseId'),
+  requireAnyPermission(['warehouse_location.create', 'warehouse.create', 'warehouse.manage']),
   validateRequest({ body: locationValidation.createLocation }),
   locationController.createLocation
 );
@@ -46,26 +46,26 @@ router.post(
   controller.createWarehouse
 );
 
-router.get('/:id', requireAnyPermission(['warehouse.read', 'warehouse.view', 'inventory.read'], 'id'), controller.getWarehouse);
+router.get('/:id', requireAnyPermission(['warehouse.read', 'warehouse.view', 'inventory.read']), controller.getWarehouse);
 
 router.put(
   '/:id',
-  requireAnyPermission(['warehouse.update', 'warehouse.manage', 'inventory.manage'], 'id'),
+  requireAnyPermission(['warehouse.update', 'warehouse.manage', 'inventory.manage']),
   validateRequest({ body: warehouseValidation.updateWarehouse }),
   controller.updateWarehouse
 );
 
-router.delete('/:id', requireAnyPermission(['warehouse.delete', 'warehouse.manage', 'inventory.manage'], 'id'), controller.deleteWarehouse);
+router.delete('/:id', requireAnyPermission(['warehouse.delete', 'warehouse.manage', 'inventory.manage']), controller.deleteWarehouse);
 
 router.post(
   '/:id/restore',
-  requireAnyPermission(['warehouse.restore', 'warehouse.create', 'warehouse.manage'], 'id'),
+  requireAnyPermission(['warehouse.restore', 'warehouse.create', 'warehouse.manage']),
   controller.restoreWarehouse
 );
 
 router.patch(
   '/:id/default',
-  requireAnyPermission(['warehouse.set_default', 'warehouse.update', 'warehouse.manage'], 'id'),
+  requireAnyPermission(['warehouse.set_default', 'warehouse.update', 'warehouse.manage']),
   controller.setDefaultWarehouse
 );
 

@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { WarehouseLocationController } from '../controllers/warehouseLocation.controller';
 import { tenantResolver } from '../middleware/tenantResolver';
 import { authenticate as requireAuth } from '../middleware/auth.middleware';
-import { authorize, requirePermission } from '../middleware/authz.middleware';
+import { authorize, requireAnyPermission } from '../middleware/authz.middleware';
 import { validate as validateRequest } from '../middleware/validate';
 import { locationValidation } from '../validations/warehouseLocation.validation';
 
@@ -13,30 +13,30 @@ router.use(tenantResolver);
 router.use(requireAuth);
 router.use(authorize);
 
-router.get('/:id', requirePermission('warehouse_location.read', 'id'), controller.getLocation);
+router.get('/:id', requireAnyPermission(['warehouse_location.read', 'warehouse.read', 'warehouse.view']), controller.getLocation);
 
 router.put(
   '/:id',
-  requirePermission('warehouse_location.update', 'id'),
+  requireAnyPermission(['warehouse_location.update', 'warehouse.update', 'warehouse.manage']),
   validateRequest({ body: locationValidation.updateLocation }),
   controller.updateLocation
 );
 
 router.delete(
   '/:id',
-  requirePermission('warehouse_location.delete', 'id'),
+  requireAnyPermission(['warehouse_location.delete', 'warehouse.delete', 'warehouse.manage']),
   controller.deleteLocation
 );
 
 router.post(
   '/:id/restore',
-  requirePermission('warehouse_location.restore', 'id'),
+  requireAnyPermission(['warehouse_location.restore', 'warehouse.create', 'warehouse.manage']),
   controller.restoreLocation
 );
 
 router.patch(
   '/:id/default',
-  requirePermission('warehouse_location.set_default', 'id'),
+  requireAnyPermission(['warehouse_location.set_default', 'warehouse.update', 'warehouse.manage']),
   controller.setDefaultLocation
 );
 

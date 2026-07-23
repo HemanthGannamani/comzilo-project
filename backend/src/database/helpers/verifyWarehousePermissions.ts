@@ -121,8 +121,8 @@ export const runWarehousePermissionsVerification = async () => {
     throw new Error(`Warehouse creation failed with status ${createRes.status}`);
   }
 
-  // 4. Verify Warehouse is persisted in MySQL database
-  console.log('\n[4/4] Verifying Database Record Persistence...');
+  // 4. Verify Warehouse is persisted in MySQL database & test DELETE API
+  console.log('\n[4/4] Verifying Database Record Persistence & DELETE API...');
   const savedWarehouse = await Warehouse.findOne({ where: { code: testWarehouseCode } });
 
   if (!savedWarehouse) {
@@ -130,6 +130,17 @@ export const runWarehousePermissionsVerification = async () => {
   }
 
   console.log(`✅ Warehouse successfully saved in DB! ID: ${savedWarehouse.id}, Name: "${savedWarehouse.name}", Code: "${savedWarehouse.code}"`);
+
+  console.log(`Testing DELETE /api/v1/warehouses/${savedWarehouse.id}...`);
+  const deleteRes = await req
+    .delete(`/api/v1/warehouses/${savedWarehouse.id}`)
+    .set('Authorization', 'Bearer ' + token);
+
+  console.log(`DELETE HTTP Response Status: ${deleteRes.status}`);
+  if (deleteRes.status !== 200) {
+    throw new Error(`DELETE warehouse failed with status ${deleteRes.status}: ${JSON.stringify(deleteRes.body)}`);
+  }
+  console.log(`✅ Warehouse ${savedWarehouse.id} deleted successfully via API!`);
 
   console.log('\n====================================================');
   console.log('🎉 WAREHOUSE RBAC PERMISSIONS VERIFIED 100% SUCCESS!');

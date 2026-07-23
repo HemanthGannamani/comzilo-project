@@ -47,6 +47,7 @@ export interface CreateSellerInput {
   };
   roleCode: 'tenant_owner' | 'manager' | 'staff';
   status: 'invited' | 'active' | 'suspended' | 'locked' | 'disabled';
+  mustChangePassword?: boolean;
 }
 
 export class AdminSellerService {
@@ -192,6 +193,7 @@ export class AdminSellerService {
           lastName,
           mobile: input.phone,
           status: input.status || 'active',
+          mustChangePassword: input.mustChangePassword ?? true,
         },
         { transaction: t }
       );

@@ -48,8 +48,13 @@ export const LoginPage: React.FC = () => {
         })
       );
 
-      toast.success(`Welcome back, ${authData.user.firstName}!`);
-      navigate('/dashboard');
+      if (authData.user?.mustChangePassword) {
+        toast.error('Temporary password detected. You must change your password immediately.', { duration: 6000 });
+        navigate('/profile');
+      } else {
+        toast.success(`Welcome back, ${authData.user.firstName}!`);
+        navigate('/dashboard');
+      }
     } catch (err: any) {
       const msg = err.response?.data?.message || 'Login failed. Please check your credentials.';
       setErrorMsg(msg);

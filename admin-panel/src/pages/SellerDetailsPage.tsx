@@ -40,6 +40,8 @@ import {
   useSuspendSellerMutation,
   useActivateSellerMutation,
   useResetSellerPasswordMutation,
+  useResendSellerCredentialsMutation,
+  useImpersonateSellerMutation,
   useDeleteSellerMutation,
   useGetStoresQuery,
 } from '../api/adminApi';
@@ -56,6 +58,8 @@ export const SellerDetailsPage: React.FC = () => {
   const [suspendSeller] = useSuspendSellerMutation();
   const [activateSeller] = useActivateSellerMutation();
   const [resetPassword] = useResetSellerPasswordMutation();
+  const [resendCredentials] = useResendSellerCredentialsMutation();
+  const [impersonateSeller] = useImpersonateSellerMutation();
   const [deleteSeller] = useDeleteSellerMutation();
 
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -174,6 +178,26 @@ export const SellerDetailsPage: React.FC = () => {
       setIsResetOpen(true);
     } catch (err: any) {
       toast.error(err?.data?.message || 'Failed to reset password');
+    }
+  };
+
+  const handleResendCredentialsClick = async () => {
+    try {
+      const res = await resendCredentials(seller.id).unwrap();
+      setTempPassword(res.data?.temporaryPassword);
+      setIsResetOpen(true);
+      toast.success('Credentials resent successfully to seller email');
+    } catch (err: any) {
+      toast.error(err?.data?.message || 'Failed to resend credentials');
+    }
+  };
+
+  const handleImpersonateClick = async () => {
+    try {
+      const res = await impersonateSeller(seller.id).unwrap();
+      toast.success(res.data?.message || 'Impersonation token created. Placeholder active.');
+    } catch (err: any) {
+      toast.error(err?.data?.message || 'Failed to impersonate seller');
     }
   };
 
@@ -301,11 +325,17 @@ export const SellerDetailsPage: React.FC = () => {
             <Grid container spacing={2} sx={{ mb: 3 }}>
               <Grid item xs={12}>
                 <Typography variant="caption" color="text.secondary">Tenant Name</Typography>
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>{seller.tenant?.name || 'N/A'}</Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>{seller.tenant?.name || 'N/A'}</Typography>
+                  <Button size="small" onClick={() => navigate('/tenants')}>View Tenant</Button>
+                </Box>
               </Grid>
               <Grid item xs={12}>
                 <Typography variant="caption" color="text.secondary">Store Assignment</Typography>
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>{seller.userRoles?.[0]?.store?.name || 'N/A'}</Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>{seller.userRoles?.[0]?.store?.name || 'N/A'}</Typography>
+                  <Button size="small" onClick={() => navigate('/stores')}>View Store</Button>
+                </Box>
               </Grid>
               <Grid item xs={12}>
                 <Typography variant="caption" color="text.secondary">Role Code</Typography>
@@ -355,6 +385,12 @@ export const SellerDetailsPage: React.FC = () => {
               )}
               <Button variant="outlined" color="warning" fullWidth startIcon={<KeyRound size={16} />} onClick={handleResetPasswordClick}>
                 Reset Password
+              </Button>
+              <Button variant="outlined" color="info" fullWidth onClick={handleResendCredentialsClick}>
+                Resend Credentials
+              </Button>
+              <Button variant="outlined" color="secondary" fullWidth onClick={handleImpersonateClick}>
+                Login as Seller (Impersonation)
               </Button>
               <Button variant="outlined" color="error" fullWidth startIcon={<Trash2 size={16} />} onClick={() => setIsDeleteOpen(true)}>
                 Delete Account

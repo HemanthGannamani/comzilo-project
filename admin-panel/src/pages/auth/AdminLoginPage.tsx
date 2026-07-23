@@ -34,7 +34,11 @@ export const AdminLoginPage: React.FC = () => {
         setError('Authentication failed: Invalid response format');
       }
     } catch (err: any) {
-      setError(err?.response?.data?.message || 'Access Denied: Invalid Super Admin Credentials');
+      if (!err?.response) {
+        setError('Cannot connect to Backend Server. Please ensure backend is running on http://localhost:5000');
+      } else {
+        setError(err?.response?.data?.message || 'Access Denied: Invalid Super Admin Credentials');
+      }
     } finally {
       setLoading(false);
     }
@@ -60,12 +64,13 @@ export const AdminLoginPage: React.FC = () => {
           </Alert>
         )}
 
-        <form onSubmit={handleLogin}>
+        <form onSubmit={handleLogin} autoComplete="off">
           <TextField
             label="Super Admin Email"
             fullWidth
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            autoComplete="username"
             sx={{ mb: 2 }}
             required
           />
@@ -75,6 +80,7 @@ export const AdminLoginPage: React.FC = () => {
             fullWidth
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            autoComplete="current-password"
             sx={{ mb: 3 }}
             required
           />

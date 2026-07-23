@@ -9,6 +9,7 @@ import {
   loginSchema,
   requestPasswordResetSchema,
   resetPasswordSchema,
+  changePasswordSchema,
   requestEmailVerificationSchema,
   verifyEmailSchema,
 } from '../validations/auth.validation';
@@ -106,6 +107,14 @@ router.post(
   controller.requestPasswordReset
 );
 
+router.post(
+  '/forgot-password',
+  tenantResolver,
+  resetLimiter,
+  validate(requestPasswordResetSchema),
+  controller.requestPasswordReset
+);
+
 // Reset password
 router.post(
   '/reset-password',
@@ -113,6 +122,15 @@ router.post(
   resetLimiter,
   validate(resetPasswordSchema),
   controller.resetPassword
+);
+
+// Change password (Requires authenticated session)
+router.post(
+  '/change-password',
+  tenantResolver,
+  authenticate,
+  validate(changePasswordSchema),
+  controller.changePassword
 );
 
 // Request email verification OTP (Requires authenticated session)
@@ -135,5 +153,6 @@ router.post(
 
 // Fetch current user details (Requires authenticated session)
 router.get('/me', tenantResolver, authenticate, controller.me);
+router.get('/profile', tenantResolver, authenticate, controller.me);
 
 export default router;

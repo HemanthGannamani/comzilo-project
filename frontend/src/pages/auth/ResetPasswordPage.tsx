@@ -7,9 +7,17 @@ import { useNavigate, useSearchParams, Link as RouterLink } from 'react-router-d
 import { axiosInstance } from '../../api/axiosInstance';
 import toast from 'react-hot-toast';
 
+const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/;
+
 const resetSchema = z
   .object({
-    password: z.string().min(6, 'Password must be at least 6 characters'),
+    password: z
+      .string()
+      .min(8, 'Password must be at least 8 characters')
+      .regex(
+        passwordRegex,
+        'Password must contain an uppercase letter, lowercase letter, number, and special character'
+      ),
     confirmPassword: z.string(),
   })
   .refine((data) => data.password === data.confirmPassword, {
@@ -42,6 +50,7 @@ export const ResetPasswordPage: React.FC = () => {
     try {
       await axiosInstance.post('/auth/reset-password', {
         token,
+        password: data.password,
         newPassword: data.password,
       });
       toast.success('Password reset successfully! Please log in.');

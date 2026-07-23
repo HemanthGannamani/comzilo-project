@@ -18,6 +18,7 @@ export class User extends Model<any, any> {
   declare status: 'invited' | 'active' | 'suspended' | 'locked' | 'disabled';
   declare failedLoginAttempts: number;
   declare lockedUntil: Date | null;
+  declare mustChangePassword: boolean;
   declare readonly createdAt: Date;
   declare readonly updatedAt: Date;
   declare readonly deletedAt: Date | null;
@@ -99,6 +100,12 @@ User.init(
       type: DataTypes.DATE,
       allowNull: true,
       field: 'locked_until',
+    },
+    mustChangePassword: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+      field: 'must_change_password',
     },
   },
   {

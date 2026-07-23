@@ -37,6 +37,7 @@ import {
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { logout } from '../../store/authSlice';
+import { baseApi } from '../../api/baseApi';
 
 const DRAWER_WIDTH = 270;
 
@@ -62,6 +63,9 @@ export const AdminLayout: React.FC = () => {
   const handleLogout = () => {
     handleUserMenuClose();
     dispatch(logout());
+    dispatch(baseApi.util.resetApiState());
+    localStorage.clear();
+    sessionStorage.clear();
     navigate('/login');
   };
 

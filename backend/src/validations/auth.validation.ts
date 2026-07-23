@@ -28,10 +28,27 @@ export const requestPasswordResetSchema = {
   }),
 };
 
+export const passwordComplexityPattern = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/;
+
+export const validatePasswordPolicy = (password: string): boolean => {
+  return passwordComplexityPattern.test(password);
+};
+
 export const resetPasswordSchema = {
   body: Joi.object({
     token: Joi.string().required(),
-    password: Joi.string().min(8).max(100).required(),
+    password: Joi.string().min(8).max(100).optional(),
+    newPassword: Joi.string().min(8).max(100).optional(),
+  }).or('password', 'newPassword'),
+};
+
+export const changePasswordSchema = {
+  body: Joi.object({
+    currentPassword: Joi.string().required(),
+    newPassword: Joi.string().min(8).max(100).regex(passwordComplexityPattern).required().messages({
+      'string.pattern.base':
+        'Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character.',
+    }),
   }),
 };
 

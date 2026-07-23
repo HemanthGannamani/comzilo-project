@@ -169,6 +169,19 @@ export const adminApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ['Seller'],
     }),
+    resendSellerCredentials: builder.mutation<any, number | string>({
+      query: (id) => ({
+        url: `/admin/sellers/${id}/resend-credentials`,
+        method: 'POST',
+      }),
+      invalidatesTags: ['Seller'],
+    }),
+    impersonateSeller: builder.mutation<any, number | string>({
+      query: (id) => ({
+        url: `/admin/sellers/${id}/impersonate`,
+        method: 'POST',
+      }),
+    }),
     deleteSeller: builder.mutation<any, number | string>({
       query: (id) => ({
         url: `/admin/sellers/${id}`,
@@ -310,6 +323,8 @@ export const {
   useSuspendSellerMutation,
   useActivateSellerMutation,
   useResetSellerPasswordMutation,
+  useResendSellerCredentialsMutation,
+  useImpersonateSellerMutation,
   useDeleteSellerMutation,
   useGetAdminDashboardMetricsQuery,
   useGetSellersReportQuery,

@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Request, Response, NextFunction } from 'express';
 import { QueryTypes } from 'sequelize';
+import jwt from 'jsonwebtoken';
 import { sequelize } from '../config/database';
 import { TenantNotFoundError } from '../shared/errors/AppError';
 import { logger } from '../shared/logging/logger';
@@ -69,7 +70,57 @@ export const tenantResolver = async (
       }
     }
 
-    // 2. Resolve via Hostname parsing (subdomains or custom domains)
+    // 1.5 Resolve via Authorization Bearer token (for authenticated endpoints without tenant headers)
+    if (!tenantId && req.headers.authorization?.startsWith('Bearer ')) {
+      try {
+        const token = req.headers.authorization.split(' ')[1];
+        const decoded: any = jwt.verify(token, env.JWT_ACCESS_SECRET);
+        if (decoded && decoded.tenantId) {
+          const [tRes]: any = await sequelize.query(
+            'SELECT id, uuid FROM tenants WHERE id = :tId AND status = "active" LIMIT 1',
+            {
+              replacements: { tId: decoded.tenantId },
+              type: QueryTypes.SELECT,
+            }
+          );
+          if (tRes) {
+            tenantId = Number(tRes.id);
+            tenantUuid = tRes.uuid;
+          }
+        }
+      } catch {
+        // Ignore token verification errors here; authenticate middleware will handle invalid tokens
+      }
+    }
+
+    // 2. Resolve via User Email (for login/auth when headers are absent)
+    let resolvedByEmail = false;
+    if (!tenantId && req.body?.email && typeof req.body.email === 'string') {
+      const inputEmail = req.body.email.toLowerCase().trim();
+      const [userRes]: any = await sequelize.query(
+        'SELECT tenant_id FROM users WHERE email = :email AND deleted_at IS NULL LIMIT 1',
+        {
+          replacements: { email: inputEmail },
+          type: QueryTypes.SELECT,
+        }
+      );
+      if (userRes) {
+        const [tRes]: any = await sequelize.query(
+          'SELECT id, uuid FROM tenants WHERE id = :tId AND status = "active" LIMIT 1',
+          {
+            replacements: { tId: userRes.tenant_id },
+            type: QueryTypes.SELECT,
+          }
+        );
+        if (tRes) {
+          tenantId = Number(tRes.id);
+          tenantUuid = tRes.uuid;
+          resolvedByEmail = true;
+        }
+      }
+    }
+
+    // 3. Resolve via Hostname parsing (subdomains or custom domains)
     if (!tenantId) {
       const hostname = req.hostname;
       const [domainRes]: any = await sequelize.query(
@@ -101,7 +152,7 @@ export const tenantResolver = async (
         }
       }
 
-      // 3. Fallback to default active tenant if hostname is localhost or local IP
+      // 4. Fallback to default active tenant if hostname is localhost or local IP
       if (
         !finalTenantId &&
         (hostname === 'localhost' || hostname === '127.0.0.1' || env.NODE_ENV !== 'production')

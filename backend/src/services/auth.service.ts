@@ -27,6 +27,9 @@ import {
 } from '../shared/errors/AppError';
 import { withTransaction } from '../utils/transactions';
 import { RequestContext } from '../middleware/requestContext';
+import { NotificationService } from './notification.service';
+import { createAuditLog } from '../utils/auditHelper';
+import { validatePasswordPolicy } from '../validations/auth.validation';
 
 export class AuthService extends BaseService {
   private readonly userRepository = new UserRepository();
@@ -185,6 +188,7 @@ export class AuthService extends BaseService {
     }
 
     // Success login operations
+    const isFirstLogin = !user.lastLoginAt;
     user.failedLoginAttempts = 0;
     user.lockedUntil = null;
     user.lastLoginAt = new Date();
@@ -192,6 +196,18 @@ export class AuthService extends BaseService {
       user.status = 'active';
     }
     await user.save();
+
+    if (isFirstLogin) {
+      await createAuditLog(
+        {
+          action: 'user.first_login',
+          entityType: 'user',
+          entityId: String(user.id),
+          newValues: { email: user.email },
+        },
+        context
+      );
+    }
 
     // Register Device Context
     const deviceUuid =
@@ -370,7 +386,10 @@ export class AuthService extends BaseService {
     clientContext: { ip: string; userAgent: string },
     _context?: RequestContext
   ): Promise<string> {
-    const user = await this.userRepository.findByEmail(tenantId, email);
+    let user = await this.userRepository.findByEmail(tenantId, email);
+    if (!user) {
+      user = await this.userRepository.findByEmail(null, email);
+    }
     if (!user) {
       // Prevent user enumeration: act successful
       return 'dummy-token';
@@ -380,13 +399,27 @@ export class AuthService extends BaseService {
     const tokenHash = this.hashSHA256(rawToken);
 
     await PasswordResetToken.create({
-      tenantId,
+      tenantId: user.tenantId,
       userId: user.id,
       tokenHash,
       expiresAt: new Date(Date.now() + 1 * 60 * 60 * 1000), // 1 hour validity
       requestedIp: clientContext.ip,
       userAgent: clientContext.userAgent,
     });
+
+    try {
+      const notificationService = new NotificationService();
+      const resetUrl = `${env.FRONTEND_URL}/reset-password?token=${rawToken}`;
+      await notificationService.sendNotification(user.tenantId, null, {
+        userId: user.id,
+        recipient: user.email,
+        channel: 'email',
+        title: 'Password Reset Request',
+        content: `Dear ${user.firstName}, you requested a password reset. Click here to reset: ${resetUrl}`,
+      });
+    } catch (e) {
+      this.logError('Failed to send password reset notification email', e);
+    }
 
     return rawToken;
   }
@@ -397,12 +430,15 @@ export class AuthService extends BaseService {
   public async resetPassword(
     tenantId: number,
     data: any,
-    _context?: RequestContext
+    context?: RequestContext
   ): Promise<void> {
     const tokenHash = this.hashSHA256(data.token);
-    const tokenRecord = await this.resetTokenRepository.findActiveToken(tenantId, tokenHash);
+    let tokenRecord = await this.resetTokenRepository.findActiveToken(tenantId, tokenHash);
+    if (!tokenRecord) {
+      tokenRecord = await this.resetTokenRepository.findActiveToken(1, tokenHash);
+    }
 
-    if (!tokenRecord || new Date(tokenRecord.expiresAt) < new Date()) {
+    if (!tokenRecord || new Date(tokenRecord.expiresAt) < new Date() || tokenRecord.consumedAt) {
       throw new ValidationError('Invalid or expired password reset token');
     }
 
@@ -411,17 +447,77 @@ export class AuthService extends BaseService {
       throw new ValidationError('User not found');
     }
 
-    const passwordHash = await bcrypt.hash(data.password, env.BCRYPT_ROUNDS);
+    const newPass = data.password || data.newPassword;
+    if (!newPass) {
+      throw new ValidationError('New password is required');
+    }
+
+    if (!validatePasswordPolicy(newPass)) {
+      throw new ValidationError(
+        'Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character.'
+      );
+    }
+
+    const passwordHash = await bcrypt.hash(newPass, env.BCRYPT_ROUNDS);
 
     await withTransaction(async (t) => {
       user.passwordHash = passwordHash;
       user.failedLoginAttempts = 0;
+      user.mustChangePassword = false;
       user.status = 'active';
       await user.save({ transaction: t });
 
-      tokenRecord.consumedAt = new Date();
-      await tokenRecord.save({ transaction: t });
+      tokenRecord!.consumedAt = new Date();
+      await tokenRecord!.save({ transaction: t });
     });
+
+    await createAuditLog(
+      {
+        action: 'password.reset',
+        entityType: 'user',
+        entityId: String(user.id),
+      },
+      context
+    );
+  }
+
+  /**
+   * Allows authenticated user to change password
+   */
+  public async changePassword(
+    _tenantId: number,
+    userId: number,
+    data: any,
+    context?: RequestContext
+  ): Promise<void> {
+    const user = await User.findByPk(userId);
+    if (!user) {
+      throw new NotFoundError('User not found');
+    }
+
+    const isMatch = await user.comparePassword(data.currentPassword);
+    if (!isMatch) {
+      throw new ValidationError('Current password is incorrect');
+    }
+
+    if (!validatePasswordPolicy(data.newPassword)) {
+      throw new ValidationError(
+        'Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character.'
+      );
+    }
+
+    user.passwordHash = await bcrypt.hash(data.newPassword, env.BCRYPT_ROUNDS);
+    user.mustChangePassword = false;
+    await user.save();
+
+    await createAuditLog(
+      {
+        action: 'password.changed',
+        entityType: 'user',
+        entityId: String(user.id),
+      },
+      context
+    );
   }
 
   /**

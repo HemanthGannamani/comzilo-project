@@ -12,8 +12,24 @@ const startServer = async () => {
     // Auto-bootstrap system defaults (Default Tenant, Store, Domain, Super Admin)
     await bootstrapDefaultData();
 
-    const server = app.listen(env.PORT, () => {
-      logger.info(`🚀 Server running in ${env.NODE_ENV} mode on port ${env.PORT}`);
+    logger.info(`Attempting to bind server to env.PORT=${env.PORT} on host 0.0.0.0...`);
+
+    const server = app.listen(env.PORT, '0.0.0.0', () => {
+      logger.info(`🚀 Server running in ${env.NODE_ENV} mode on http://0.0.0.0:${env.PORT}`);
+    });
+
+    server.on('listening', () => {
+      const addr = server.address();
+      const bind = typeof addr === 'string' ? `pipe ${addr}` : `port ${addr?.port} on host ${addr?.address}`;
+      logger.info(`✅ Express server actively LISTENING on ${bind}`);
+    });
+
+    server.on('error', (error: any) => {
+      logger.error(`❌ Express server binding error on port ${env.PORT}:`, error);
+      if (error.code === 'EADDRINUSE') {
+        logger.error(`Port ${env.PORT} is already in use by another process.`);
+        process.exit(1);
+      }
     });
 
     // Graceful Shutdown Handler

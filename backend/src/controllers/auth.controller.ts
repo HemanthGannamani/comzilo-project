@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { AuthService } from '../services/auth.service';
 import { success, created } from '../shared/responses';
-import { User } from '../database/models';
+import { User, Tenant, Store, UserRole, Role } from '../database/models';
 
 export class AuthController {
   private readonly authService = new AuthService();
@@ -42,6 +42,7 @@ export class AuthController {
           lastName: result.user.lastName,
           emailVerifiedAt: result.user.emailVerifiedAt,
           status: result.user.status,
+          mustChangePassword: result.user.mustChangePassword,
         },
         tenant: {
           uuid: result.tenant.uuid,
@@ -139,6 +140,21 @@ export class AuthController {
     }
   };
 
+  public changePassword = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const tenantId = req.context.tenantId!;
+      const userId = req.context.authenticatedUserId!;
+      await this.authService.changePassword(tenantId, userId, req.body, req.context);
+      success(res, 'Password changed successfully');
+    } catch (error) {
+      next(error);
+    }
+  };
+
   public requestEmailVerification = async (
     req: Request,
     res: Response,
@@ -189,13 +205,62 @@ export class AuthController {
         return;
       }
 
+      const tenant = await Tenant.findByPk(tenantId);
+      const store = await Store.findOne({ where: { tenantId } });
+      const userRole = await UserRole.findOne({
+        where: { userId, tenantId },
+        include: [{ model: Role, as: 'role' }],
+      });
+
+      const roleName = (userRole as any)?.role?.name || (userRole as any)?.role?.code || 'Seller Owner';
+      const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email;
+      const tenantName = tenant?.name || 'Comzilo Merchant';
+      const storeName = store?.name || 'Main Store';
+      const avatar = user.profile?.avatarUrl || null;
+
       success(res, 'Profile retrieved successfully', {
+        id: user.id,
         uuid: user.uuid,
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
+        fullName,
+        tenantId: user.tenantId,
+        tenantName,
+        storeName,
+        role: roleName,
+        avatar,
         emailVerifiedAt: user.emailVerifiedAt,
         status: user.status,
+        mustChangePassword: user.mustChangePassword,
+        user: {
+          id: user.id,
+          uuid: user.uuid,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          fullName,
+          status: user.status,
+          mustChangePassword: user.mustChangePassword,
+          role: roleName,
+          avatar,
+        },
+        tenant: tenant
+          ? {
+              id: tenant.id,
+              uuid: tenant.uuid,
+              name: tenant.name,
+              slug: tenant.slug,
+            }
+          : null,
+        store: store
+          ? {
+              id: store.id,
+              uuid: store.uuid,
+              name: store.name,
+              slug: store.slug,
+            }
+          : null,
         profile: user.profile
           ? {
               avatarUrl: user.profile.avatarUrl,

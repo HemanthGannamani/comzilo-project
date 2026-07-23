@@ -75,7 +75,7 @@ app.get('/api/v1/health', async (req, res) => {
       environment: env.NODE_ENV,
       uptime: process.uptime(),
       timestamp: new Date().toISOString(),
-      requestId: req.context?.requestId || 'N/A',
+      requestId: (req as any).context?.requestId || 'N/A',
     };
 
     if (dbStatus === 'DOWN') {

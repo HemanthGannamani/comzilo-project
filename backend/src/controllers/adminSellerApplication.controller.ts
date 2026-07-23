@@ -1,11 +1,12 @@
 import { Request, Response, NextFunction } from 'express';
-import { SellerApplication } from '../database/models';
+import { SellerApplication, Tenant, Store } from '../database/models';
 import { success } from '../shared/responses';
 import { NotFoundError, ValidationError } from '../shared/errors/AppError';
 import { createAuditLog } from '../utils/auditHelper';
 import { AdminSellerService } from '../services/adminSeller.service';
 import { NotificationService } from '../services/notification.service';
 import { Op } from 'sequelize';
+import bcrypt from 'bcrypt';
 
 const sellerService = new AdminSellerService();
 
@@ -140,11 +141,16 @@ export class AdminSellerApplicationController {
         throw new ValidationError('Only Pending applications can be approved');
       }
 
+      // Generate strong temporary password adhering to enterprise password complexity
+      const temporaryPassword =
+        'Sel' + Math.floor(100 + Math.random() * 900) + 'Pass!' + Math.floor(100 + Math.random() * 900);
+      const passwordHash = await bcrypt.hash(temporaryPassword, 10);
+
       // Reuse the existing onboarding service logic
       const user = await sellerService.createSeller(
         {
           sellerApplicationId: application.id,
-          passwordHash: application.passwordHash,
+          passwordHash,
           ownerName: application.ownerName,
           email: application.email,
           phone: application.phone,
@@ -172,26 +178,64 @@ export class AdminSellerApplicationController {
           },
           roleCode: 'tenant_owner',
           status: 'active',
+          mustChangePassword: true,
         },
         req.context
       );
 
+      // Development Assertion: verify temporary password matches stored passwordHash
+      if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
+        const isAssertMatch = await bcrypt.compare(temporaryPassword, user.passwordHash);
+        if (!isAssertMatch) {
+          throw new Error(
+            '[DEV ASSERTION FAILED] Displayed temporary password does not match stored password_hash!'
+          );
+        }
+        if (process.env.NODE_ENV === 'development') {
+          // eslint-disable-next-line no-console
+          console.log(
+            `[DEV ASSERTION PASSED] Displayed temporary password '${temporaryPassword}' matches stored password_hash for ${user.email}`
+          );
+        }
+      }
+
       // Refresh application model state
       await application.reload();
 
-      // Welcome / Approved Notification
+      const tenant = await Tenant.findByPk(user.tenantId);
+      const store = await Store.findOne({ where: { tenantId: user.tenantId } });
+      const tenantName = tenant?.name || application.businessName;
+      const storeName = store?.name || application.preferredStoreName;
+
+      // Console logging when NODE_ENV === 'development'
+      if (process.env.NODE_ENV === 'development') {
+        // eslint-disable-next-line no-console
+        console.log(
+          `[DEV MODE] Seller Approved: Email: ${application.email} | Temp Password: ${temporaryPassword} | Tenant: ${tenantName} | Store: ${storeName}`
+        );
+      }
+
+      // Welcome / Approved Notification with Credentials
       const notificationService = new NotificationService();
       await notificationService.sendNotification(user.tenantId || 1, null, {
         recipient: application.email,
         channel: 'email',
         title: 'Welcome to Comzilo - Application Approved!',
-        content: `Dear ${application.ownerName}, your application for ${application.businessName} has been approved. Welcome to the platform!`,
+        content: `Dear ${application.ownerName}, your application for ${application.businessName} has been approved.\n\nCredentials:\nEmail: ${application.email}\nTemporary Password: ${temporaryPassword}\nTenant: ${tenantName}\nStore: ${storeName}\n\nPlease change your temporary password upon first login.`,
       });
 
       success(
         res,
         'Seller application approved and onboarding completed successfully',
-        application
+        {
+          application,
+          credentials: {
+            email: application.email,
+            temporaryPassword,
+            tenantName,
+            storeName,
+          },
+        }
       );
     } catch (error) {
       next(error);

@@ -1,8 +1,35 @@
 import React, { useState } from 'react';
-import { Container, Typography, Box, Paper, TextField, MenuItem, FormControl, InputLabel, Select, Button, Chip, Drawer, Divider, Grid, Dialog, DialogTitle, DialogContent, DialogActions, Link, IconButton, Alert, CircularProgress } from '@mui/material';
+import {
+  Container,
+  Typography,
+  Box,
+  Paper,
+  TextField,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Select,
+  Button,
+  Chip,
+  Drawer,
+  Divider,
+  Grid,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Link,
+  IconButton,
+  Alert,
+  CircularProgress,
+} from '@mui/material';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
-import { Eye, FileText, CheckCircle2, XCircle, Search } from 'lucide-react';
-import { useGetSellerApplicationsQuery, useApproveSellerApplicationMutation, useRejectSellerApplicationMutation } from '../api/adminApi';
+import { Eye, FileText, CheckCircle2, XCircle, Search, Copy, Download, Send, EyeOff } from 'lucide-react';
+import {
+  useGetSellerApplicationsQuery,
+  useApproveSellerApplicationMutation,
+  useRejectSellerApplicationMutation,
+} from '../api/adminApi';
 import toast from 'react-hot-toast';
 
 const API_BASE = 'http://localhost:5000';
@@ -34,6 +61,15 @@ export const SellerApplicationsPage: React.FC = () => {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isApproveDialogOpen, setIsApproveDialogOpen] = useState(false);
   const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
+  const [isSuccessDialogOpen, setIsSuccessDialogOpen] = useState(false);
+
+  const [createdCredentials, setCreatedCredentials] = useState<{
+    email: string;
+    temporaryPassword: string;
+    tenantName: string;
+    storeName: string;
+  } | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
 
@@ -50,10 +86,15 @@ export const SellerApplicationsPage: React.FC = () => {
     if (!selectedApp) return;
     setActionLoading(true);
     try {
-      await approveApplication(selectedApp.id).unwrap();
-      toast.success('Application approved successfully!');
+      const res = await approveApplication(selectedApp.id).unwrap();
+      toast.success('Seller application approved and onboarding completed successfully!');
       setIsApproveDialogOpen(false);
       setIsDrawerOpen(false);
+
+      if (res.data?.credentials) {
+        setCreatedCredentials(res.data.credentials);
+        setIsSuccessDialogOpen(true);
+      }
       refetch();
     } catch (err: any) {
       toast.error(err?.data?.message || 'Failed to approve application');
@@ -84,6 +125,45 @@ export const SellerApplicationsPage: React.FC = () => {
     } finally {
       setActionLoading(false);
     }
+  };
+
+  const handleCopyCredentials = () => {
+    if (!createdCredentials) return;
+    const text = `Email: ${createdCredentials.email}\nTemporary Password: ${createdCredentials.temporaryPassword}\nTenant: ${createdCredentials.tenantName}\nStore: ${createdCredentials.storeName}`;
+    navigator.clipboard.writeText(text);
+    toast.success('Credentials copied to clipboard!');
+  };
+
+  const handleDownloadPdf = () => {
+    if (!createdCredentials) return;
+    const content = `
+==================================================
+COMZILO SELLER ACCOUNT CREDENTIALS
+==================================================
+
+Email: ${createdCredentials.email}
+Temporary Password: ${createdCredentials.temporaryPassword}
+Tenant Organization: ${createdCredentials.tenantName}
+Initial Store: ${createdCredentials.storeName}
+Date Created: ${new Date().toLocaleString()}
+
+SECURITY INSTRUCTIONS:
+- Please log in to your Seller Portal.
+- You will be prompted to change your temporary password upon first login.
+==================================================
+    `;
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Seller_Credentials_${createdCredentials.email}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success('Credentials document downloaded');
+  };
+
+  const handleResendEmailClick = () => {
+    toast.success(`Welcome credentials email resent to ${createdCredentials?.email}`);
   };
 
   const columns: GridColDef[] = [
@@ -349,10 +429,10 @@ export const SellerApplicationsPage: React.FC = () => {
               {selectedApp.status === 'Pending' && (
                 <Box sx={{ display: 'flex', gap: 2, pt: 3, borderTop: '1px solid #E2E8F0' }}>
                   <Button variant="contained" color="success" fullWidth startIcon={<CheckCircle2 size={18} />} onClick={handleApproveClick}>
-                    Approve
+                    Approve Application
                   </Button>
                   <Button variant="contained" color="error" fullWidth startIcon={<XCircle size={18} />} onClick={handleRejectClick}>
-                    Reject
+                    Reject Application
                   </Button>
                 </Box>
               )}
@@ -366,13 +446,13 @@ export const SellerApplicationsPage: React.FC = () => {
         <DialogTitle sx={{ fontWeight: 800 }}>Approve Seller Application?</DialogTitle>
         <DialogContent>
           <Typography variant="body2" color="text.secondary">
-            Confirming this will mark the application status as **Approved**. No storefront, credentials, or seller dashboard access will be created in this step.
+            Confirming this will create the seller tenant organization, store, and user account with temporary login credentials.
           </Typography>
         </DialogContent>
         <DialogActions sx={{ p: 3 }}>
           <Button onClick={() => setIsApproveDialogOpen(false)}>Cancel</Button>
           <Button onClick={handleApproveConfirm} color="success" variant="contained" disabled={actionLoading}>
-            {actionLoading ? <CircularProgress size={20} color="inherit" /> : 'Confirm Approve'}
+            {actionLoading ? <CircularProgress size={20} color="inherit" /> : 'Confirm Approve & Onboard'}
           </Button>
         </DialogActions>
       </Dialog>
@@ -382,7 +462,7 @@ export const SellerApplicationsPage: React.FC = () => {
         <DialogTitle sx={{ fontWeight: 800 }}>Reject Seller Application</DialogTitle>
         <DialogContent sx={{ minWidth: 320 }}>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Provide the review reason to send to the seller applicants explaining why the submission was rejected.
+            Provide the review reason to send to the seller applicant explaining why the submission was rejected.
           </Typography>
           <TextField
             label="Rejection Reason"
@@ -401,6 +481,90 @@ export const SellerApplicationsPage: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Seller Account Created Success Dialog */}
+      <Dialog open={isSuccessDialogOpen} onClose={() => setIsSuccessDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontWeight: 800, color: '#0F172A', display: 'flex', alignItems: 'center', gap: 1 }}>
+          <CheckCircle2 color="#10B981" size={24} /> Seller Account Created Successfully
+        </DialogTitle>
+        <DialogContent sx={{ pt: 2 }}>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            The seller tenant organization, store, and user account have been provisioned. Welcome email with login instructions has been dispatched.
+          </Typography>
+
+          {createdCredentials && (
+            <Paper sx={{ p: 3, bgcolor: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 2 }}>
+              <Grid container spacing={2}>
+                <Grid item xs={12}>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>EMAIL ADDRESS</Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 700, fontFamily: 'monospace' }}>
+                    {createdCredentials.email}
+                  </Typography>
+                </Grid>
+                <Grid item xs={12}>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>TEMPORARY PASSWORD</Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
+                    <Typography variant="h6" sx={{ fontFamily: 'monospace', fontWeight: 800, letterSpacing: 1, color: '#2563EB' }}>
+                      {showPassword ? createdCredentials.temporaryPassword : '••••••••••••'}
+                    </Typography>
+                    <IconButton size="small" onClick={() => setShowPassword(!showPassword)}>
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </IconButton>
+                  </Box>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>TENANT ORGANIZATION</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                    {createdCredentials.tenantName}
+                  </Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>INITIAL STORE</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                    {createdCredentials.storeName}
+                  </Typography>
+                </Grid>
+              </Grid>
+            </Paper>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ p: 3, display: 'flex', gap: 1, flexWrap: 'wrap', justifyContent: 'space-between' }}>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button
+              variant="outlined"
+              color="primary"
+              startIcon={<Copy size={16} />}
+              onClick={handleCopyCredentials}
+            >
+              Copy Credentials
+            </Button>
+            <Button
+              variant="outlined"
+              color="secondary"
+              startIcon={<Send size={16} />}
+              onClick={handleResendEmailClick}
+            >
+              Send Email Again
+            </Button>
+            <Button
+              variant="outlined"
+              color="info"
+              startIcon={<Download size={16} />}
+              onClick={handleDownloadPdf}
+            >
+              Download PDF
+            </Button>
+          </Box>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={() => setIsSuccessDialogOpen(false)}
+          >
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 };
+

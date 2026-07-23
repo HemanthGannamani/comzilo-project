@@ -464,9 +464,18 @@ export class AdminSellerController {
         throw new NotFoundError('Seller not found');
       }
 
-      const tempPassword = Math.random().toString(36).slice(-8) + 'Reset!';
+      const tempPassword =
+        'Sel' + Math.floor(100 + Math.random() * 900) + 'Reset!' + Math.floor(100 + Math.random() * 900);
       user.passwordHash = await bcrypt.hash(tempPassword, 10);
+      user.mustChangePassword = true;
       await user.save();
+
+      if (process.env.NODE_ENV === 'development') {
+        // eslint-disable-next-line no-console
+        console.log(
+          `[DEV MODE] Seller Password Reset: Email: ${user.email} | Temp Password: ${tempPassword}`
+        );
+      }
 
       await createAuditLog(
         {
@@ -484,10 +493,100 @@ export class AdminSellerController {
         recipient: user.email,
         channel: 'email',
         title: 'Password Reset Notification',
-        content: `Dear ${user.firstName}, your temporary password is: ${tempPassword}`,
+        content: `Dear ${user.firstName}, your temporary password is: ${tempPassword}. Please change your password upon login.`,
       });
 
-      success(res, 'Password reset successfully', { temporaryPassword: tempPassword });
+      success(res, 'Password reset successfully', {
+        temporaryPassword: tempPassword,
+        email: user.email,
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public resendCredentials = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const { id } = req.params;
+      const user = await User.findByPk(id, {
+        include: [{ model: Tenant, as: 'tenant' }],
+      });
+      if (!user) {
+        throw new NotFoundError('Seller not found');
+      }
+
+      const tempPassword =
+        'Sel' + Math.floor(100 + Math.random() * 900) + 'Pass!' + Math.floor(100 + Math.random() * 900);
+      user.passwordHash = await bcrypt.hash(tempPassword, 10);
+      user.mustChangePassword = true;
+      await user.save();
+
+      if (process.env.NODE_ENV === 'development') {
+        // eslint-disable-next-line no-console
+        console.log(
+          `[DEV MODE] Resent Seller Credentials: Email: ${user.email} | Temp Password: ${tempPassword}`
+        );
+      }
+
+      await createAuditLog(
+        {
+          action: 'seller.credentials_resent',
+          entityType: 'user',
+          entityId: String(user.id),
+        },
+        req.context
+      );
+
+      // Send Email Notification
+      const notificationService = new NotificationService();
+      await notificationService.sendNotification(user.tenantId, null, {
+        userId: user.id,
+        recipient: user.email,
+        channel: 'email',
+        title: 'Comzilo Account Login Credentials',
+        content: `Dear ${user.firstName}, here are your platform login credentials:\n\nEmail: ${user.email}\nTemporary Password: ${tempPassword}\n\nPlease change your temporary password upon login.`,
+      });
+
+      success(res, 'Credentials resent successfully', {
+        email: user.email,
+        temporaryPassword: tempPassword,
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public impersonateSeller = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const { id } = req.params;
+      const user = await User.findByPk(id);
+      if (!user) {
+        throw new NotFoundError('Seller not found');
+      }
+
+      await createAuditLog(
+        {
+          action: 'seller.impersonated',
+          entityType: 'user',
+          entityId: String(user.id),
+        },
+        req.context
+      );
+
+      success(res, 'Impersonation token generated (placeholder)', {
+        impersonatedUserId: user.id,
+        email: user.email,
+        token: `impersonate_${user.uuid}_${Date.now()}`,
+        message: 'Impersonation feature placeholder: Single-use seller session token ready.',
+      });
     } catch (error) {
       next(error);
     }
@@ -501,7 +600,7 @@ export class AdminSellerController {
         throw new NotFoundError('Seller not found');
       }
 
-      await user.destroy(); // Paranoid paranoid soft delete
+      await user.destroy(); // Paranoid soft delete
 
       await createAuditLog(
         {

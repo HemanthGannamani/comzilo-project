@@ -15,6 +15,16 @@ export interface RequestContext {
   rbacCache?: any;
 }
 
+declare global {
+  namespace Express {
+    interface Request {
+      context: RequestContext;
+      tenantId?: any;
+      user?: any;
+    }
+  }
+}
+
 export const requestContext = (req: Request, res: Response, next: NextFunction): void => {
   const ipAddress =
     (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || '127.0.0.1';

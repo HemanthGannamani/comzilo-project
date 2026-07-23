@@ -33,18 +33,24 @@ import {
   LogOut,
   ShieldAlert,
   Bell,
+  Truck,
+  FileText,
 } from 'lucide-react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { logout } from '../../store/authSlice';
 import { baseApi } from '../../api/baseApi';
+import { Chip } from '@mui/material';
 
 const DRAWER_WIDTH = 270;
 
 interface NavItem {
   label: string;
-  path: string;
-  icon: React.ReactNode;
+  path?: string;
+  icon?: React.ReactNode;
+  isHeader?: boolean;
+  badge?: string;
+  disabled?: boolean;
 }
 
 export const AdminLayout: React.FC = () => {
@@ -78,6 +84,13 @@ export const AdminLayout: React.FC = () => {
     { label: 'Subscription Plans', path: '/subscriptions', icon: <CreditCard size={20} /> },
     { label: 'Platform Users', path: '/users', icon: <Users size={20} /> },
     { label: 'Roles & Permissions', path: '/roles', icon: <ShieldCheck size={20} /> },
+
+    { isHeader: true, label: 'Shipping Management' },
+    { label: 'Shipping Providers', path: '/shipping-providers', icon: <Truck size={20} /> },
+    { label: 'Shipping Analytics', path: '/shipping-analytics', icon: <BarChart3 size={20} />, badge: 'Coming Soon', disabled: true },
+    { label: 'Shipment Logs', path: '/shipment-logs', icon: <FileText size={20} />, badge: 'Coming Soon', disabled: true },
+
+    { isHeader: true, label: 'System & Platform' },
     { label: 'Platform Reports', path: '/reports', icon: <BarChart3 size={20} /> },
     { label: 'Feature Flags', path: '/feature-flags', icon: <Flag size={20} /> },
     { label: 'System Settings', path: '/settings', icon: <Settings size={20} /> },
@@ -104,21 +117,49 @@ export const AdminLayout: React.FC = () => {
       <Divider sx={{ borderColor: '#1E293B' }} />
 
       <List sx={{ flexGrow: 1, px: 1.5, py: 1, overflowY: 'auto' }}>
-        {navItems.map((item) => {
-          const isSelected = location.pathname.startsWith(item.path);
+        {navItems.map((item, index) => {
+          if (item.isHeader) {
+            return (
+              <Typography
+                key={`header-${index}`}
+                variant="caption"
+                sx={{
+                  display: 'block',
+                  px: 1.5,
+                  pt: 2,
+                  pb: 0.5,
+                  fontSize: '0.68rem',
+                  fontWeight: 800,
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                  color: '#64748B',
+                }}
+              >
+                {item.label}
+              </Typography>
+            );
+          }
+
+          const isSelected = item.path ? location.pathname.startsWith(item.path) : false;
 
           return (
             <ListItemButton
-              key={item.path}
-              onClick={() => navigate(item.path)}
+              key={item.path || `item-${index}`}
+              disabled={item.disabled}
+              onClick={() => {
+                if (!item.disabled && item.path) {
+                  navigate(item.path);
+                }
+              }}
               selected={isSelected}
               sx={{
                 borderRadius: 2,
                 mb: 0.5,
+                opacity: item.disabled ? 0.5 : 1,
                 color: isSelected ? '#FFFFFF' : '#94A3B8',
                 bgcolor: isSelected ? '#2563EB' : 'transparent',
                 '&:hover': {
-                  bgcolor: isSelected ? '#1D4ED8' : 'rgba(255, 255, 255, 0.05)',
+                  bgcolor: isSelected ? '#1D4ED8' : item.disabled ? 'transparent' : 'rgba(255, 255, 255, 0.05)',
                 },
               }}
             >
@@ -127,9 +168,24 @@ export const AdminLayout: React.FC = () => {
               </ListItemIcon>
               <ListItemText
                 primary={
-                  <Typography variant="body2" sx={{ fontSize: '0.875rem', fontWeight: isSelected ? 700 : 500 }}>
-                    {item.label}
-                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Typography variant="body2" sx={{ fontSize: '0.875rem', fontWeight: isSelected ? 700 : 500 }}>
+                      {item.label}
+                    </Typography>
+                    {item.badge && (
+                      <Chip
+                        label={item.badge}
+                        size="small"
+                        sx={{
+                          height: 18,
+                          fontSize: '0.6rem',
+                          fontWeight: 700,
+                          bgcolor: '#334155',
+                          color: '#CBD5E1',
+                        }}
+                      />
+                    )}
+                  </Box>
                 }
               />
             </ListItemButton>

@@ -46,16 +46,26 @@ export const errorHandler = (
   }
 
   // Structured Logging
-  logger.error(message, {
-    requestId: req.context?.requestId || 'N/A',
-    tenantId: req.context?.tenantUuid || null,
-    userId: req.context?.authenticatedUserId || null,
-    statusCode,
-    errorCode: code,
-    stack: env.NODE_ENV !== 'production' ? err.stack : undefined,
-    method: req.method,
-    path: req.path,
-  });
+  if (statusCode === HTTP_STATUS.UNAUTHORIZED) {
+    logger.warn(`[AUTH] ${message}`, {
+      requestId: req.context?.requestId || 'N/A',
+      statusCode,
+      errorCode: code,
+      method: req.method,
+      path: req.path,
+    });
+  } else {
+    logger.error(message, {
+      requestId: req.context?.requestId || 'N/A',
+      tenantId: req.context?.tenantUuid || null,
+      userId: req.context?.authenticatedUserId || null,
+      statusCode,
+      errorCode: code,
+      stack: env.NODE_ENV !== 'production' ? err.stack : undefined,
+      method: req.method,
+      path: req.path,
+    });
+  }
 
   // Ensure internal database detail is not exposed in production
   const finalMessage =

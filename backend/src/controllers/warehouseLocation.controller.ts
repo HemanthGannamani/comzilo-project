@@ -4,6 +4,8 @@ import { createAuditLog } from '../utils/auditHelper';
 import { success, created } from '../shared/responses';
 import { ValidationError } from '../shared/errors/AppError';
 import { RESPONSE_MESSAGES } from '../shared/constants';
+import { sequelize } from '../config/database';
+import { QueryTypes } from 'sequelize';
 
 export class WarehouseLocationController {
   private locationService: WarehouseLocationService;
@@ -12,12 +14,25 @@ export class WarehouseLocationController {
     this.locationService = new WarehouseLocationService();
   }
 
-  private getStoreId(req: Request): number {
-    const storeId = Number(req.headers['x-store-id'] || req.query.storeId || req.body.storeId);
-    if (!storeId || isNaN(storeId)) {
-      throw new ValidationError('Store context is missing');
+  private async getStoreId(req: Request): Promise<number> {
+    const rawStoreId = req.headers['x-store-id'] || req.query.storeId || req.body.storeId || req.context?.storeId;
+    if (rawStoreId) {
+      const parsed = Number(rawStoreId);
+      if (!isNaN(parsed) && parsed > 0) return parsed;
     }
-    return storeId;
+
+    const tenantId = req.context?.tenantId;
+    if (tenantId) {
+      const [store]: any = await sequelize.query(
+        'SELECT id FROM stores WHERE tenant_id = :tenantId ORDER BY id ASC LIMIT 1',
+        { replacements: { tenantId }, type: QueryTypes.SELECT }
+      );
+      if (store && store.id) {
+        return Number(store.id);
+      }
+    }
+
+    throw new ValidationError('Store context is missing');
   }
 
   public createLocation = async (
@@ -27,7 +42,7 @@ export class WarehouseLocationController {
   ): Promise<void> => {
     try {
       const tenantId = req.context!.tenantId!;
-      const storeId = this.getStoreId(req);
+      const storeId = await this.getStoreId(req);
       const userId = req.context!.authenticatedUserId!;
       const warehouseId = parseInt(req.params.warehouseId, 10);
 
@@ -59,7 +74,7 @@ export class WarehouseLocationController {
   public getLocation = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const tenantId = req.context!.tenantId!;
-      const storeId = this.getStoreId(req);
+      const storeId = await this.getStoreId(req);
       const id = parseInt(req.params.id, 10);
 
       const location = await this.locationService.getLocation(tenantId, storeId, id);
@@ -73,7 +88,7 @@ export class WarehouseLocationController {
   public listLocations = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const tenantId = req.context!.tenantId!;
-      const storeId = this.getStoreId(req);
+      const storeId = await this.getStoreId(req);
       const warehouseId = parseInt(req.params.warehouseId, 10);
 
       const locations = await this.locationService.listLocations(
@@ -96,7 +111,7 @@ export class WarehouseLocationController {
   ): Promise<void> => {
     try {
       const tenantId = req.context!.tenantId!;
-      const storeId = this.getStoreId(req);
+      const storeId = await this.getStoreId(req);
       const userId = req.context!.authenticatedUserId!;
       const id = parseInt(req.params.id, 10);
 
@@ -134,7 +149,7 @@ export class WarehouseLocationController {
   ): Promise<void> => {
     try {
       const tenantId = req.context!.tenantId!;
-      const storeId = this.getStoreId(req);
+      const storeId = await this.getStoreId(req);
       const userId = req.context!.authenticatedUserId!;
       const id = parseInt(req.params.id, 10);
 
@@ -166,7 +181,7 @@ export class WarehouseLocationController {
   ): Promise<void> => {
     try {
       const tenantId = req.context!.tenantId!;
-      const storeId = this.getStoreId(req);
+      const storeId = await this.getStoreId(req);
       const id = parseInt(req.params.id, 10);
 
       const oldLoc = await this.locationService.getLocation(tenantId, storeId, id);
@@ -196,7 +211,7 @@ export class WarehouseLocationController {
   ): Promise<void> => {
     try {
       const tenantId = req.context!.tenantId!;
-      const storeId = this.getStoreId(req);
+      const storeId = await this.getStoreId(req);
       const id = parseInt(req.params.id, 10);
 
       const location = await this.locationService.restoreLocation(tenantId, storeId, id);

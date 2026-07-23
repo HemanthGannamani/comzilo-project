@@ -33,7 +33,14 @@ export const storage = {
 
   getActiveStoreId: (): number | null => {
     const id = localStorage.getItem(ACTIVE_STORE_KEY);
-    return id ? Number(id) : null;
+    if (id && !isNaN(Number(id))) return Number(id);
+    const user = storage.getUser();
+    if (user?.storeId && !isNaN(Number(user.storeId))) return Number(user.storeId);
+    const stores = storage.getStores();
+    if (stores && stores.length > 0 && stores[0]?.id && !isNaN(Number(stores[0].id))) {
+      return Number(stores[0].id);
+    }
+    return null;
   },
   setActiveStoreId: (storeId: number | null): void => {
     if (storeId) localStorage.setItem(ACTIVE_STORE_KEY, storeId.toString());

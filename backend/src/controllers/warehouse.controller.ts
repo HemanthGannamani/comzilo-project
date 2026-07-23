@@ -4,6 +4,8 @@ import { createAuditLog } from '../utils/auditHelper';
 import { success, created } from '../shared/responses';
 import { ValidationError } from '../shared/errors/AppError';
 import { RESPONSE_MESSAGES } from '../shared/constants';
+import { sequelize } from '../config/database';
+import { QueryTypes } from 'sequelize';
 
 export class WarehouseController {
   private warehouseService: WarehouseService;
@@ -12,12 +14,25 @@ export class WarehouseController {
     this.warehouseService = new WarehouseService();
   }
 
-  private getStoreId(req: Request): number {
-    const storeId = Number(req.headers['x-store-id'] || req.query.storeId || req.body.storeId);
-    if (!storeId || isNaN(storeId)) {
-      throw new ValidationError('Store context is missing');
+  private async getStoreId(req: Request): Promise<number> {
+    const rawStoreId = req.headers['x-store-id'] || req.query.storeId || req.body.storeId || req.context?.storeId;
+    if (rawStoreId) {
+      const parsed = Number(rawStoreId);
+      if (!isNaN(parsed) && parsed > 0) return parsed;
     }
-    return storeId;
+
+    const tenantId = req.context?.tenantId;
+    if (tenantId) {
+      const [store]: any = await sequelize.query(
+        'SELECT id FROM stores WHERE tenant_id = :tenantId ORDER BY id ASC LIMIT 1',
+        { replacements: { tenantId }, type: QueryTypes.SELECT }
+      );
+      if (store && store.id) {
+        return Number(store.id);
+      }
+    }
+
+    throw new ValidationError('Store context is missing');
   }
 
   public createWarehouse = async (
@@ -27,7 +42,7 @@ export class WarehouseController {
   ): Promise<void> => {
     try {
       const tenantId = req.context!.tenantId!;
-      const storeId = this.getStoreId(req);
+      const storeId = await this.getStoreId(req);
       const userId = req.context!.authenticatedUserId!;
 
       const warehouse = await this.warehouseService.createWarehouse(
@@ -57,7 +72,7 @@ export class WarehouseController {
   public getWarehouse = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const tenantId = req.context!.tenantId!;
-      const storeId = this.getStoreId(req);
+      const storeId = await this.getStoreId(req);
       const warehouseId = parseInt(req.params.id, 10);
 
       const warehouse = await this.warehouseService.getWarehouse(tenantId, storeId, warehouseId);
@@ -75,7 +90,7 @@ export class WarehouseController {
   ): Promise<void> => {
     try {
       const tenantId = req.context!.tenantId!;
-      const storeId = this.getStoreId(req);
+      const storeId = await this.getStoreId(req);
 
       const warehouses = await this.warehouseService.listWarehouses(tenantId, storeId, req.query);
 
@@ -92,7 +107,7 @@ export class WarehouseController {
   ): Promise<void> => {
     try {
       const tenantId = req.context!.tenantId!;
-      const storeId = this.getStoreId(req);
+      const storeId = await this.getStoreId(req);
       const userId = req.context!.authenticatedUserId!;
       const warehouseId = parseInt(req.params.id, 10);
 
@@ -130,7 +145,7 @@ export class WarehouseController {
   ): Promise<void> => {
     try {
       const tenantId = req.context!.tenantId!;
-      const storeId = this.getStoreId(req);
+      const storeId = await this.getStoreId(req);
       const userId = req.context!.authenticatedUserId!;
       const warehouseId = parseInt(req.params.id, 10);
 
@@ -167,7 +182,7 @@ export class WarehouseController {
   ): Promise<void> => {
     try {
       const tenantId = req.context!.tenantId!;
-      const storeId = this.getStoreId(req);
+      const storeId = await this.getStoreId(req);
       const warehouseId = parseInt(req.params.id, 10);
 
       const oldWarehouse = await this.warehouseService.getWarehouse(tenantId, storeId, warehouseId);
@@ -197,7 +212,7 @@ export class WarehouseController {
   ): Promise<void> => {
     try {
       const tenantId = req.context!.tenantId!;
-      const storeId = this.getStoreId(req);
+      const storeId = await this.getStoreId(req);
       const warehouseId = parseInt(req.params.id, 10);
 
       const warehouse = await this.warehouseService.restoreWarehouse(

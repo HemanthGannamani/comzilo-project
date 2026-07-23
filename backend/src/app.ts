@@ -34,6 +34,16 @@ app.use(
       }
     },
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-Tenant-UUID',
+      'X-Tenant-Slug',
+      'X-Requested-With',
+      'Accept',
+      'Origin',
+    ],
   })
 );
 
@@ -52,7 +62,7 @@ app.use(requestLogger);
 // Global Rate Limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
+  max: env.NODE_ENV === 'development' ? 10000 : 100,
   standardHeaders: true,
   legacyHeaders: false,
   message: {

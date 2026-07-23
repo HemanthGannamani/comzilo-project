@@ -74,13 +74,20 @@ export const updateSellerValidationSchema = Joi.object({
 export class AdminSellerController {
   public listSellers = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
+      // eslint-disable-next-line no-console
+      console.log(`[DEBUG STEP 1] Controller Reached: GET ${req.originalUrl || req.url}`);
+
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 10;
       const search = (req.query.search as string) || '';
       const status = (req.query.status as string) || '';
       const roleCode = (req.query.role as string) || '';
-      const tenantId = req.query.tenantId ? parseInt(req.query.tenantId as string) : null;
-      const storeId = req.query.storeId ? parseInt(req.query.storeId as string) : null;
+      
+      const rawTenantId = req.query.tenantId as string;
+      const rawStoreId = req.query.storeId as string;
+
+      const tenantId = rawTenantId && rawTenantId.trim() !== '' && !isNaN(Number(rawTenantId)) ? Number(rawTenantId) : null;
+      const storeId = rawStoreId && rawStoreId.trim() !== '' && !isNaN(Number(rawStoreId)) ? Number(rawStoreId) : null;
       const sort = (req.query.sort as string) || 'newest';
 
       const offset = (page - 1) * limit;
@@ -114,48 +121,65 @@ export class AdminSellerController {
       const roleWhere: any = {};
       if (roleCode) {
         roleWhere.code = roleCode;
-      } else {
-        // Only return sellers, managers, staff
-        roleWhere.code = { [Op.in]: ['tenant_owner', 'manager', 'staff'] };
       }
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const orderClause: any[] =
         sort === 'oldest' ? [['createdAt', 'ASC']] : [['createdAt', 'DESC']];
 
+      const includeConfig = [
+        {
+          model: UserProfile,
+          as: 'profile',
+          required: false,
+        },
+        {
+          model: Tenant,
+          as: 'tenant',
+          required: false,
+        },
+        {
+          model: UserRole,
+          as: 'userRoles',
+          where: Object.keys(userRoleWhere).length ? userRoleWhere : undefined,
+          required: Object.keys(userRoleWhere).length > 0,
+          include: [
+            {
+              model: Role,
+              as: 'role',
+              where: Object.keys(roleWhere).length ? roleWhere : undefined,
+              required: Object.keys(roleWhere).length > 0,
+            },
+            {
+              model: Store,
+              as: 'store',
+              required: false,
+            },
+          ],
+        },
+      ];
+
+      // eslint-disable-next-line no-console
+      console.log('[DEBUG STEP 2] Executing User.findAndCountAll with options:', {
+        whereClause: JSON.stringify(whereClause),
+        userRoleWhere: JSON.stringify(userRoleWhere),
+        roleWhere: JSON.stringify(roleWhere),
+        limit,
+        offset,
+        sort,
+      });
+
       const { count, rows } = await User.findAndCountAll({
         where: whereClause,
-        include: [
-          {
-            model: UserProfile,
-            as: 'profile',
-          },
-          {
-            model: Tenant,
-            as: 'tenant',
-          },
-          {
-            model: UserRole,
-            as: 'userRoles',
-            where: Object.keys(userRoleWhere).length ? userRoleWhere : undefined,
-            include: [
-              {
-                model: Role,
-                as: 'role',
-                where: roleWhere,
-              },
-              {
-                model: Store,
-                as: 'store',
-              },
-            ],
-          },
-        ],
+        include: includeConfig,
         limit,
         offset,
         order: orderClause,
         distinct: true,
       });
+
+      // eslint-disable-next-line no-console
+      console.log(`[DEBUG STEP 2 COMPLETE] User.findAndCountAll Result -> count: ${count}, rows.length: ${rows.length}`);
 
       success(res, 'Sellers list retrieved successfully', {
         sellers: rows,
@@ -164,7 +188,14 @@ export class AdminSellerController {
         limit,
         totalPages: Math.ceil(count / limit),
       });
-    } catch (error) {
+    } catch (error: any) {
+      // eslint-disable-next-line no-console
+      console.error('[DEBUG STEP 3 ERROR] User.findAndCountAll Exception:', {
+        name: error?.name,
+        message: error?.message,
+        sql: error?.sql,
+        stack: error?.stack,
+      });
       next(error);
     }
   };

@@ -23,6 +23,7 @@ import { AddSellerPage } from '../pages/AddSellerPage';
 import { SellerDetailsPage } from '../pages/SellerDetailsPage';
 import { NotificationsPage } from '../pages/notifications/NotificationsPage';
 import { AdminShippingProvidersPage } from '../pages/AdminShippingProvidersPage';
+import { AdminInventoryPage } from '../pages/AdminInventoryPage';
 
 export const AppRoutes: React.FC = () => {
   return (
@@ -41,6 +42,7 @@ export const AppRoutes: React.FC = () => {
             <Route path="/sellers/add" element={<AddSellerPage />} />
             <Route path="/sellers/:id" element={<SellerDetailsPage />} />
             <Route path="/stores" element={<StoresPage />} />
+            <Route path="/inventory-management" element={<AdminInventoryPage />} />
             <Route path="/shipping-providers" element={<AdminShippingProvidersPage />} />
             <Route path="/subscriptions" element={<SubscriptionPlansPage />} />
             <Route path="/users" element={<PlatformUsersPage />} />

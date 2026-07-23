@@ -35,6 +35,9 @@ import {
   Bell,
   Truck,
   FileText,
+  Boxes,
+  Warehouse as WarehouseIcon,
+  AlertTriangle,
 } from 'lucide-react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
@@ -84,6 +87,12 @@ export const AdminLayout: React.FC = () => {
     { label: 'Subscription Plans', path: '/subscriptions', icon: <CreditCard size={20} /> },
     { label: 'Platform Users', path: '/users', icon: <Users size={20} /> },
     { label: 'Roles & Permissions', path: '/roles', icon: <ShieldCheck size={20} /> },
+
+    { isHeader: true, label: 'Inventory Management' },
+    { label: 'Inventory Analytics', path: '/inventory-management', icon: <Boxes size={20} /> },
+    { label: 'Warehouse Analytics', path: '/inventory/warehouses', icon: <WarehouseIcon size={20} />, badge: 'Coming Soon', disabled: true },
+    { label: 'Inventory Reports', path: '/inventory/reports', icon: <BarChart3 size={20} />, badge: 'Coming Soon', disabled: true },
+    { label: 'Low Stock Monitoring', path: '/inventory/low-stock', icon: <AlertTriangle size={20} />, badge: 'Coming Soon', disabled: true },
 
     { isHeader: true, label: 'Shipping Management' },
     { label: 'Shipping Providers', path: '/shipping-providers', icon: <Truck size={20} /> },

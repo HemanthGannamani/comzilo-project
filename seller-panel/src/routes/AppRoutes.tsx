@@ -42,6 +42,7 @@ import { ReportsPage } from '../features/reports/pages/ReportsPage';
 import { NotificationsPage } from '../features/notifications/pages/NotificationsPage';
 import { SettingsPage } from '../features/settings/pages/SettingsPage';
 import { ShippingProvidersPage } from '../pages/settings/ShippingProvidersPage';
+import { InventoryManagementPage } from '../pages/inventory/InventoryManagementPage';
 import { IntegrationsPage } from '../features/integrations/pages/IntegrationsPage';
 
 export const AppRoutes: React.FC = () => {
@@ -92,6 +93,24 @@ export const AppRoutes: React.FC = () => {
             <Route path="/reports" element={<PermissionGuard permission="report.read"><ReportsPage /></PermissionGuard>} />
             <Route path="/notifications" element={<PermissionGuard permission="notification.read"><NotificationsPage /></PermissionGuard>} />
             <Route path="/settings" element={<PermissionGuard permission="settings.read"><SettingsPage /></PermissionGuard>} />
+
+            {/* Inventory Routes */}
+            <Route path="/inventory/dashboard" element={<InventoryManagementPage defaultTab={0} />} />
+            <Route path="/inventory/warehouses" element={<InventoryManagementPage defaultTab={1} />} />
+            <Route path="/inventory/locations" element={<InventoryManagementPage defaultTab={2} />} />
+            <Route path="/inventory/balances" element={<InventoryManagementPage defaultTab={3} />} />
+            <Route path="/inventory/stock-management" element={<InventoryManagementPage defaultTab={4} />} />
+            <Route path="/inventory/transfers" element={<InventoryManagementPage defaultTab={5} />} />
+            <Route path="/inventory/adjustments" element={<InventoryManagementPage defaultTab={6} />} />
+            <Route path="/inventory/suppliers" element={<InventoryManagementPage defaultTab={7} />} />
+            <Route path="/inventory/purchase-orders" element={<InventoryManagementPage defaultTab={8} />} />
+            <Route path="/inventory/grn" element={<InventoryManagementPage defaultTab={9} />} />
+            <Route path="/inventory/gin" element={<InventoryManagementPage defaultTab={10} />} />
+            <Route path="/inventory/barcode" element={<InventoryManagementPage defaultTab={11} />} />
+            <Route path="/inventory/serials" element={<InventoryManagementPage defaultTab={12} />} />
+            <Route path="/inventory/batches" element={<InventoryManagementPage defaultTab={13} />} />
+            <Route path="/inventory/expiry" element={<InventoryManagementPage defaultTab={14} />} />
+            <Route path="/inventory/reports" element={<InventoryManagementPage defaultTab={15} />} />
 
             {/* Shipping Routes */}
             <Route path="/shipping-providers" element={<ShippingProvidersPage defaultTab={0} />} />

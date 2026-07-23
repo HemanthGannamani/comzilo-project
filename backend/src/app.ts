@@ -218,6 +218,9 @@ import storeAnalyticsRoutes from './routes/storeAnalytics.routes';
 import adminShippingProviderRoutes from './routes/adminShippingProvider.routes';
 import storeShippingProviderRoutes from './routes/storeShippingProvider.routes';
 
+import adminInventoryRoutes from './routes/adminInventory.routes';
+import storeInventoryManagementRoutes from './routes/storeInventoryManagement.routes';
+
 app.use('/api/v1/webhooks', webhookRoutes);
 app.use('/api/v1/integrations', integrationRoutes);
 app.use('/api/v1/seller-applications', sellerApplicationRoutes);
@@ -226,9 +229,11 @@ app.use('/api/v1/public/seller-applications', sellerApplicationRoutes);
 app.use('/api/v1/admin/seller-applications', adminSellerApplicationRoutes);
 app.use('/api/v1/admin/sellers', adminSellerRoutes);
 app.use('/api/v1/admin/shipping-providers', adminShippingProviderRoutes);
+app.use('/api/v1/admin/inventory', adminInventoryRoutes);
 app.use('/api/v1/admin/dashboard', adminDashboardRoutes);
 app.use('/api/v1/admin/system', adminSystemRoutes);
 app.use('/api/v1/store/products', storeProductRoutes);
+app.use('/api/v1/store/inventory-management', storeInventoryManagementRoutes);
 app.use('/api/v1/store/inventory', storeInventoryRoutes);
 app.use('/api/v1/store/orders', storeOrderRoutes);
 app.use('/api/v1/store/shipping-providers', storeShippingProviderRoutes);

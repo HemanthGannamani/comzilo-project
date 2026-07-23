@@ -4,6 +4,7 @@ import { User } from './user';
 import { ShippingProvider } from './shippingProvider';
 import { TenantShippingProviderConfig } from './tenantShippingProviderConfig';
 import { PickupAddress, ShipmentPackage } from './pickupAddress';
+import { GoodsIssue } from './goodsIssue';
 import {
   Shipment,
   ShipmentTracking,
@@ -891,6 +892,7 @@ export {
   ShippingLog,
   ProviderWebhook,
   ShippingRateRule,
+  GoodsIssue,
 };
 
 // Shipping Associations

@@ -22,7 +22,10 @@ router.get('/transfers', requireAnyPermission(['inventory.read', 'warehouse.read
 router.post('/transfers', requireAnyPermission(['inventory.manage', 'inventory.transfer', 'warehouse.create', 'warehouse.manage', 'store.manage']), controller.createTransfer);
 
 router.get('/adjustments', requireAnyPermission(['inventory.read', 'inventory.adjust', 'warehouse.view', 'store.view']), controller.getAdjustments);
+router.get('/adjustments/:id', requireAnyPermission(['inventory.read', 'inventory.adjust', 'warehouse.view', 'store.view']), controller.getAdjustmentById);
 router.post('/adjustments', requireAnyPermission(['inventory.manage', 'inventory.adjust', 'warehouse.create', 'warehouse.manage', 'store.manage']), controller.createAdjustment);
+router.put('/adjustments/:id', requireAnyPermission(['inventory.manage', 'inventory.adjust', 'warehouse.update', 'warehouse.manage', 'store.manage']), controller.updateAdjustment);
+router.delete('/adjustments/:id', requireAnyPermission(['inventory.manage', 'inventory.adjust', 'warehouse.delete', 'warehouse.manage', 'store.manage']), controller.deleteAdjustment);
 
 router.get('/suppliers', requireAnyPermission(['inventory.read', 'supplier.read', 'warehouse.read', 'warehouse.view', 'store.view']), controller.getSuppliers);
 router.post('/suppliers', requireAnyPermission(['inventory.manage', 'supplier.create', 'supplier.manage', 'warehouse.create', 'warehouse.manage', 'store.manage']), controller.createSupplier);

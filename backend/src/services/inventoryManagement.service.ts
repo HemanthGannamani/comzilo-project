@@ -127,23 +127,21 @@ export class InventoryManagementService {
             productId: params.productId,
             warehouseId: params.warehouseId,
             warehouseLocationId: 1,
-            onHandQuantity: 0,
-            allocatedQuantity: 0,
-            availableQuantity: 0,
+            quantityOnHand: 0,
+            quantityReserved: 0,
+            quantityAvailable: 0,
             reorderPoint: 10,
-            averageCost: params.unitCost || 50.0,
           },
           { transaction: t }
         );
       }
 
-      const prevQty = Number(balance.onHandQuantity || 0);
+      const prevQty = Number(balance.quantityOnHand || balance.get('quantityOnHand') || 0);
       const changeQty = params.quantity;
       const newQty = Math.max(0, prevQty + changeQty);
 
-      balance.onHandQuantity = newQty;
-      balance.availableQuantity = Math.max(0, newQty - Number(balance.allocatedQuantity || 0));
-      if (params.unitCost) balance.averageCost = params.unitCost;
+      balance.quantityOnHand = newQty;
+      balance.quantityAvailable = Math.max(0, newQty - Number(balance.quantityReserved || 0));
       await balance.save({ transaction: t });
 
       const movement = await StockMovement.create(
@@ -305,6 +303,26 @@ export class InventoryManagementService {
       await t.rollback();
       throw error;
     }
+  }
+
+  public async getAdjustmentById(tenantId: number, id: number) {
+    const adj = await StockAdjustment.findOne({ where: { id, tenantId } });
+    if (!adj) throw new Error('Stock adjustment not found');
+    return adj;
+  }
+
+  public async updateAdjustment(tenantId: number, id: number, data: any) {
+    const adj = await StockAdjustment.findOne({ where: { id, tenantId } });
+    if (!adj) throw new Error('Stock adjustment not found');
+    await adj.update(data);
+    return adj;
+  }
+
+  public async deleteAdjustment(tenantId: number, id: number) {
+    const adj = await StockAdjustment.findOne({ where: { id, tenantId } });
+    if (!adj) throw new Error('Stock adjustment not found');
+    await adj.destroy();
+    return true;
   }
 
   // --- SUPPLIERS & PURCHASE ORDERS ---

@@ -106,6 +106,39 @@ export class StoreInventoryManagementController {
     }
   };
 
+  public getAdjustmentById = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const tenantId = req.context.tenantId!;
+      const id = Number(req.params.id);
+      const adj = await inventoryService.getAdjustmentById(tenantId, id);
+      success(res, 'Stock adjustment retrieved successfully', adj);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public updateAdjustment = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const tenantId = req.context.tenantId!;
+      const id = Number(req.params.id);
+      const adj = await inventoryService.updateAdjustment(tenantId, id, req.body);
+      success(res, 'Stock adjustment updated successfully', adj);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public deleteAdjustment = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const tenantId = req.context.tenantId!;
+      const id = Number(req.params.id);
+      await inventoryService.deleteAdjustment(tenantId, id);
+      success(res, 'Stock adjustment deleted successfully');
+    } catch (error) {
+      next(error);
+    }
+  };
+
   public getSuppliers = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const tenantId = req.context.tenantId!;

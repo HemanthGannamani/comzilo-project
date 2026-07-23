@@ -56,8 +56,8 @@ import {
   Phone,
   Mail,
   Eye,
-  CheckCircle2,
-  Clock,
+  ArrowUpRight,
+  ArrowDownRight,
 } from 'lucide-react';
 
 interface InventoryManagementPageProps {
@@ -162,6 +162,20 @@ export const InventoryManagementPage: React.FC<InventoryManagementPageProps> = (
     quantity: 100,
     unitPrice: 50.0,
     expectedDeliveryDate: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10),
+  });
+
+  // Stock Adjustment Modal & Filter State
+  const [adjModalOpen, setAdjModalOpen] = useState(false);
+  const [adjSearch, setAdjSearch] = useState('');
+  const [adjWarehouseFilter, setAdjWarehouseFilter] = useState('all');
+  const [adjTypeFilter, setAdjTypeFilter] = useState('all');
+  const [adjForm, setAdjForm] = useState({
+    warehouseId: '',
+    productId: '',
+    type: 'increase',
+    quantity: 10,
+    reasonCode: 'AUDIT',
+    reason: '',
   });
 
   const fetchAllData = async () => {
@@ -343,6 +357,63 @@ export const InventoryManagementPage: React.FC<InventoryManagementPageProps> = (
     }
   };
 
+  // STOCK ADJUSTMENT HANDLERS
+  const handleOpenAdjModal = () => {
+    setAdjForm({
+      warehouseId: warehouses.length > 0 ? String(warehouses[0].id) : '1',
+      productId: products.length > 0 ? String(products[0].id) : '1',
+      type: 'increase',
+      quantity: 10,
+      reasonCode: 'AUDIT',
+      reason: 'Physical count adjustment',
+    });
+    setAdjModalOpen(true);
+  };
+
+  const handleSaveAdjustment = async () => {
+    if (!adjForm.warehouseId || !adjForm.productId) {
+      toast.error('Warehouse and Product selection are required');
+      return;
+    }
+    if (Number(adjForm.quantity) <= 0) {
+      toast.error('Quantity must be greater than 0');
+      return;
+    }
+
+    const payload = {
+      warehouseId: Number(adjForm.warehouseId),
+      productId: Number(adjForm.productId),
+      type: adjForm.type,
+      quantity: Number(adjForm.quantity),
+      reasonCode: adjForm.reasonCode,
+      reason: adjForm.reason || `${adjForm.type === 'increase' ? 'Increase' : 'Decrease'} adjustment`,
+    };
+
+    try {
+      const res = await axiosInstance.post('/store/inventory-management/adjustments', payload);
+      toast.success('Stock adjustment created successfully');
+      setAdjustments([res.data.data, ...adjustments]);
+      setAdjModalOpen(false);
+      // Refresh stock balances automatically
+      const balRes = await axiosInstance.get('/store/inventory-management/balances');
+      setBalances(balRes.data.data || []);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Failed to create stock adjustment');
+    }
+  };
+
+  const handleDeleteAdjustment = async (id: number) => {
+    if (!window.confirm('Are you sure you want to delete this stock adjustment?')) return;
+
+    try {
+      await axiosInstance.delete(`/store/inventory-management/adjustments/${id}`);
+      toast.success('Stock adjustment deleted successfully');
+      setAdjustments(adjustments.filter((adj) => adj.id !== id));
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Failed to delete stock adjustment');
+    }
+  };
+
   const filteredSuppliers = suppliers.filter((s: any) => {
     const q = supplierSearch.toLowerCase().trim();
     if (!q) return true;
@@ -364,6 +435,25 @@ export const InventoryManagementPage: React.FC<InventoryManagementPageProps> = (
       (po.supplier?.name && po.supplier.name.toLowerCase().includes(q)) ||
       (po.status && po.status.toLowerCase().includes(q))
     );
+  });
+
+  const filteredAdjustments = adjustments.filter((adj: any) => {
+    const q = adjSearch.toLowerCase().trim();
+    const matchesQuery =
+      !q ||
+      (adj.adjustmentNumber && adj.adjustmentNumber.toLowerCase().includes(q)) ||
+      (adj.reason && adj.reason.toLowerCase().includes(q)) ||
+      (adj.reasonCode && adj.reasonCode.toLowerCase().includes(q));
+
+    const matchesWarehouse =
+      adjWarehouseFilter === 'all' || String(adj.warehouseId) === adjWarehouseFilter;
+
+    const matchesType =
+      adjTypeFilter === 'all' ||
+      (adjTypeFilter === 'increase' && (adj.adjustmentType === 'increase' || adj.quantity > 0)) ||
+      (adjTypeFilter === 'decrease' && (adj.adjustmentType === 'decrease' || adj.quantity < 0));
+
+    return matchesQuery && matchesWarehouse && matchesType;
   });
 
   if (loading) return <PageLoader message="Loading Enterprise Inventory Management..." />;
@@ -474,6 +564,151 @@ export const InventoryManagementPage: React.FC<InventoryManagementPageProps> = (
                 </Grid>
               ))}
             </Grid>
+          )}
+        </Paper>
+      )}
+
+      {/* TAB 6: STOCK ADJUSTMENTS */}
+      {tabIndex === 6 && (
+        <Paper sx={{ p: 3, borderRadius: 3 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
+            <Box>
+              <Typography variant="h6" sx={{ fontWeight: 700 }}>Stock Adjustments & Reconciliation</Typography>
+              <Typography variant="body2" color="text.secondary">
+                Record physical stock count reconciliations, damaged goods, or manual inventory corrections.
+              </Typography>
+            </Box>
+            <Button
+              variant="contained"
+              startIcon={<Plus size={18} />}
+              onClick={handleOpenAdjModal}
+              sx={{ borderRadius: 2, fontWeight: 700, px: 3 }}
+            >
+              Create Stock Adjustment
+            </Button>
+          </Box>
+
+          <Grid container spacing={2} sx={{ mb: 3 }}>
+            <Grid item xs={12} sm={6} md={4}>
+              <TextField
+                size="small"
+                placeholder="Search by adjustment # or reason..."
+                value={adjSearch}
+                onChange={(e) => setAdjSearch(e.target.value)}
+                fullWidth
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Search size={18} />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6} md={4}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Filter by Warehouse</InputLabel>
+                <Select
+                  value={adjWarehouseFilter}
+                  label="Filter by Warehouse"
+                  onChange={(e) => setAdjWarehouseFilter(e.target.value)}
+                >
+                  <MenuItem value="all">All Warehouses</MenuItem>
+                  {warehouses.map((w: any) => (
+                    <MenuItem key={w.id} value={String(w.id)}>
+                      {w.name} ({w.code})
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={6} md={4}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Adjustment Type</InputLabel>
+                <Select
+                  value={adjTypeFilter}
+                  label="Adjustment Type"
+                  onChange={(e) => setAdjTypeFilter(e.target.value)}
+                >
+                  <MenuItem value="all">All Types</MenuItem>
+                  <MenuItem value="increase">Increase (+)</MenuItem>
+                  <MenuItem value="decrease">Decrease (-)</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+          </Grid>
+
+          {filteredAdjustments.length === 0 ? (
+            <Box sx={{ textAlign: 'center', py: 6, border: '1px dashed #CBD5E1', borderRadius: 3, bgcolor: '#F8FAFC' }}>
+              <Sliders size={48} color="#94A3B8" />
+              <Typography variant="h6" sx={{ mt: 2, fontWeight: 700, color: '#334155' }}>
+                No stock adjustments found
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                {adjSearch || adjWarehouseFilter !== 'all' || adjTypeFilter !== 'all'
+                  ? 'No stock adjustment matches your filters. Try clearing filter settings.'
+                  : 'Start by creating your first stock adjustment to reconcile physical stock balances.'}
+              </Typography>
+              <Button
+                variant="contained"
+                startIcon={<Plus size={18} />}
+                onClick={handleOpenAdjModal}
+                sx={{ borderRadius: 2, fontWeight: 700 }}
+              >
+                Create Stock Adjustment
+              </Button>
+            </Box>
+          ) : (
+            <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2 }}>
+              <Table>
+                <TableHead sx={{ bgcolor: '#F8FAFC' }}>
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: 700 }}>Adjustment #</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Product ID</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Warehouse ID</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Adjustment Type & Quantity</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Reason Code</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Date</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 700 }}>Actions</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {filteredAdjustments.map((adj: any) => {
+                    const isIncrease = adj.adjustmentType === 'increase' || adj.quantity > 0;
+                    return (
+                      <TableRow key={adj.id} hover>
+                        <TableCell>
+                          <Chip label={adj.adjustmentNumber || `ADJ-${adj.id}`} size="small" color="primary" sx={{ fontWeight: 700 }} />
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: 600 }}>Product #{adj.productId}</TableCell>
+                        <TableCell>Warehouse #{adj.warehouseId}</TableCell>
+                        <TableCell>
+                          <Chip
+                            icon={isIncrease ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
+                            label={`${isIncrease ? '+' : ''}${adj.quantity} ${isIncrease ? 'Increase' : 'Decrease'}`}
+                            color={isIncrease ? 'success' : 'error'}
+                            size="small"
+                            sx={{ fontWeight: 700 }}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" sx={{ fontWeight: 600 }}>{adj.reasonCode || 'AUDIT'}</Typography>
+                          {adj.reason && <Typography variant="caption" color="text.secondary">{adj.reason}</Typography>}
+                        </TableCell>
+                        <TableCell>{adj.createdAt ? new Date(adj.createdAt).toLocaleDateString() : 'N/A'}</TableCell>
+                        <TableCell align="right">
+                          <Tooltip title="Delete Adjustment">
+                            <IconButton size="small" onClick={() => handleDeleteAdjustment(adj.id)} color="error">
+                              <Trash2 size={16} />
+                            </IconButton>
+                          </Tooltip>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </TableContainer>
           )}
         </Paper>
       )}
@@ -724,6 +959,108 @@ export const InventoryManagementPage: React.FC<InventoryManagementPageProps> = (
           )}
         </Paper>
       )}
+
+      {/* CREATE STOCK ADJUSTMENT DIALOG */}
+      <Dialog open={adjModalOpen} onClose={() => setAdjModalOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontWeight: 800 }}>Create Stock Adjustment</DialogTitle>
+        <DialogContent dividers>
+          <Grid container spacing={2} sx={{ pt: 1 }}>
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth required>
+                <InputLabel>Warehouse</InputLabel>
+                <Select
+                  value={adjForm.warehouseId}
+                  label="Warehouse"
+                  onChange={(e) => setAdjForm({ ...adjForm, warehouseId: e.target.value })}
+                >
+                  {warehouses.map((w: any) => (
+                    <MenuItem key={w.id} value={String(w.id)}>
+                      {w.name} ({w.code})
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth required>
+                <InputLabel>Target Product</InputLabel>
+                <Select
+                  value={adjForm.productId}
+                  label="Target Product"
+                  onChange={(e) => setAdjForm({ ...adjForm, productId: e.target.value })}
+                >
+                  {products.map((p: any) => (
+                    <MenuItem key={p.id} value={String(p.id)}>
+                      {p.name} (#{p.id})
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth required>
+                <InputLabel>Adjustment Type</InputLabel>
+                <Select
+                  value={adjForm.type}
+                  label="Adjustment Type"
+                  onChange={(e) => setAdjForm({ ...adjForm, type: e.target.value })}
+                >
+                  <MenuItem value="increase">Increase (+ Stock)</MenuItem>
+                  <MenuItem value="decrease">Decrease (- Stock)</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="Adjustment Quantity"
+                type="number"
+                fullWidth
+                required
+                value={adjForm.quantity}
+                onChange={(e) => setAdjForm({ ...adjForm, quantity: Number(e.target.value) })}
+              />
+            </Grid>
+
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth>
+                <InputLabel>Reason Category</InputLabel>
+                <Select
+                  value={adjForm.reasonCode}
+                  label="Reason Category"
+                  onChange={(e) => setAdjForm({ ...adjForm, reasonCode: e.target.value })}
+                >
+                  <MenuItem value="AUDIT">Audit Count Correction</MenuItem>
+                  <MenuItem value="DAMAGED">Damaged Goods</MenuItem>
+                  <MenuItem value="EXPIRED">Expired Items</MenuItem>
+                  <MenuItem value="THEFT">Theft / Unaccounted Loss</MenuItem>
+                  <MenuItem value="FOUND">Found Extra Stock</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+
+            <Grid item xs={12}>
+              <TextField
+                label="Adjustment Reason & Notes"
+                multiline
+                rows={2}
+                fullWidth
+                placeholder="Explain why stock is being adjusted..."
+                value={adjForm.reason}
+                onChange={(e) => setAdjForm({ ...adjForm, reason: e.target.value })}
+              />
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions sx={{ p: 2.5 }}>
+          <Button onClick={() => setAdjModalOpen(false)}>Cancel</Button>
+          <Button variant="contained" onClick={handleSaveAdjustment} sx={{ px: 3, fontWeight: 700 }}>
+            Execute Adjustment
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* CREATE / EDIT SUPPLIER DIALOG */}
       <Dialog open={supplierModalOpen} onClose={() => setSupplierModalOpen(false)} maxWidth="sm" fullWidth>

@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { StockAdjustmentController } from '../controllers/stockAdjustment.controller';
 import { tenantResolver } from '../middleware/tenantResolver';
 import { authenticate as requireAuth } from '../middleware/auth.middleware';
-import { authorize, requirePermission } from '../middleware/authz.middleware';
+import { authorize, requireAnyPermission } from '../middleware/authz.middleware';
 import { validate as validateRequest } from '../middleware/validate';
 import { adjustmentValidation } from '../validations/stockAdjustment.validation';
 
@@ -15,35 +15,35 @@ router.use(authorize);
 
 router.get(
   '/',
-  requirePermission('inventory.read'),
+  requireAnyPermission(['inventory.read', 'inventory.adjust', 'warehouse.view', 'store.view']),
   validateRequest({ query: adjustmentValidation.listAdjustments }),
   controller.listAdjustments
 );
 
 router.post(
   '/',
-  requirePermission('inventory.adjust'),
+  requireAnyPermission(['inventory.manage', 'inventory.adjust', 'warehouse.create', 'warehouse.manage', 'store.manage']),
   validateRequest({ body: adjustmentValidation.createAdjustment }),
   controller.createAdjustment
 );
 
-router.get('/:id', requirePermission('inventory.read', 'id'), controller.getAdjustment);
+router.get('/:id', requireAnyPermission(['inventory.read', 'inventory.adjust', 'warehouse.view', 'store.view']), controller.getAdjustment);
 
 router.post(
   '/:id/approve',
-  requirePermission('inventory.approve_adjustment', 'id'),
+  requireAnyPermission(['inventory.manage', 'inventory.adjust', 'warehouse.manage', 'store.manage']),
   controller.approveAdjustment
 );
 
 router.post(
   '/:id/reject',
-  requirePermission('inventory.approve_adjustment', 'id'),
+  requireAnyPermission(['inventory.manage', 'inventory.adjust', 'warehouse.manage', 'store.manage']),
   controller.rejectAdjustment
 );
 
 router.post(
   '/:id/cancel',
-  requirePermission('inventory.adjust', 'id'),
+  requireAnyPermission(['inventory.manage', 'inventory.adjust', 'warehouse.manage', 'store.manage']),
   controller.cancelAdjustment
 );
 

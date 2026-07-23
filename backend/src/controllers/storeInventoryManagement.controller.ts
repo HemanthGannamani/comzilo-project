@@ -168,6 +168,28 @@ export class StoreInventoryManagementController {
     }
   };
 
+  public updatePurchaseOrder = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const tenantId = req.context.tenantId!;
+      const id = Number(req.params.id);
+      const po = await inventoryService.updatePurchaseOrder(tenantId, id, req.body);
+      success(res, 'Purchase order updated successfully', po);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public deletePurchaseOrder = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const tenantId = req.context.tenantId!;
+      const id = Number(req.params.id);
+      await inventoryService.deletePurchaseOrder(tenantId, id);
+      success(res, 'Purchase order deleted successfully');
+    } catch (error) {
+      next(error);
+    }
+  };
+
   public getGoodsReceipts = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const tenantId = req.context.tenantId!;

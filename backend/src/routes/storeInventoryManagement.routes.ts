@@ -31,6 +31,8 @@ router.delete('/suppliers/:id', requireAnyPermission(['inventory.manage', 'suppl
 
 router.get('/purchase-orders', requireAnyPermission(['inventory.read', 'po.read', 'warehouse.view', 'store.view']), controller.getPurchaseOrders);
 router.post('/purchase-orders', requireAnyPermission(['inventory.manage', 'po.create', 'po.manage', 'warehouse.create', 'warehouse.manage', 'store.manage']), controller.createPurchaseOrder);
+router.put('/purchase-orders/:id', requireAnyPermission(['inventory.manage', 'po.create', 'po.manage', 'warehouse.update', 'warehouse.manage', 'store.manage']), controller.updatePurchaseOrder);
+router.delete('/purchase-orders/:id', requireAnyPermission(['inventory.manage', 'po.create', 'po.manage', 'warehouse.delete', 'warehouse.manage', 'store.manage']), controller.deletePurchaseOrder);
 
 router.get('/goods-receipts', requireAnyPermission(['inventory.read', 'grn.read', 'warehouse.view', 'store.view']), controller.getGoodsReceipts);
 router.post('/goods-receipts', requireAnyPermission(['inventory.manage', 'grn.create', 'warehouse.create', 'warehouse.manage', 'store.manage']), controller.createGoodsReceipt);

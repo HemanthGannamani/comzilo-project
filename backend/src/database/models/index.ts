@@ -648,8 +648,10 @@ SupplierBankAccount.belongsTo(Supplier, { foreignKey: 'supplier_id', as: 'suppli
 PurchaseRequest.hasMany(PurchaseRequestItem, { foreignKey: 'request_id', as: 'items' });
 PurchaseRequestItem.belongsTo(PurchaseRequest, { foreignKey: 'request_id', as: 'request' });
 
-PurchaseOrder.hasMany(PurchaseOrderItem, { foreignKey: 'po_id', as: 'items' });
-PurchaseOrderItem.belongsTo(PurchaseOrder, { foreignKey: 'po_id', as: 'po' });
+PurchaseOrder.belongsTo(Supplier, { foreignKey: 'supplierId', as: 'supplier' });
+Supplier.hasMany(PurchaseOrder, { foreignKey: 'supplierId', as: 'purchaseOrders' });
+PurchaseOrder.hasMany(PurchaseOrderItem, { foreignKey: 'poId', as: 'items' });
+PurchaseOrderItem.belongsTo(PurchaseOrder, { foreignKey: 'poId', as: 'po' });
 
 GoodsReceipt.hasMany(GoodsReceiptItem, { foreignKey: 'grn_id', as: 'items' });
 GoodsReceiptItem.belongsTo(GoodsReceipt, { foreignKey: 'grn_id', as: 'grn' });

@@ -23,6 +23,10 @@ import {
   TableRow,
   InputAdornment,
   Tooltip,
+  MenuItem,
+  Select,
+  FormControl,
+  InputLabel,
 } from '@mui/material';
 import { PageContainer } from '../../components/layout/PageContainer';
 import { PageLoader } from '../../components/common/PageLoader';
@@ -51,7 +55,9 @@ import {
   Trash2,
   Phone,
   Mail,
-  Building,
+  Eye,
+  CheckCircle2,
+  Clock,
 } from 'lucide-react';
 
 interface InventoryManagementPageProps {
@@ -123,6 +129,7 @@ export const InventoryManagementPage: React.FC<InventoryManagementPageProps> = (
   const [adjustments, setAdjustments] = useState<any[]>([]);
   const [suppliers, setSuppliers] = useState<any[]>([]);
   const [purchaseOrders, setPurchaseOrders] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
   const [grns, setGrns] = useState<any[]>([]);
   const [gins, setGins] = useState<any[]>([]);
   const [batches, setBatches] = useState<any[]>([]);
@@ -143,6 +150,20 @@ export const InventoryManagementPage: React.FC<InventoryManagementPageProps> = (
     address: '',
   });
 
+  // Purchase Order CRUD Modal State
+  const [poModalOpen, setPoModalOpen] = useState(false);
+  const [viewPoModalOpen, setViewPoModalOpen] = useState(false);
+  const [selectedPo, setSelectedPo] = useState<any>(null);
+  const [poSearch, setPoSearch] = useState('');
+  const [poForm, setPoForm] = useState({
+    supplierId: '',
+    warehouseId: '',
+    productId: '',
+    quantity: 100,
+    unitPrice: 50.0,
+    expectedDeliveryDate: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10),
+  });
+
   const fetchAllData = async () => {
     try {
       const [
@@ -154,6 +175,7 @@ export const InventoryManagementPage: React.FC<InventoryManagementPageProps> = (
         adjRes,
         supRes,
         poRes,
+        prodRes,
         grnRes,
         ginRes,
         batRes,
@@ -167,6 +189,7 @@ export const InventoryManagementPage: React.FC<InventoryManagementPageProps> = (
         axiosInstance.get('/store/inventory-management/adjustments'),
         axiosInstance.get('/store/inventory-management/suppliers'),
         axiosInstance.get('/store/inventory-management/purchase-orders'),
+        axiosInstance.get('/products'),
         axiosInstance.get('/store/inventory-management/goods-receipts'),
         axiosInstance.get('/store/inventory-management/goods-issues'),
         axiosInstance.get('/store/inventory-management/batches'),
@@ -181,6 +204,7 @@ export const InventoryManagementPage: React.FC<InventoryManagementPageProps> = (
       if (adjRes.status === 'fulfilled') setAdjustments(adjRes.value.data.data || []);
       if (supRes.status === 'fulfilled') setSuppliers(supRes.value.data.data || []);
       if (poRes.status === 'fulfilled') setPurchaseOrders(poRes.value.data.data || []);
+      if (prodRes.status === 'fulfilled') setProducts(prodRes.value.data.data?.items || prodRes.value.data.data || []);
       if (grnRes.status === 'fulfilled') setGrns(grnRes.value.data.data || []);
       if (ginRes.status === 'fulfilled') setGins(ginRes.value.data.data || []);
       if (batRes.status === 'fulfilled') setBatches(batRes.value.data.data || []);
@@ -196,6 +220,7 @@ export const InventoryManagementPage: React.FC<InventoryManagementPageProps> = (
     fetchAllData();
   }, []);
 
+  // SUPPLIER HANDLERS
   const handleOpenSupplierModal = (sup?: any) => {
     if (sup) {
       setEditingSupplier(sup);
@@ -260,6 +285,64 @@ export const InventoryManagementPage: React.FC<InventoryManagementPageProps> = (
     }
   };
 
+  // PURCHASE ORDER HANDLERS
+  const handleOpenPoModal = () => {
+    setPoForm({
+      supplierId: suppliers.length > 0 ? String(suppliers[0].id) : '',
+      warehouseId: warehouses.length > 0 ? String(warehouses[0].id) : '1',
+      productId: products.length > 0 ? String(products[0].id) : '1',
+      quantity: 100,
+      unitPrice: 50.0,
+      expectedDeliveryDate: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10),
+    });
+    setPoModalOpen(true);
+  };
+
+  const handleSavePo = async () => {
+    if (!poForm.supplierId) {
+      toast.error('Please select a supplier');
+      return;
+    }
+
+    const totalAmount = Number(poForm.quantity) * Number(poForm.unitPrice);
+
+    const payload = {
+      supplierId: Number(poForm.supplierId),
+      warehouseId: Number(poForm.warehouseId || 1),
+      totalAmount,
+      subtotal: totalAmount,
+      expectedDeliveryDate: poForm.expectedDeliveryDate,
+      items: [
+        {
+          productId: Number(poForm.productId || 1),
+          quantity: Number(poForm.quantity),
+          unitPrice: Number(poForm.unitPrice),
+        },
+      ],
+    };
+
+    try {
+      const res = await axiosInstance.post('/store/inventory-management/purchase-orders', payload);
+      toast.success('Purchase Order created successfully');
+      setPurchaseOrders([res.data.data, ...purchaseOrders]);
+      setPoModalOpen(false);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Failed to create Purchase Order');
+    }
+  };
+
+  const handleDeletePo = async (id: number) => {
+    if (!window.confirm('Are you sure you want to delete this Purchase Order?')) return;
+
+    try {
+      await axiosInstance.delete(`/store/inventory-management/purchase-orders/${id}`);
+      toast.success('Purchase Order deleted successfully');
+      setPurchaseOrders(purchaseOrders.filter((po) => po.id !== id));
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Failed to delete Purchase Order');
+    }
+  };
+
   const filteredSuppliers = suppliers.filter((s: any) => {
     const q = supplierSearch.toLowerCase().trim();
     if (!q) return true;
@@ -270,6 +353,16 @@ export const InventoryManagementPage: React.FC<InventoryManagementPageProps> = (
       (s.email && s.email.toLowerCase().includes(q)) ||
       (s.phone && s.phone.toLowerCase().includes(q)) ||
       (s.gstNumber && s.gstNumber.toLowerCase().includes(q))
+    );
+  });
+
+  const filteredPurchaseOrders = purchaseOrders.filter((po: any) => {
+    const q = poSearch.toLowerCase().trim();
+    if (!q) return true;
+    return (
+      (po.poNumber && po.poNumber.toLowerCase().includes(q)) ||
+      (po.supplier?.name && po.supplier.name.toLowerCase().includes(q)) ||
+      (po.status && po.status.toLowerCase().includes(q))
     );
   });
 
@@ -502,6 +595,136 @@ export const InventoryManagementPage: React.FC<InventoryManagementPageProps> = (
         </Paper>
       )}
 
+      {/* TAB 8: PURCHASE ORDERS */}
+      {tabIndex === 8 && (
+        <Paper sx={{ p: 3, borderRadius: 3 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
+            <Box>
+              <Typography variant="h6" sx={{ fontWeight: 700 }}>Purchase Orders (PO)</Typography>
+              <Typography variant="body2" color="text.secondary">
+                Issue vendor purchase orders, track procurement line items, and generate Goods Receipts (GRN).
+              </Typography>
+            </Box>
+            <Button
+              variant="contained"
+              startIcon={<Plus size={18} />}
+              onClick={handleOpenPoModal}
+              sx={{ borderRadius: 2, fontWeight: 700, px: 3 }}
+            >
+              Create Purchase Order
+            </Button>
+          </Box>
+
+          <Box sx={{ mb: 3 }}>
+            <TextField
+              size="small"
+              placeholder="Search purchase orders by PO number, supplier name, status..."
+              value={poSearch}
+              onChange={(e) => setPoSearch(e.target.value)}
+              fullWidth
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Search size={18} />
+                  </InputAdornment>
+                ),
+              }}
+              sx={{ maxWidth: 500 }}
+            />
+          </Box>
+
+          {filteredPurchaseOrders.length === 0 ? (
+            <Box sx={{ textAlign: 'center', py: 6, border: '1px dashed #CBD5E1', borderRadius: 3, bgcolor: '#F8FAFC' }}>
+              <FileSpreadsheet size={48} color="#94A3B8" />
+              <Typography variant="h6" sx={{ mt: 2, fontWeight: 700, color: '#334155' }}>
+                No purchase orders found
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                {poSearch
+                  ? 'No purchase order matches your search criteria. Try a different query.'
+                  : 'Start by issuing your first Purchase Order to replenish inventory stock from your suppliers.'}
+              </Typography>
+              <Button
+                variant="contained"
+                startIcon={<Plus size={18} />}
+                onClick={handleOpenPoModal}
+                sx={{ borderRadius: 2, fontWeight: 700 }}
+              >
+                Create Purchase Order
+              </Button>
+            </Box>
+          ) : (
+            <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2 }}>
+              <Table>
+                <TableHead sx={{ bgcolor: '#F8FAFC' }}>
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: 700 }}>PO Number</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Supplier</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Expected Delivery</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Total Amount</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 700 }}>Actions</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {filteredPurchaseOrders.map((po: any) => (
+                    <TableRow key={po.id} hover>
+                      <TableCell>
+                        <Chip label={po.poNumber || `PO-${po.id}`} size="small" color="primary" sx={{ fontWeight: 700 }} />
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: '#0F172A' }}>
+                        {po.supplier?.name || `Supplier #${po.supplierId}`}
+                      </TableCell>
+                      <TableCell>
+                        {po.expectedDeliveryDate
+                          ? new Date(po.expectedDeliveryDate).toLocaleDateString()
+                          : 'N/A'}
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 700, color: '#0F172A' }}>
+                        ₹{Number(po.totalAmount || po.subtotal || 0).toLocaleString()}
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={String(po.status || 'approved').toUpperCase()}
+                          size="small"
+                          color={
+                            po.status === 'received' || po.status === 'completed'
+                              ? 'success'
+                              : po.status === 'approved'
+                              ? 'info'
+                              : 'warning'
+                          }
+                          sx={{ fontWeight: 700 }}
+                        />
+                      </TableCell>
+                      <TableCell align="right">
+                        <Tooltip title="View Order Details">
+                          <IconButton
+                            size="small"
+                            onClick={() => {
+                              setSelectedPo(po);
+                              setViewPoModalOpen(true);
+                            }}
+                            color="primary"
+                          >
+                            <Eye size={16} />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Delete Purchase Order">
+                          <IconButton size="small" onClick={() => handleDeletePo(po.id)} color="error">
+                            <Trash2 size={16} />
+                          </IconButton>
+                        </Tooltip>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
+        </Paper>
+      )}
+
       {/* CREATE / EDIT SUPPLIER DIALOG */}
       <Dialog open={supplierModalOpen} onClose={() => setSupplierModalOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ fontWeight: 800 }}>
@@ -577,6 +800,177 @@ export const InventoryManagementPage: React.FC<InventoryManagementPageProps> = (
           <Button onClick={() => setSupplierModalOpen(false)}>Cancel</Button>
           <Button variant="contained" onClick={handleSaveSupplier} sx={{ px: 3, fontWeight: 700 }}>
             {editingSupplier ? 'Update Supplier' : 'Save Supplier'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* CREATE PURCHASE ORDER DIALOG */}
+      <Dialog open={poModalOpen} onClose={() => setPoModalOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontWeight: 800 }}>Issue Purchase Order</DialogTitle>
+        <DialogContent dividers>
+          <Grid container spacing={2} sx={{ pt: 1 }}>
+            <Grid item xs={12}>
+              <FormControl fullWidth required>
+                <InputLabel>Select Supplier / Vendor</InputLabel>
+                <Select
+                  value={poForm.supplierId}
+                  label="Select Supplier / Vendor"
+                  onChange={(e) => setPoForm({ ...poForm, supplierId: e.target.value })}
+                >
+                  {suppliers.map((s: any) => (
+                    <MenuItem key={s.id} value={s.id}>
+                      {s.name} {s.companyName ? `(${s.companyName})` : ''} - {s.code || `SUP-${s.id}`}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth>
+                <InputLabel>Destination Warehouse</InputLabel>
+                <Select
+                  value={poForm.warehouseId}
+                  label="Destination Warehouse"
+                  onChange={(e) => setPoForm({ ...poForm, warehouseId: e.target.value })}
+                >
+                  {warehouses.map((w: any) => (
+                    <MenuItem key={w.id} value={w.id}>
+                      {w.name} ({w.city || w.code})
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="Expected Delivery Date"
+                type="date"
+                fullWidth
+                InputLabelProps={{ shrink: true }}
+                value={poForm.expectedDeliveryDate}
+                onChange={(e) => setPoForm({ ...poForm, expectedDeliveryDate: e.target.value })}
+              />
+            </Grid>
+
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="Ordered Quantity (Units)"
+                type="number"
+                fullWidth
+                value={poForm.quantity}
+                onChange={(e) => setPoForm({ ...poForm, quantity: Number(e.target.value) })}
+              />
+            </Grid>
+
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="Unit Price / Cost (₹)"
+                type="number"
+                fullWidth
+                value={poForm.unitPrice}
+                onChange={(e) => setPoForm({ ...poForm, unitPrice: Number(e.target.value) })}
+              />
+            </Grid>
+
+            <Grid item xs={12}>
+              <Card sx={{ p: 2, bgcolor: '#F8FAFC', border: '1px solid #E2E8F0' }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography variant="subtitle2" color="text.secondary">Calculated Total Order Cost:</Typography>
+                  <Typography variant="h6" sx={{ fontWeight: 800, color: '#0F172A' }}>
+                    ₹{(Number(poForm.quantity) * Number(poForm.unitPrice)).toLocaleString()}
+                  </Typography>
+                </Box>
+              </Card>
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions sx={{ p: 2.5 }}>
+          <Button onClick={() => setPoModalOpen(false)}>Cancel</Button>
+          <Button variant="contained" onClick={handleSavePo} sx={{ px: 3, fontWeight: 700 }}>
+            Issue Purchase Order
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* VIEW PURCHASE ORDER DETAILS DIALOG */}
+      <Dialog open={viewPoModalOpen} onClose={() => setViewPoModalOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontWeight: 800 }}>
+          Purchase Order Details - {selectedPo?.poNumber || `PO-${selectedPo?.id}`}
+        </DialogTitle>
+        <DialogContent dividers>
+          {selectedPo && (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                <Typography variant="subtitle2" color="text.secondary">Supplier:</Typography>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                  {selectedPo.supplier?.name || `Supplier #${selectedPo.supplierId}`}
+                </Typography>
+              </Box>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                <Typography variant="subtitle2" color="text.secondary">Status:</Typography>
+                <Chip
+                  label={String(selectedPo.status || 'approved').toUpperCase()}
+                  color="info"
+                  size="small"
+                  sx={{ fontWeight: 700 }}
+                />
+              </Box>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                <Typography variant="subtitle2" color="text.secondary">Expected Delivery:</Typography>
+                <Typography variant="subtitle2">
+                  {selectedPo.expectedDeliveryDate
+                    ? new Date(selectedPo.expectedDeliveryDate).toLocaleDateString()
+                    : 'N/A'}
+                </Typography>
+              </Box>
+
+              <Typography variant="subtitle1" sx={{ fontWeight: 700, mt: 1 }}>Line Items</Typography>
+              <TableContainer component={Paper} variant="outlined">
+                <Table size="small">
+                  <TableHead sx={{ bgcolor: '#F8FAFC' }}>
+                    <TableRow>
+                      <TableCell sx={{ fontWeight: 700 }}>Item / Product ID</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 700 }}>Qty</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 700 }}>Unit Price</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 700 }}>Subtotal</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {(selectedPo.items || [
+                      {
+                        productId: selectedPo.productId || 1,
+                        orderedQuantity: selectedPo.orderedQuantity || 100,
+                        unitPrice: selectedPo.unitPrice || 50,
+                        totalPrice: selectedPo.totalAmount || 5000,
+                      },
+                    ]).map((item: any, idx: number) => (
+                      <TableRow key={idx}>
+                        <TableCell>Product #{item.productId || idx + 1}</TableCell>
+                        <TableCell align="right">{item.orderedQuantity || item.quantity || 100}</TableCell>
+                        <TableCell align="right">₹{item.unitPrice || 50}</TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 700 }}>
+                          ₹{item.subtotal || item.totalPrice || (item.orderedQuantity * item.unitPrice) || 5000}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1, p: 2, bgcolor: '#F8FAFC', borderRadius: 2 }}>
+                <Typography variant="h6" sx={{ fontWeight: 800 }}>Total Order Value:</Typography>
+                <Typography variant="h6" sx={{ fontWeight: 800, color: '#0F172A' }}>
+                  ₹{Number(selectedPo.totalAmount || selectedPo.subtotal || 0).toLocaleString()}
+                </Typography>
+              </Box>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={() => setViewPoModalOpen(false)} variant="contained">
+            Close
           </Button>
         </DialogActions>
       </Dialog>

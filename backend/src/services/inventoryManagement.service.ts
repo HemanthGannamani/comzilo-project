@@ -363,17 +363,35 @@ export class InventoryManagementService {
       for (const item of data.items) {
         await PurchaseOrderItem.create({
           poId: po.id,
-          productId: item.productId,
-          orderedQuantity: item.quantity,
-          unitPrice: item.unitPrice || 50.0,
-          unitCost: item.unitPrice || 50.0,
-          subtotal: item.quantity * (item.unitPrice || 50.0),
-          totalPrice: item.quantity * (item.unitPrice || 50.0),
+          productId: item.productId || 1,
+          quantityOrdered: item.quantity || item.orderedQuantity || item.quantityOrdered || 1,
+          unitCost: item.unitPrice || item.unitCost || 50.0,
+          subtotal: (item.quantity || item.orderedQuantity || item.quantityOrdered || 1) * (item.unitPrice || item.unitCost || 50.0),
         });
       }
     }
 
+    return await PurchaseOrder.findByPk(po.id, {
+      include: [
+        { model: Supplier, as: 'supplier' },
+        { model: PurchaseOrderItem, as: 'items' },
+      ],
+    });
+  }
+
+  public async updatePurchaseOrder(tenantId: number, id: number, data: any) {
+    const po = await PurchaseOrder.findOne({ where: { id, tenantId } });
+    if (!po) throw new Error('Purchase order not found');
+    await po.update(data);
     return po;
+  }
+
+  public async deletePurchaseOrder(tenantId: number, id: number) {
+    const po = await PurchaseOrder.findOne({ where: { id, tenantId } });
+    if (!po) throw new Error('Purchase order not found');
+    await PurchaseOrderItem.destroy({ where: { poId: id } });
+    await po.destroy();
+    return true;
   }
 
   // --- GOODS RECEIPT NOTE (GRN) & GOODS ISSUE NOTE (GIN) ---

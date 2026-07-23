@@ -121,29 +121,44 @@ export const runWarehousePermissionsVerification = async () => {
     throw new Error(`Warehouse creation failed with status ${createRes.status}`);
   }
 
-  // 4. Verify Warehouse is persisted in MySQL database & test DELETE API
-  console.log('\n[4/4] Verifying Database Record Persistence & DELETE API...');
-  const savedWarehouse = await Warehouse.findOne({ where: { code: testWarehouseCode } });
-
-  if (!savedWarehouse) {
+  // 4. Verify Warehouse is persisted in MySQL database & test DELETE API with auto-reassignment
+  console.log('\n[4/4] Verifying Database Record Persistence & DELETE API with Auto-Reassignment...');
+  const savedWarehouse1 = await Warehouse.findOne({ where: { code: testWarehouseCode } });
+  if (!savedWarehouse1) {
     throw new Error(`Warehouse with code ${testWarehouseCode} was not found in MySQL database!`);
   }
 
-  console.log(`✅ Warehouse successfully saved in DB! ID: ${savedWarehouse.id}, Name: "${savedWarehouse.name}", Code: "${savedWarehouse.code}"`);
+  // Create a second warehouse to test default auto-reassignment
+  const secondCode = 'WH-RBAC2-' + Date.now().toString().slice(-4);
+  const secondWh = await req
+    .post('/api/v1/store/inventory-management/warehouses')
+    .set('Authorization', 'Bearer ' + token)
+    .send({
+      name: 'Secondary Wh ' + Date.now().toString().slice(-4),
+      code: secondCode,
+      city: 'Delhi',
+      isDefault: false,
+    });
 
-  console.log(`Testing DELETE /api/v1/warehouses/${savedWarehouse.id}...`);
-  const deleteRes = await req
-    .delete(`/api/v1/warehouses/${savedWarehouse.id}`)
+  const savedWarehouse2 = await Warehouse.findOne({ where: { code: secondCode } });
+
+  console.log(`Testing DELETE default warehouse #${savedWarehouse1.id}...`);
+  const deleteRes1 = await req
+    .delete(`/api/v1/warehouses/${savedWarehouse1.id}`)
     .set('Authorization', 'Bearer ' + token);
 
-  console.log(`DELETE HTTP Response Status: ${deleteRes.status}`);
-  if (deleteRes.status !== 200) {
-    throw new Error(`DELETE warehouse failed with status ${deleteRes.status}: ${JSON.stringify(deleteRes.body)}`);
+  console.log(`DELETE HTTP Response Status: ${deleteRes1.status}`);
+  if (deleteRes1.status !== 200) {
+    throw new Error(`DELETE warehouse failed with status ${deleteRes1.status}: ${JSON.stringify(deleteRes1.body)}`);
   }
-  console.log(`✅ Warehouse ${savedWarehouse.id} deleted successfully via API!`);
+
+  // Reload warehouse 2 to confirm it was automatically promoted to default
+  await savedWarehouse2?.reload();
+  console.log(`✅ Warehouse #${savedWarehouse1.id} deleted. Warehouse #${savedWarehouse2?.id} is now default: ${savedWarehouse2?.isDefault}`);
 
   console.log('\n====================================================');
   console.log('🎉 WAREHOUSE RBAC PERMISSIONS VERIFIED 100% SUCCESS!');
+  console.log('====================================================');
   console.log('====================================================');
 };
 

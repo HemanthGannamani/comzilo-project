@@ -2,6 +2,7 @@
 import { WarehouseRepository } from '../repositories/warehouse.repository';
 import { InventoryBalanceRepository } from '../repositories/inventoryBalance.repository';
 import { Warehouse } from '../database/models/warehouse';
+import { InventoryBalance } from '../database/models/inventoryBalance';
 import { NotFoundError, ConflictError, ValidationError } from '../shared/errors/AppError';
 import { sequelize } from '../config/database';
 import { Op } from 'sequelize';
@@ -162,23 +163,39 @@ export class WarehouseService {
     const warehouse = await this.getWarehouse(tenantId, storeId, id);
 
     if (warehouse.isDefault) {
-      throw new ValidationError(
-        'Cannot delete the default warehouse. Assign another default warehouse first.'
-      );
+      const nextWarehouse = await this.warehouseRepo.dbModel.findOne({
+        where: {
+          tenant_id: tenantId,
+          store_id: storeId,
+          id: { [Op.ne]: id },
+          status: 'active',
+          deleted_at: null,
+        },
+        order: [['id', 'ASC']],
+      });
+
+      if (nextWarehouse) {
+        nextWarehouse.isDefault = true;
+        await nextWarehouse.save();
+      } else {
+        throw new ValidationError(
+          'Cannot delete the only warehouse for your store. Create another warehouse first.'
+        );
+      }
     }
 
     // Check if the warehouse has existing stock (quantityOnHand > 0)
-    const stockCount = await this.balanceRepo.dbModel.count({
+    const stockCount = await InventoryBalance.count({
       where: {
-        tenant_id: tenantId,
-        store_id: storeId,
-        warehouse_id: id,
-        quantity_on_hand: { [Op.gt]: 0 },
+        tenantId,
+        storeId,
+        warehouseId: id,
+        quantityOnHand: { [Op.gt]: 0 },
       },
     });
 
     if (stockCount > 0) {
-      throw new ValidationError('Cannot delete warehouse with existing stock.');
+      throw new ValidationError('Cannot delete warehouse with existing inventory stock.');
     }
 
     await this.warehouseRepo.deleteScoped(tenantId, storeId, id);

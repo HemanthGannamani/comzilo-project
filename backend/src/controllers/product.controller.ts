@@ -4,6 +4,8 @@ import { createAuditLog } from '../utils/auditHelper';
 import { RESPONSE_MESSAGES } from '../shared/constants';
 import { success, created } from '../shared/responses';
 import { ValidationError } from '../shared/errors/AppError';
+import { sequelize } from '../config/database';
+import { QueryTypes } from 'sequelize';
 
 export class ProductController {
   private productService: ProductService;
@@ -12,13 +14,31 @@ export class ProductController {
     this.productService = new ProductService();
   }
 
+  private async getStoreId(req: Request): Promise<number> {
+    const rawStoreId = req.headers['x-store-id'] || req.query.storeId || req.body.storeId || req.context?.storeId;
+    if (rawStoreId) {
+      const parsed = Number(rawStoreId);
+      if (!isNaN(parsed) && parsed > 0) return parsed;
+    }
+
+    const tenantId = req.context?.tenantId;
+    if (tenantId) {
+      const [store]: any = await sequelize.query(
+        'SELECT id FROM stores WHERE tenant_id = :tenantId ORDER BY id ASC LIMIT 1',
+        { replacements: { tenantId }, type: QueryTypes.SELECT }
+      );
+      if (store && store.id) {
+        return Number(store.id);
+      }
+    }
+
+    throw new ValidationError('Store context is missing');
+  }
+
   public createProduct = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const tenantId = req.context!.tenantId!;
-      const storeId = Number(req.headers['x-store-id'] || req.query.storeId || req.body.storeId);
-      if (!storeId || isNaN(storeId)) {
-        throw new ValidationError('Store context is missing');
-      }
+      const storeId = await this.getStoreId(req);
       const userId = req.context!.authenticatedUserId!;
       const { mediaIds, ...productData } = req.body;
 
@@ -50,10 +70,7 @@ export class ProductController {
   public updateProduct = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const tenantId = req.context!.tenantId!;
-      const storeId = Number(req.headers['x-store-id'] || req.query.storeId || req.body.storeId);
-      if (!storeId || isNaN(storeId)) {
-        throw new ValidationError('Store context is missing');
-      }
+      const storeId = await this.getStoreId(req);
       const userId = req.context!.authenticatedUserId!;
       const productId = parseInt(req.params.id, 10);
       const { mediaIds, ...productData } = req.body;
@@ -101,10 +118,7 @@ export class ProductController {
   public getProduct = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const tenantId = req.context!.tenantId!;
-      const storeId = Number(req.headers['x-store-id'] || req.query.storeId || req.body.storeId);
-      if (!storeId || isNaN(storeId)) {
-        throw new ValidationError('Store context is missing');
-      }
+      const storeId = await this.getStoreId(req);
       const productId = parseInt(req.params.id, 10);
 
       const product = await this.productService.getProduct(tenantId, storeId, productId);
@@ -118,10 +132,7 @@ export class ProductController {
   public listProducts = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const tenantId = req.context!.tenantId!;
-      const storeId = Number(req.headers['x-store-id'] || req.query.storeId || req.body.storeId);
-      if (!storeId || isNaN(storeId)) {
-        throw new ValidationError('Store context is missing');
-      }
+      const storeId = await this.getStoreId(req);
       const filters = req.query;
 
       const products = await this.productService.listProducts(tenantId, storeId, filters);
@@ -139,10 +150,7 @@ export class ProductController {
   public deleteProduct = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const tenantId = req.context!.tenantId!;
-      const storeId = Number(req.headers['x-store-id'] || req.query.storeId || req.body.storeId);
-      if (!storeId || isNaN(storeId)) {
-        throw new ValidationError('Store context is missing');
-      }
+      const storeId = await this.getStoreId(req);
       const userId = req.context!.authenticatedUserId!;
       const productId = parseInt(req.params.id, 10);
 

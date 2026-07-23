@@ -61,8 +61,6 @@ export class AuthorizationService extends BaseService {
       userRoleWhere.storeId = {
         [Op.or]: [null, storeId],
       };
-    } else {
-      userRoleWhere.storeId = null;
     }
 
     const roles = await Role.findAll({
@@ -115,8 +113,6 @@ export class AuthorizationService extends BaseService {
       userRoleWhere.storeId = {
         [Op.or]: [null, storeId],
       };
-    } else {
-      userRoleWhere.storeId = null;
     }
 
     const roles = await Role.findAll({

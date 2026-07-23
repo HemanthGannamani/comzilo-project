@@ -26,6 +26,8 @@ router.post('/adjustments', requireAnyPermission(['inventory.manage', 'inventory
 
 router.get('/suppliers', requireAnyPermission(['inventory.read', 'supplier.read']), controller.getSuppliers);
 router.post('/suppliers', requireAnyPermission(['inventory.manage', 'supplier.create', 'supplier.manage']), controller.createSupplier);
+router.put('/suppliers/:id', requireAnyPermission(['inventory.manage', 'supplier.create', 'supplier.manage']), controller.updateSupplier);
+router.delete('/suppliers/:id', requireAnyPermission(['inventory.manage', 'supplier.create', 'supplier.manage']), controller.deleteSupplier);
 
 router.get('/purchase-orders', requireAnyPermission(['inventory.read', 'po.read']), controller.getPurchaseOrders);
 router.post('/purchase-orders', requireAnyPermission(['inventory.manage', 'po.create', 'po.manage']), controller.createPurchaseOrder);

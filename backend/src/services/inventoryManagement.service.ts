@@ -321,6 +321,19 @@ export class InventoryManagementService {
     });
   }
 
+  public async updateSupplier(tenantId: number, id: number, data: any) {
+    const supplier = await Supplier.findOne({ where: { id, tenantId } });
+    if (!supplier) throw new Error('Supplier not found');
+    return await supplier.update(data);
+  }
+
+  public async deleteSupplier(tenantId: number, id: number) {
+    const supplier = await Supplier.findOne({ where: { id, tenantId } });
+    if (!supplier) throw new Error('Supplier not found');
+    await supplier.destroy();
+    return true;
+  }
+
   public async getPurchaseOrders(tenantId: number) {
     return await PurchaseOrder.findAll({
       where: { tenantId },

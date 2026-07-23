@@ -126,6 +126,28 @@ export class StoreInventoryManagementController {
     }
   };
 
+  public updateSupplier = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const tenantId = req.context.tenantId!;
+      const id = Number(req.params.id);
+      const supplier = await inventoryService.updateSupplier(tenantId, id, req.body);
+      success(res, 'Supplier updated successfully', supplier);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public deleteSupplier = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const tenantId = req.context.tenantId!;
+      const id = Number(req.params.id);
+      await inventoryService.deleteSupplier(tenantId, id);
+      success(res, 'Supplier deleted successfully');
+    } catch (error) {
+      next(error);
+    }
+  };
+
   public getPurchaseOrders = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const tenantId = req.context.tenantId!;

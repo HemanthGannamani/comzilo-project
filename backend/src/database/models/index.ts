@@ -1,6 +1,17 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Tenant } from './tenant';
 import { User } from './user';
+import { ShippingProvider } from './shippingProvider';
+import { TenantShippingProviderConfig } from './tenantShippingProviderConfig';
+import { PickupAddress, ShipmentPackage } from './pickupAddress';
+import {
+  Shipment,
+  ShipmentTracking,
+  ShippingLabel,
+  ShippingLog,
+  ProviderWebhook,
+  ShippingRateRule,
+} from './shipment';
 import { UserProfile } from './userProfile';
 import { RefreshToken } from './refreshToken';
 import { LoginHistory } from './loginHistory';
@@ -870,4 +881,43 @@ export {
   AnalyticsSavedReport,
   AnalyticsKpi,
   AnalyticsForecast,
+  ShippingProvider,
+  TenantShippingProviderConfig,
+  PickupAddress,
+  ShipmentPackage,
+  Shipment,
+  ShipmentTracking,
+  ShippingLabel,
+  ShippingLog,
+  ProviderWebhook,
+  ShippingRateRule,
 };
+
+// Shipping Associations
+ShippingProvider.hasMany(TenantShippingProviderConfig, { foreignKey: 'provider_id', as: 'tenantConfigs' });
+TenantShippingProviderConfig.belongsTo(ShippingProvider, { foreignKey: 'provider_id', as: 'provider' });
+
+Tenant.hasMany(TenantShippingProviderConfig, { foreignKey: 'tenant_id', as: 'shippingProviderConfigs' });
+TenantShippingProviderConfig.belongsTo(Tenant, { foreignKey: 'tenant_id', as: 'tenant' });
+
+Tenant.hasMany(ShippingZone, { foreignKey: 'tenant_id', as: 'shippingZones' });
+ShippingZone.belongsTo(Tenant, { foreignKey: 'tenant_id', as: 'tenant' });
+
+Tenant.hasMany(ShippingMethod, { foreignKey: 'tenant_id', as: 'shippingMethods' });
+ShippingMethod.belongsTo(Tenant, { foreignKey: 'tenant_id', as: 'tenant' });
+
+Tenant.hasMany(PickupAddress, { foreignKey: 'tenant_id', as: 'pickupAddresses' });
+PickupAddress.belongsTo(Tenant, { foreignKey: 'tenant_id', as: 'tenant' });
+
+Tenant.hasMany(ShipmentPackage, { foreignKey: 'tenant_id', as: 'shipmentPackages' });
+ShipmentPackage.belongsTo(Tenant, { foreignKey: 'tenant_id', as: 'tenant' });
+
+Tenant.hasMany(Shipment, { foreignKey: 'tenant_id', as: 'shipments' });
+Shipment.belongsTo(Tenant, { foreignKey: 'tenant_id', as: 'tenant' });
+
+Shipment.hasMany(ShipmentTracking, { foreignKey: 'shipment_id', as: 'trackingLogs' });
+ShipmentTracking.belongsTo(Shipment, { foreignKey: 'shipment_id', as: 'shipment' });
+
+Shipment.hasOne(ShippingLabel, { foreignKey: 'shipment_id', as: 'label' });
+ShippingLabel.belongsTo(Shipment, { foreignKey: 'shipment_id', as: 'shipment' });
+

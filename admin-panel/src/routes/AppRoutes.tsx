@@ -22,6 +22,7 @@ import { SellersListPage } from '../pages/SellersListPage';
 import { AddSellerPage } from '../pages/AddSellerPage';
 import { SellerDetailsPage } from '../pages/SellerDetailsPage';
 import { NotificationsPage } from '../pages/notifications/NotificationsPage';
+import { AdminShippingProvidersPage } from '../pages/AdminShippingProvidersPage';
 
 export const AppRoutes: React.FC = () => {
   return (
@@ -40,6 +41,7 @@ export const AppRoutes: React.FC = () => {
             <Route path="/sellers/add" element={<AddSellerPage />} />
             <Route path="/sellers/:id" element={<SellerDetailsPage />} />
             <Route path="/stores" element={<StoresPage />} />
+            <Route path="/shipping-providers" element={<AdminShippingProvidersPage />} />
             <Route path="/subscriptions" element={<SubscriptionPlansPage />} />
             <Route path="/users" element={<PlatformUsersPage />} />
             <Route path="/roles" element={<RolesPermissionsPage />} />

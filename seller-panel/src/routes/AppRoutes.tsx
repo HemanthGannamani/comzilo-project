@@ -41,6 +41,7 @@ import { ReceiptsPage } from '../features/pos/pages/ReceiptsPage';
 import { ReportsPage } from '../features/reports/pages/ReportsPage';
 import { NotificationsPage } from '../features/notifications/pages/NotificationsPage';
 import { SettingsPage } from '../features/settings/pages/SettingsPage';
+import { ShippingProvidersPage } from '../pages/settings/ShippingProvidersPage';
 import { IntegrationsPage } from '../features/integrations/pages/IntegrationsPage';
 
 export const AppRoutes: React.FC = () => {
@@ -91,6 +92,7 @@ export const AppRoutes: React.FC = () => {
             <Route path="/reports" element={<PermissionGuard permission="report.read"><ReportsPage /></PermissionGuard>} />
             <Route path="/notifications" element={<PermissionGuard permission="notification.read"><NotificationsPage /></PermissionGuard>} />
             <Route path="/settings" element={<PermissionGuard permission="settings.read"><SettingsPage /></PermissionGuard>} />
+            <Route path="/settings/shipping-providers" element={<PermissionGuard permission="store.view"><ShippingProvidersPage /></PermissionGuard>} />
             <Route path="/integrations" element={<PermissionGuard permission="marketplace.read"><IntegrationsPage /></PermissionGuard>} />
           </Route>
 

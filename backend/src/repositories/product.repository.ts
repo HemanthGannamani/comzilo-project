@@ -11,8 +11,8 @@ export class ProductRepository extends BaseRepository<Product> {
     const opts = { ...options };
     opts.where = {
       ...opts.where,
-      tenant_id: tenantId,
-      store_id: storeId,
+      tenantId,
+      storeId,
     };
     return opts;
   }

@@ -19,7 +19,7 @@ export abstract class BaseRepository<M extends Model<any, any>> {
     const opts = { ...options };
     opts.where = {
       ...opts.where,
-      tenant_id: tenantId,
+      tenantId: tenantId,
     };
     return opts;
   }

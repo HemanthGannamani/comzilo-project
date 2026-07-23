@@ -264,19 +264,17 @@ export class ProductService {
       ];
     }
 
-    return this.productRepo.findAndCountAll(tenantId, {
-      where,
-      limit,
-      offset,
-      order: [['createdAt', 'DESC']],
-      include: [
-        {
-          model: Media,
-          as: 'media',
-          through: { attributes: ['isPrimary', 'sortOrder'] },
-        },
-      ],
-    });
+    const [rows, count] = await Promise.all([
+      this.productRepo.findMany(tenantId, {
+        where,
+        limit,
+        offset,
+        order: [['createdAt', 'DESC']],
+      }),
+      this.productRepo.count(tenantId, { where }),
+    ]);
+
+    return { rows, count };
   }
 
   public async deleteProduct(

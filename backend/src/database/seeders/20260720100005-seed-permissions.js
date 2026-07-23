@@ -390,10 +390,26 @@ module.exports = {
 
       // Inventory & Warehouse Module Permissions (Step 12)
       {
-        code: 'warehouse.read',
+        code: 'warehouse.view',
         name: 'View Warehouses',
         module: 'warehouses',
         description: 'Allows viewing warehouses',
+        created_at: new Date(),
+        updated_at: new Date(),
+      },
+      {
+        code: 'warehouse.manage',
+        name: 'Manage Warehouses',
+        module: 'warehouses',
+        description: 'Allows managing warehouses',
+        created_at: new Date(),
+        updated_at: new Date(),
+      },
+      {
+        code: 'warehouse.read',
+        name: 'Read Warehouses',
+        module: 'warehouses',
+        description: 'Allows reading warehouses',
         created_at: new Date(),
         updated_at: new Date(),
       },

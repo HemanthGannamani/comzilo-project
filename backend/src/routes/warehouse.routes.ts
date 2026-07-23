@@ -3,7 +3,7 @@ import { WarehouseController } from '../controllers/warehouse.controller';
 import { WarehouseLocationController } from '../controllers/warehouseLocation.controller';
 import { tenantResolver } from '../middleware/tenantResolver';
 import { authenticate as requireAuth } from '../middleware/auth.middleware';
-import { authorize, requirePermission } from '../middleware/authz.middleware';
+import { authorize, requireAnyPermission } from '../middleware/authz.middleware';
 import { validate as validateRequest } from '../middleware/validate';
 import { warehouseValidation } from '../validations/warehouse.validation';
 import { locationValidation } from '../validations/warehouseLocation.validation';
@@ -19,14 +19,14 @@ router.use(authorize);
 // Warehouse locations sub-routes under warehouses
 router.get(
   '/:warehouseId/locations',
-  requirePermission('warehouse_location.read', 'warehouseId'),
+  requireAnyPermission(['warehouse_location.read', 'warehouse.read', 'warehouse.view'], 'warehouseId'),
   validateRequest({ query: locationValidation.listLocations }),
   locationController.listLocations
 );
 
 router.post(
   '/:warehouseId/locations',
-  requirePermission('warehouse_location.create', 'warehouseId'),
+  requireAnyPermission(['warehouse_location.create', 'warehouse.create', 'warehouse.manage'], 'warehouseId'),
   validateRequest({ body: locationValidation.createLocation }),
   locationController.createLocation
 );
@@ -34,38 +34,38 @@ router.post(
 // Warehouse routes
 router.get(
   '/',
-  requirePermission('warehouse.read'),
+  requireAnyPermission(['warehouse.read', 'warehouse.view', 'inventory.read']),
   validateRequest({ query: warehouseValidation.listWarehouses }),
   controller.listWarehouses
 );
 
 router.post(
   '/',
-  requirePermission('warehouse.create'),
+  requireAnyPermission(['warehouse.create', 'warehouse.manage', 'inventory.manage']),
   validateRequest({ body: warehouseValidation.createWarehouse }),
   controller.createWarehouse
 );
 
-router.get('/:id', requirePermission('warehouse.read', 'id'), controller.getWarehouse);
+router.get('/:id', requireAnyPermission(['warehouse.read', 'warehouse.view', 'inventory.read'], 'id'), controller.getWarehouse);
 
 router.put(
   '/:id',
-  requirePermission('warehouse.update', 'id'),
+  requireAnyPermission(['warehouse.update', 'warehouse.manage', 'inventory.manage'], 'id'),
   validateRequest({ body: warehouseValidation.updateWarehouse }),
   controller.updateWarehouse
 );
 
-router.delete('/:id', requirePermission('warehouse.delete', 'id'), controller.deleteWarehouse);
+router.delete('/:id', requireAnyPermission(['warehouse.delete', 'warehouse.manage', 'inventory.manage'], 'id'), controller.deleteWarehouse);
 
 router.post(
   '/:id/restore',
-  requirePermission('warehouse.restore', 'id'),
+  requireAnyPermission(['warehouse.restore', 'warehouse.create', 'warehouse.manage'], 'id'),
   controller.restoreWarehouse
 );
 
 router.patch(
   '/:id/default',
-  requirePermission('warehouse.set_default', 'id'),
+  requireAnyPermission(['warehouse.set_default', 'warehouse.update', 'warehouse.manage'], 'id'),
   controller.setDefaultWarehouse
 );
 

@@ -15,10 +15,12 @@ import { ProfilePage } from '../pages/auth/ProfilePage';
 import { DashboardPage } from '../pages/dashboard/DashboardPage';
 
 import { ProductsPage } from '../features/products/pages/ProductsPage';
-import { CategoriesPage } from '../features/products/pages/CategoriesPage';
-import { BrandsPage } from '../features/products/pages/BrandsPage';
-import { CollectionsPage } from '../features/products/pages/CollectionsPage';
-import { TagsPage } from '../features/products/pages/TagsPage';
+import { CatalogLayout } from '../features/catalog/components/CatalogLayout';
+import { CategoriesPage } from '../features/catalog/pages/CategoriesPage';
+import { BrandsPage } from '../features/catalog/pages/BrandsPage';
+import { CollectionsPage } from '../features/catalog/pages/CollectionsPage';
+import { AttributesPage } from '../features/catalog/pages/AttributesPage';
+import { TagsPage } from '../features/catalog/pages/TagsPage';
 
 import { WarehousesPage } from '../features/inventory/pages/WarehousesPage';
 import { WarehouseLocationsPage } from '../features/inventory/pages/WarehouseLocationsPage';
@@ -69,6 +71,16 @@ export const AppRoutes: React.FC = () => {
             <Route path="/brands" element={<PermissionGuard permission="brand.read"><BrandsPage /></PermissionGuard>} />
             <Route path="/collections" element={<PermissionGuard permission="collection.read"><CollectionsPage /></PermissionGuard>} />
             <Route path="/tags" element={<PermissionGuard permission="tag.read"><TagsPage /></PermissionGuard>} />
+
+            {/* Catalog Workspace Routes */}
+            <Route path="/catalog" element={<CatalogLayout />}>
+              <Route index element={<Navigate to="/catalog/categories" replace />} />
+              <Route path="categories" element={<CategoriesPage />} />
+              <Route path="brands" element={<BrandsPage />} />
+              <Route path="collections" element={<CollectionsPage />} />
+              <Route path="attributes" element={<AttributesPage />} />
+              <Route path="tags" element={<TagsPage />} />
+            </Route>
 
             {/* Inventory Routes */}
             <Route path="/warehouses" element={<PermissionGuard permission="warehouse.read"><WarehousesPage /></PermissionGuard>} />

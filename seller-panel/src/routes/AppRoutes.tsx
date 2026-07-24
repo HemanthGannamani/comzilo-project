@@ -22,6 +22,18 @@ import { CollectionsPage } from '../features/catalog/pages/CollectionsPage';
 import { AttributesPage } from '../features/catalog/pages/AttributesPage';
 import { TagsPage } from '../features/catalog/pages/TagsPage';
 
+import { MarketingLayout } from '../features/marketing/components/MarketingLayout';
+import { MarketingDashboardPage } from '../features/marketing/pages/MarketingDashboardPage';
+import { EmailProvidersPage } from '../features/marketing/pages/EmailProvidersPage';
+import { EmailTemplatesPage } from '../features/marketing/pages/EmailTemplatesPage';
+import { CampaignsPage } from '../features/marketing/pages/CampaignsPage';
+import { WhatsappMarketingPage } from '../features/marketing/pages/WhatsappMarketingPage';
+import { CouponsPage } from '../features/marketing/pages/CouponsPage';
+import { AbandonedCartPage } from '../features/marketing/pages/AbandonedCartPage';
+import { CustomerSegmentsPage } from '../features/marketing/pages/CustomerSegmentsPage';
+import { AutomationRulesPage } from '../features/marketing/pages/AutomationRulesPage';
+import { MarketingAnalyticsPage } from '../features/marketing/pages/MarketingAnalyticsPage';
+
 import { WarehousesPage } from '../features/inventory/pages/WarehousesPage';
 import { WarehouseLocationsPage } from '../features/inventory/pages/WarehouseLocationsPage';
 import { StockBalancesPage } from '../features/inventory/pages/StockBalancesPage';
@@ -80,6 +92,21 @@ export const AppRoutes: React.FC = () => {
               <Route path="collections" element={<CollectionsPage />} />
               <Route path="attributes" element={<AttributesPage />} />
               <Route path="tags" element={<TagsPage />} />
+            </Route>
+
+            {/* Phase 5 Marketing Workspace Routes */}
+            <Route path="/marketing" element={<MarketingLayout />}>
+              <Route index element={<Navigate to="/marketing/dashboard" replace />} />
+              <Route path="dashboard" element={<MarketingDashboardPage />} />
+              <Route path="email-providers" element={<EmailProvidersPage />} />
+              <Route path="email-templates" element={<EmailTemplatesPage />} />
+              <Route path="campaigns" element={<CampaignsPage />} />
+              <Route path="whatsapp" element={<WhatsappMarketingPage />} />
+              <Route path="coupons" element={<CouponsPage />} />
+              <Route path="abandoned-carts" element={<AbandonedCartPage />} />
+              <Route path="segments" element={<CustomerSegmentsPage />} />
+              <Route path="automation-rules" element={<AutomationRulesPage />} />
+              <Route path="analytics" element={<MarketingAnalyticsPage />} />
             </Route>
 
             {/* Inventory Routes */}

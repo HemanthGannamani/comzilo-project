@@ -108,6 +108,9 @@ app.use('/api/v1/auth', authRoutes);
 import catalogRoutes from './routes/catalog.routes';
 app.use('/api/v1/catalog', catalogRoutes);
 
+import marketingRoutes from './routes/marketing.routes';
+app.use('/api/v1/marketing', marketingRoutes);
+
 // Mount Tenant & Store Routes
 import tenantRoutes from './routes/tenant.routes';
 import storeRoutes from './routes/store.routes';

@@ -166,20 +166,26 @@ export class MarketingService {
       where,
       limit: 20,
       order: [['createdAt', 'DESC']],
-      include: [{ model: Customer, as: 'customer' }],
     });
 
-    return pendingOrders.map((order: any) => ({
-      id: order.id,
-      cartToken: `CART-REC-${order.id}`,
-      customerName: order.customer ? `${order.customer.firstName} ${order.customer.lastName}` : 'Guest Visitor',
-      customerEmail: order.customer?.email || 'guest@example.com',
-      totalAmount: order.totalAmount,
-      itemCount: 2,
-      abandonedAt: order.createdAt,
-      recoveryStatus: 'email_sent',
-      workflowStep: 'Step 1: 30 Min Email Reminder Sent',
-    }));
+    const customerIds = pendingOrders.map((o: any) => o.customerId).filter(Boolean);
+    const customers = customerIds.length > 0 ? await Customer.findAll({ where: { id: customerIds } }) : [];
+    const customerMap = new Map(customers.map((c: any) => [c.id, c]));
+
+    return pendingOrders.map((order: any) => {
+      const customer: any = customerMap.get(order.customerId);
+      return {
+        id: order.id,
+        cartToken: `CART-REC-${order.id}`,
+        customerName: customer ? `${customer.firstName} ${customer.lastName}` : 'Guest Visitor',
+        customerEmail: customer?.email || 'guest@example.com',
+        totalAmount: order.totalAmount,
+        itemCount: 2,
+        abandonedAt: order.createdAt,
+        recoveryStatus: 'email_sent',
+        workflowStep: 'Step 1: 30 Min Email Reminder Sent',
+      };
+    });
   }
 
   // ==========================================

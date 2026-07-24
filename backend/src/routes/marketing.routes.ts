@@ -23,10 +23,13 @@ router.post('/coupons', authenticate, controller.createCoupon);
 
 // Abandoned Carts
 router.get('/abandoned-carts', authenticate, controller.getAbandonedCarts);
+router.get('/abandoned-cart', authenticate, controller.getAbandonedCarts);
 
 // Customer Segments
 router.get('/segments', authenticate, controller.getCustomerSegments);
+router.get('/customer-segments', authenticate, controller.getCustomerSegments);
 router.post('/segments', authenticate, controller.createCustomerSegment);
+router.post('/customer-segments', authenticate, controller.createCustomerSegment);
 
 // Automation Rules
 router.get('/automation-rules', authenticate, controller.getAutomationRules);

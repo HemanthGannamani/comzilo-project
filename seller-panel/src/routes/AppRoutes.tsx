@@ -104,7 +104,9 @@ export const AppRoutes: React.FC = () => {
               <Route path="whatsapp" element={<WhatsappMarketingPage />} />
               <Route path="coupons" element={<CouponsPage />} />
               <Route path="abandoned-carts" element={<AbandonedCartPage />} />
+              <Route path="abandoned-cart" element={<AbandonedCartPage />} />
               <Route path="segments" element={<CustomerSegmentsPage />} />
+              <Route path="customer-segments" element={<CustomerSegmentsPage />} />
               <Route path="automation-rules" element={<AutomationRulesPage />} />
               <Route path="analytics" element={<MarketingAnalyticsPage />} />
             </Route>

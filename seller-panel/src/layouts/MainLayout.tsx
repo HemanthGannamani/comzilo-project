@@ -53,6 +53,10 @@ import {
   QrCode,
   Calendar,
   AlertTriangle,
+  Server,
+  MessageSquare,
+  Ticket,
+  GitBranch,
 } from 'lucide-react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
@@ -128,6 +132,18 @@ export const MainLayout: React.FC = () => {
     { label: 'Packaging', path: '/settings/shipping/packaging', icon: <PackageCheck size={20} /> },
     { label: 'Shipping Labels', path: '/settings/shipping/labels', icon: <FileText size={20} /> },
     { label: 'Shipment Logs', path: '/settings/shipping/logs', icon: <Activity size={20} /> },
+
+    { isHeader: true, label: 'Marketing & Engagement' },
+    { label: 'Marketing Dashboard', path: '/marketing/dashboard', icon: <BarChart3 size={20} /> },
+    { label: 'Email Providers', path: '/marketing/email-providers', icon: <Server size={20} /> },
+    { label: 'Email Templates', path: '/marketing/email-templates', icon: <FileText size={20} /> },
+    { label: 'Campaigns', path: '/marketing/campaigns', icon: <Send size={20} /> },
+    { label: 'WhatsApp Marketing', path: '/marketing/whatsapp', icon: <MessageSquare size={20} /> },
+    { label: 'Coupons & Discounts', path: '/marketing/coupons', icon: <Ticket size={20} /> },
+    { label: 'Abandoned Carts', path: '/marketing/abandoned-carts', icon: <ShoppingCart size={20} /> },
+    { label: 'Customer Segments', path: '/marketing/segments', icon: <UsersRound size={20} /> },
+    { label: 'Automation Rules', path: '/marketing/automation-rules', icon: <GitBranch size={20} /> },
+    { label: 'Marketing Analytics', path: '/marketing/analytics', icon: <BarChart3 size={20} /> },
 
     { isHeader: true, label: 'Store Management' },
     { label: 'POS Terminal', path: '/pos', icon: <MonitorCheck size={20} />, permission: 'pos.access' },

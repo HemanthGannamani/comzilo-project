@@ -26,8 +26,8 @@ export const MarketingLayout: React.FC = () => {
     if (path.includes('/marketing/campaigns')) return 3;
     if (path.includes('/marketing/whatsapp')) return 4;
     if (path.includes('/marketing/coupons')) return 5;
-    if (path.includes('/marketing/abandoned-carts')) return 6;
-    if (path.includes('/marketing/segments')) return 7;
+    if (path.includes('/marketing/abandoned-cart') || path.includes('/marketing/abandoned-carts')) return 6;
+    if (path.includes('/marketing/customer-segments') || path.includes('/marketing/segments')) return 7;
     if (path.includes('/marketing/automation-rules')) return 8;
     if (path.includes('/marketing/analytics')) return 9;
     return 0; // Default: Dashboard

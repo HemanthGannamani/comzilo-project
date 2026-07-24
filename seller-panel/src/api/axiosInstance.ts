@@ -21,6 +21,9 @@ axiosInstance.interceptors.request.use((config) => {
   if (tenant?.uuid) {
     config.headers['X-Tenant-UUID'] = tenant.uuid;
   }
+  if (tenant?.id) {
+    config.headers['X-Tenant-ID'] = tenant.id.toString();
+  }
   if (activeStoreId) {
     config.headers['X-Store-ID'] = activeStoreId.toString();
   }

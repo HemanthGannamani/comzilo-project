@@ -38,6 +38,7 @@ app.use(
     allowedHeaders: [
       'Content-Type',
       'Authorization',
+      'X-Tenant-ID',
       'X-Tenant-UUID',
       'X-Tenant-Slug',
       'X-Store-ID',

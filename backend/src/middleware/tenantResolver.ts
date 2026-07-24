@@ -17,11 +17,24 @@ export const tenantResolver = async (
     let tenantUuid: string | null = null;
 
     // 1. Resolve via headers
+    const headerId = req.headers['x-tenant-id'] as string;
     const headerUuid = req.headers['x-tenant-uuid'] as string;
     const headerSlug = req.headers['x-tenant-slug'] as string;
     const headerStoreSlug = req.headers['x-store-slug'] as string;
 
-    if (headerUuid) {
+    if (headerId && !isNaN(Number(headerId))) {
+      const [results]: any = await sequelize.query(
+        'SELECT id, uuid FROM tenants WHERE id = :id AND status = "active" LIMIT 1',
+        {
+          replacements: { id: Number(headerId) },
+          type: QueryTypes.SELECT,
+        }
+      );
+      if (results) {
+        tenantId = Number(results.id);
+        tenantUuid = results.uuid;
+      }
+    } else if (headerUuid) {
       const [results]: any = await sequelize.query(
         'SELECT id, uuid FROM tenants WHERE uuid = :uuid AND status = "active" LIMIT 1',
         {

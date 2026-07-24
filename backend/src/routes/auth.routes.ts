@@ -22,7 +22,7 @@ const registerLimiter = isTest
   ? (_req: any, _res: any, next: any) => next()
   : rateLimit({
       windowMs: 15 * 60 * 1000,
-      max: 5,
+      max: 100,
       standardHeaders: true,
       legacyHeaders: false,
       message: {

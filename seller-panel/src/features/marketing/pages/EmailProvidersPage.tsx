@@ -18,7 +18,7 @@ import {
   Switch,
   Divider,
 } from '@mui/material';
-import { Server, Settings2, Send, CheckCircle2, ShieldCheck } from 'lucide-react';
+import { Server, Settings2, Send, CheckCircle2, ShieldCheck, Power } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { axiosInstance } from '../../../api/axiosInstance';
 
@@ -37,6 +37,7 @@ export const EmailProvidersPage: React.FC = () => {
     senderName: '',
     senderEmail: '',
     isDefault: false,
+    status: 'active',
   });
 
   const fetchProviders = async () => {
@@ -65,8 +66,26 @@ export const EmailProvidersPage: React.FC = () => {
       senderName: cfg.senderName || 'Comzilo Merchant',
       senderEmail: cfg.senderEmail || 'notifications@comzilo.com',
       isDefault: Boolean(prov.isDefault),
+      status: prov.status === 'inactive' ? 'inactive' : 'active',
     });
     setModalOpen(true);
+  };
+
+  const handleQuickToggleStatus = async (prov: any) => {
+    const newStatus = prov.status === 'active' || prov.status === 'configured' ? 'inactive' : 'active';
+    try {
+      await axiosInstance.post('/marketing/email-providers', {
+        providerId: prov.id,
+        providerName: prov.name,
+        status: newStatus,
+        isDefault: prov.isDefault,
+        ...(prov.configJson || {}),
+      });
+      toast.success(`${prov.name} is now ${newStatus.toUpperCase()}!`);
+      fetchProviders();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Failed to toggle status');
+    }
   };
 
   const handleTestConnection = async () => {
@@ -105,53 +124,73 @@ export const EmailProvidersPage: React.FC = () => {
           Email Marketing Providers & SMTP Settings
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          Configure SMTP servers, Amazon SES, Mailgun, Brevo, ZeptoMail, or Mailchimp APIs per tenant.
+          Configure SMTP servers, Amazon SES, Mailgun, Brevo, ZeptoMail, or Mailchimp APIs per tenant. Toggle status between Active and Inactive at any time.
         </Typography>
       </Box>
 
       {/* PROVIDERS GRID */}
       <Grid container spacing={3}>
-        {providers.map((prov) => (
-          <Grid item xs={12} sm={6} md={4} key={prov.id}>
-            <Card
-              variant="outlined"
-              sx={{
-                borderRadius: 3,
-                borderLeft: prov.status === 'configured' || prov.status === 'active' ? '4px solid #059669' : '4px solid #94A3B8',
-              }}
-            >
-              <CardContent>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                    <Server size={22} color="#0284C7" />
-                    <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                      {prov.name}
-                    </Typography>
+        {providers.map((prov) => {
+          const isActive = prov.status === 'active' || prov.status === 'configured';
+
+          return (
+            <Grid item xs={12} sm={6} md={4} key={prov.id}>
+              <Card
+                variant="outlined"
+                sx={{
+                  borderRadius: 3,
+                  borderLeft: isActive ? '4px solid #059669' : '4px solid #94A3B8',
+                  backgroundColor: isActive ? '#FFFFFF' : '#F8FAFC',
+                }}
+              >
+                <CardContent>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                      <Server size={22} color={isActive ? '#0284C7' : '#64748B'} />
+                      <Typography variant="h6" sx={{ fontWeight: 700, color: isActive ? '#0F172A' : '#64748B' }}>
+                        {prov.name}
+                      </Typography>
+                    </Box>
+                    <Chip
+                      label={prov.status.toUpperCase()}
+                      color={isActive ? 'success' : 'default'}
+                      size="small"
+                      sx={{ fontWeight: 800 }}
+                    />
                   </Box>
-                  <Chip
-                    label={prov.status.toUpperCase()}
-                    color={prov.status === 'active' || prov.status === 'configured' ? 'success' : 'default'}
-                    size="small"
-                    sx={{ fontWeight: 800 }}
-                  />
-                </Box>
-                <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 2 }}>
-                  Type: {prov.type ? prov.type.toUpperCase() : 'API'} Provider Integration
-                </Typography>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  fullWidth
-                  startIcon={<Settings2 size={16} />}
-                  onClick={() => handleOpenConfigure(prov)}
-                  sx={{ fontWeight: 700, borderRadius: 2 }}
-                >
-                  Configure Settings
-                </Button>
-              </CardContent>
-            </Card>
-          </Grid>
-        ))}
+
+                  <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 2 }}>
+                    Type: {prov.type ? prov.type.toUpperCase() : 'API'} Provider Integration
+                  </Typography>
+
+                  <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      fullWidth
+                      startIcon={<Settings2 size={16} />}
+                      onClick={() => handleOpenConfigure(prov)}
+                      sx={{ fontWeight: 700, borderRadius: 2 }}
+                    >
+                      Configure Settings
+                    </Button>
+
+                    <Button
+                      variant={isActive ? 'soft' : 'outlined'}
+                      color={isActive ? 'error' : 'success'}
+                      size="small"
+                      onClick={() => handleQuickToggleStatus(prov)}
+                      title={isActive ? 'Deactivate Provider' : 'Activate Provider'}
+                      sx={{ minWidth: '40px', px: 1 }}
+                    >
+                      <Power size={16} />
+                    </Button>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+          );
+        })}
       </Grid>
 
       {/* CONFIGURATION MODAL */}
@@ -162,9 +201,38 @@ export const EmailProvidersPage: React.FC = () => {
         </DialogTitle>
         <DialogContent dividers>
           <Grid container spacing={2}>
+            {/* STATUS TOGGLE */}
+            <Grid item xs={12}>
+              <Box
+                sx={{
+                  p: 2,
+                  borderRadius: 2,
+                  backgroundColor: formData.status === 'active' ? '#F0FDF4' : '#FEF2F2',
+                  border: formData.status === 'active' ? '1px solid #BBF7D0' : '1px solid #FECACA',
+                  display: 'flex',
+                  justify: 'space-between',
+                  alignItems: 'center',
+                }}
+              >
+                <Box>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 800, color: formData.status === 'active' ? '#166534' : '#991B1B' }}>
+                    Integration Status: {formData.status.toUpperCase()}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Turn provider status ON to allow sending emails through {selectedProvider?.name}
+                  </Typography>
+                </Box>
+                <Switch
+                  checked={formData.status === 'active'}
+                  onChange={(e) => setFormData({ ...formData, status: e.target.checked ? 'active' : 'inactive' })}
+                  color="success"
+                />
+              </Box>
+            </Grid>
+
             {/* SENDER SETTINGS */}
             <Grid item xs={12}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#0284C7', mb: 1 }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#0284C7', mb: 1, mt: 1 }}>
                 Sender Profile
               </Typography>
             </Grid>

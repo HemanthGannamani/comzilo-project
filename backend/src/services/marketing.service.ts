@@ -112,10 +112,12 @@ export class MarketingService {
       senderEmail: data.senderEmail || 'notifications@comzilo.com',
     });
 
+    const status = data.status || 'active';
+
     await sequelize.query(
       `INSERT INTO marketing_email_providers (tenant_id, name, provider_type, config_json, is_default, status, created_at, updated_at)
-       VALUES (:tenantId, :name, :providerType, :configJson, :isDefault, 'active', NOW(), NOW())
-       ON DUPLICATE KEY UPDATE name = VALUES(name), config_json = VALUES(config_json), status = 'active', updated_at = NOW()`,
+       VALUES (:tenantId, :name, :providerType, :configJson, :isDefault, :status, NOW(), NOW())
+       ON DUPLICATE KEY UPDATE name = VALUES(name), config_json = VALUES(config_json), status = :status, is_default = VALUES(is_default), updated_at = NOW()`,
       {
         replacements: {
           tenantId,
@@ -123,11 +125,12 @@ export class MarketingService {
           providerType: data.providerId,
           configJson,
           isDefault: data.isDefault ? 1 : 0,
+          status,
         },
       }
     );
 
-    return { success: true, message: `Email Provider ${data.providerId} configuration saved successfully!` };
+    return { success: true, message: `Email Provider ${data.providerId} status updated to ${status.toUpperCase()}!` };
   }
 
   // ==========================================

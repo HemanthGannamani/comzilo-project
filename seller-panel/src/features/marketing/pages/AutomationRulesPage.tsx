@@ -14,8 +14,8 @@ export const AutomationRulesPage: React.FC = () => {
     try {
       const res = await axiosInstance.get('/marketing/automation-rules');
       setRules(res.data?.data || []);
-    } catch {
-      toast.error('Failed to load automation rules');
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Failed to load automation rules');
     }
   };
 

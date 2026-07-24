@@ -14,8 +14,8 @@ export const CampaignsPage: React.FC = () => {
     try {
       const res = await axiosInstance.get('/marketing/campaigns');
       setCampaigns(res.data?.data || []);
-    } catch {
-      toast.error('Failed to load campaigns');
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Failed to load campaigns');
     }
   };
 

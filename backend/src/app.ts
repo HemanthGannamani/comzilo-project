@@ -40,6 +40,8 @@ app.use(
       'Authorization',
       'X-Tenant-UUID',
       'X-Tenant-Slug',
+      'X-Store-ID',
+      'X-Store-Slug',
       'X-Requested-With',
       'Accept',
       'Origin',

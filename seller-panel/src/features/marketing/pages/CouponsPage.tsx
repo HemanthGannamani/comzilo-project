@@ -14,8 +14,8 @@ export const CouponsPage: React.FC = () => {
     try {
       const res = await axiosInstance.get('/marketing/coupons');
       setCoupons(res.data?.data || []);
-    } catch {
-      toast.error('Failed to load coupons');
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Failed to load coupons');
     }
   };
 

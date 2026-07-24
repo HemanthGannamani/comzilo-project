@@ -13,8 +13,8 @@ export const EmailProvidersPage: React.FC = () => {
       try {
         const res = await axiosInstance.get('/marketing/email-providers');
         setProviders(res.data?.data || []);
-      } catch {
-        toast.error('Failed to load email providers');
+      } catch (err: any) {
+        toast.error(err?.response?.data?.message || 'Failed to load email providers');
       }
     };
     fetchProviders();

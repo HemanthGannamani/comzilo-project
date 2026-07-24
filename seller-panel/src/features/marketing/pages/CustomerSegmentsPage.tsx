@@ -14,8 +14,8 @@ export const CustomerSegmentsPage: React.FC = () => {
     try {
       const res = await axiosInstance.get('/marketing/segments');
       setSegments(res.data?.data || []);
-    } catch {
-      toast.error('Failed to load segments');
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Failed to load segments');
     }
   };
 

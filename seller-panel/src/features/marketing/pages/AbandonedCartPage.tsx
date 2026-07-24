@@ -13,8 +13,8 @@ export const AbandonedCartPage: React.FC = () => {
       try {
         const res = await axiosInstance.get('/marketing/abandoned-carts');
         setCarts(res.data?.data || []);
-      } catch {
-        toast.error('Failed to load abandoned carts');
+      } catch (err: any) {
+        toast.error(err?.response?.data?.message || 'Failed to load abandoned carts');
       }
     };
     fetchCarts();

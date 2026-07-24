@@ -209,6 +209,13 @@ export const ProductsPage: React.FC = () => {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
+  // Product Images Drag & Drop Upload State
+  const [uploadedImages, setUploadedImages] = useState<
+    { id?: string; file?: File; url: string; previewUrl: string; isPrimary: boolean }[]
+  >([]);
+  const [imageUrlInput, setImageUrlInput] = useState('');
+  const [isDragging, setIsDragging] = useState(false);
+
   // Dynamic Product Form Payload State
   const [productForm, setProductForm] = useState<any>({
     name: '',
@@ -268,6 +275,8 @@ export const ProductsPage: React.FC = () => {
   const handleSelectProductType = (typeObj: ProductTypeMaster) => {
     setSelectedType(typeObj);
     setTypeSelectionModalOpen(false);
+    setUploadedImages([]);
+    setImageUrlInput('');
     
     // Auto-generate SKU & Defaults for selected type
     const skuPrefix = typeObj.code.slice(0, 3).toUpperCase();
@@ -285,6 +294,81 @@ export const ProductsPage: React.FC = () => {
     setFormModalOpen(true);
   };
 
+  // Image Drag & Drop Handlers
+  const handleFilesAdded = (files: FileList | File[]) => {
+    const newItems: { file: File; url: string; previewUrl: string; isPrimary: boolean }[] = [];
+    Array.from(files).forEach((file, index) => {
+      const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+      if (!allowed.includes(file.type.toLowerCase())) {
+        toast.error(`Invalid file format for ${file.name}. Allowed: JPG, PNG, WEBP`);
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error(`File ${file.name} exceeds 5MB limit.`);
+        return;
+      }
+      const previewUrl = URL.createObjectURL(file);
+      newItems.push({
+        file,
+        url: previewUrl,
+        previewUrl,
+        isPrimary: uploadedImages.length === 0 && index === 0,
+      });
+    });
+
+    if (newItems.length > 0) {
+      setUploadedImages((prev) => [...prev, ...newItems]);
+      toast.success(`${newItems.length} image(s) added to upload gallery.`);
+    }
+  };
+
+  const handleAddUrlImage = () => {
+    if (!imageUrlInput.trim()) return;
+    const isPrimary = uploadedImages.length === 0;
+    setUploadedImages((prev) => [
+      ...prev,
+      {
+        url: imageUrlInput.trim(),
+        previewUrl: imageUrlInput.trim(),
+        isPrimary,
+      },
+    ]);
+    setImageUrlInput('');
+    toast.success('Image URL added.');
+  };
+
+  const setPrimaryImage = (index: number) => {
+    setUploadedImages((prev) =>
+      prev.map((img, i) => ({
+        ...img,
+        isPrimary: i === index,
+      }))
+    );
+    toast.success('Set as primary/featured image.');
+  };
+
+  const removeImage = (index: number) => {
+    setUploadedImages((prev) => {
+      const updated = prev.filter((_, i) => i !== index);
+      if (updated.length > 0 && !updated.some((img) => img.isPrimary)) {
+        updated[0].isPrimary = true;
+      }
+      return updated;
+    });
+  };
+
+  const moveImage = (index: number, direction: 'left' | 'right') => {
+    const targetIndex = direction === 'left' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= uploadedImages.length) return;
+    setUploadedImages((prev) => {
+      const copy = [...prev];
+      const temp = copy[index];
+      copy[index] = copy[targetIndex];
+      copy[targetIndex] = temp;
+      return copy;
+    });
+  };
+
   const handleSaveProduct = async () => {
     if (!productForm.name.trim()) {
       toast.error('Product name is required');
@@ -295,16 +379,24 @@ export const ProductsPage: React.FC = () => {
       return;
     }
 
+    const imagePayload = uploadedImages.map((img, idx) => ({
+      imageUrl: img.url,
+      isPrimary: img.isPrimary || idx === 0,
+      displayOrder: idx,
+    }));
+
     const payload = {
       name: productForm.name,
       sku: productForm.sku,
       price: parseFloat(productForm.price) || 0,
       costPrice: parseFloat(productForm.costPrice) || 0,
       productType: productForm.productType,
-      status: productForm.status,
+      status: 'published',
+      visibility: 'public',
       description: productForm.description,
       seoTitle: productForm.metaTitle || productForm.name,
       seoDescription: productForm.metaDescription,
+      images: imagePayload,
       dynamicAttributes: {
         weight: productForm.weight,
         dimensions: `${productForm.length}x${productForm.width}x${productForm.height} cm`,
@@ -320,7 +412,29 @@ export const ProductsPage: React.FC = () => {
     };
 
     try {
-      await axiosInstance.post('/products', payload);
+      const res = await axiosInstance.post('/products', payload);
+      const createdProd = res.data?.data;
+
+      // Upload actual file blobs if any files were attached via drag & drop
+      if (createdProd?.id) {
+        for (let i = 0; i < uploadedImages.length; i++) {
+          const imgItem = uploadedImages[i];
+          if (imgItem.file) {
+            const formData = new FormData();
+            formData.append('image', imgItem.file);
+            formData.append('isPrimary', String(imgItem.isPrimary));
+            formData.append('displayOrder', String(i));
+            try {
+              await axiosInstance.post(`/products/${createdProd.id}/images`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+              });
+            } catch {
+              console.warn('Failed to upload file blob for image item', i);
+            }
+          }
+        }
+      }
+
       toast.success(`${selectedType?.name || 'Product'} created successfully!`);
       setFormModalOpen(false);
       refetch();
@@ -617,6 +731,125 @@ export const ProductsPage: React.FC = () => {
                 onChange={(e) => setProductForm({ ...productForm, costPrice: e.target.value })}
               />
             </Grid>
+
+            {/* PRODUCT IMAGES MANAGEMENT SECTION (DRAG & DROP) */}
+            <Grid item xs={12}>
+              <Divider sx={{ my: 1 }}>
+                <Chip label="PRODUCT IMAGES & GALLERY (DRAG & DROP)" size="small" color="primary" icon={<Upload size={14} />} />
+              </Divider>
+            </Grid>
+
+            <Grid item xs={12}>
+              <Box
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setIsDragging(true);
+                }}
+                onDragLeave={() => setIsDragging(false)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setIsDragging(false);
+                  if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                    handleFilesAdded(e.dataTransfer.files);
+                  }
+                }}
+                sx={{
+                  border: '2px dashed',
+                  borderColor: isDragging ? '#0284C7' : '#CBD5E1',
+                  borderRadius: 3,
+                  p: 3,
+                  textAlign: 'center',
+                  bgcolor: isDragging ? '#F0F9FF' : '#F8FAFC',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  '&:hover': {
+                    borderColor: '#0284C7',
+                    bgcolor: '#F0F9FF',
+                  },
+                }}
+                component="label"
+              >
+                <input
+                  type="file"
+                  multiple
+                  accept="image/jpeg,image/jpg,image/png,image/webp"
+                  hidden
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files.length > 0) {
+                      handleFilesAdded(e.target.files);
+                    }
+                  }}
+                />
+                <Upload size={36} color="#0284C7" style={{ marginBottom: 8 }} />
+                <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#0F172A' }}>
+                  Drag & Drop Product Images Here
+                </Typography>
+                <Typography variant="caption" color="text.secondary" display="block">
+                  Supports JPG, JPEG, PNG, WEBP up to 5MB per file. Multi-file selection enabled.
+                </Typography>
+                <Button size="small" variant="outlined" sx={{ mt: 1.5, fontWeight: 700 }}>
+                  Browse Local Files
+                </Button>
+              </Box>
+
+              <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
+                <TextField
+                  size="small"
+                  fullWidth
+                  placeholder="Or enter Image URL (e.g. https://images.unsplash.com/photo-...)"
+                  value={imageUrlInput}
+                  onChange={(e) => setImageUrlInput(e.target.value)}
+                />
+                <Button variant="contained" size="small" onClick={handleAddUrlImage} sx={{ whitespace: 'nowrap', fontWeight: 700 }}>
+                  Add Image URL
+                </Button>
+              </Box>
+            </Grid>
+
+            {/* PREVIEW GALLERY GRID */}
+            {uploadedImages.length > 0 && (
+              <Grid item xs={12}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
+                  Uploaded Gallery Images ({uploadedImages.length}):
+                </Typography>
+                <Grid container spacing={2}>
+                  {uploadedImages.map((img, idx) => (
+                    <Grid item xs={6} sm={4} md={3} key={idx}>
+                      <Card variant="outlined" sx={{ position: 'relative', borderRadius: 2, overflow: 'hidden', borderColor: img.isPrimary ? '#0284C7' : '#E2E8F0', borderWidth: img.isPrimary ? 2 : 1 }}>
+                        <Box sx={{ position: 'relative', height: 120 }}>
+                          <img
+                            src={img.previewUrl}
+                            alt={`Preview ${idx + 1}`}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          />
+                          {img.isPrimary && (
+                            <Chip
+                              label="FEATURED"
+                              color="primary"
+                              size="small"
+                              sx={{ position: 'absolute', top: 6, left: 6, fontWeight: 800, fontSize: 10, height: 20 }}
+                            />
+                          )}
+                        </Box>
+                        <Box sx={{ p: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: '#F8FAFC' }}>
+                          <Button
+                            size="small"
+                            onClick={() => setPrimaryImage(idx)}
+                            disabled={img.isPrimary}
+                            sx={{ fontSize: 11, fontWeight: 700, p: 0.5, minWidth: 0 }}
+                          >
+                            {img.isPrimary ? 'Primary' : 'Make Primary'}
+                          </Button>
+                          <IconButton size="small" color="error" onClick={() => removeImage(idx)}>
+                            <Trash2 size={16} />
+                          </IconButton>
+                        </Box>
+                      </Card>
+                    </Grid>
+                  ))}
+                </Grid>
+              </Grid>
+            )}
 
             {/* PHYSICAL / VARIABLE / RENTAL SPECIFIC FIELDS */}
             {(selectedType?.supportsInventory || selectedType?.code === 'physical' || selectedType?.code === 'variable' || selectedType?.code === 'rental') && (

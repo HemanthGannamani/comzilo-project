@@ -15,7 +15,9 @@ export const EmailTemplatesPage: React.FC = () => {
       const res = await axiosInstance.get('/marketing/email-templates');
       setTemplates(res.data?.data || []);
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || 'Failed to load email templates');
+      if (err?.response?.status !== 401) {
+        toast.error(err?.response?.data?.message || 'Failed to load email templates');
+      }
     }
   };
 

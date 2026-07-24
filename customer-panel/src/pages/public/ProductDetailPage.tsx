@@ -6,28 +6,18 @@ import { useGetProductByIdQuery } from '../../api/catalogApi';
 import { useAppDispatch } from '../../store/hooks';
 import { addToCart } from '../../store/cartSlice';
 import { toggleWishlist } from '../../store/wishlistSlice';
+import { formatPrice } from '../../utils/currencyService';
 import toast from 'react-hot-toast';
 
 export const ProductDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [quantity, setQuantity] = useState(1);
 
-  const { data } = useGetProductByIdQuery(id || 1);
+  const { data, isLoading } = useGetProductByIdQuery(id || 1);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
 
-  const product = data?.data || {
-    id: id || 1,
-    name: 'Wireless Noise-Canceling Headphones',
-    price: 249.99,
-    sku: 'SKU-HEADSET-001',
-    description: 'Premium active noise-canceling wireless bluetooth headphones with 30-hour battery life and HD acoustic clarity.',
-    category: 'Electronics',
-    brand: 'Comzilo Audio',
-    stock: 24,
-    rating: 4.8,
-    image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800',
-  };
+  const product = data?.data || data;
 
   const handleAddToCart = () => {
     dispatch(addToCart({ id: product.id, name: product.name, price: product.price, image: product.image || '', quantity }));
@@ -67,7 +57,7 @@ export const ProductDetailPage: React.FC = () => {
           </Box>
 
           <Typography variant="h3" sx={{ fontWeight: 800, color: '#2563EB', mb: 2 }}>
-            ${product.price}
+            {formatPrice(product?.price || 0)}
           </Typography>
 
           <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>

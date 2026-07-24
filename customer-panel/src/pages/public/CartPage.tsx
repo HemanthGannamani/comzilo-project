@@ -4,6 +4,7 @@ import { Trash2, ArrowRight, ShoppingBag } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { updateQuantity, removeFromCart, applyCoupon } from '../../store/cartSlice';
+import { formatPrice } from '../../utils/currencyService';
 import toast from 'react-hot-toast';
 
 export const CartPage: React.FC = () => {
@@ -21,7 +22,7 @@ export const CartPage: React.FC = () => {
   const handleApplyCoupon = () => {
     if (couponInput.trim().toUpperCase() === 'SAVE10') {
       dispatch(applyCoupon({ code: 'SAVE10', discount: 10 }));
-      toast.success('Coupon SAVE10 applied ($10 OFF)');
+      toast.success('Coupon SAVE10 applied');
     } else {
       toast.error('Invalid Coupon Code. Try "SAVE10"');
     }
@@ -71,7 +72,7 @@ export const CartPage: React.FC = () => {
                       {item.name}
                     </Typography>
                     <Typography variant="body2" color="primary" sx={{ fontWeight: 800 }}>
-                      ${item.price}
+                      {formatPrice(item.price)}
                     </Typography>
                   </Box>
 
@@ -84,7 +85,7 @@ export const CartPage: React.FC = () => {
                   />
 
                   <Typography variant="subtitle1" sx={{ fontWeight: 800, minWidth: 80, textAlign: 'right' }}>
-                    ${(item.price * item.quantity).toFixed(2)}
+                    {formatPrice(item.price * item.quantity)}
                   </Typography>
 
                   <IconButton color="error" onClick={() => dispatch(removeFromCart(item.id))}>
@@ -105,23 +106,23 @@ export const CartPage: React.FC = () => {
 
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1.5 }}>
               <Typography variant="body2" color="text.secondary">Subtotal</Typography>
-              <Typography variant="body2" sx={{ fontWeight: 700 }}>${subtotal.toFixed(2)}</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 700 }}>{formatPrice(subtotal)}</Typography>
             </Box>
 
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1.5 }}>
               <Typography variant="body2" color="text.secondary">Shipping Fee</Typography>
-              <Typography variant="body2" sx={{ fontWeight: 700 }}>{shipping === 0 ? 'FREE' : `$${shipping.toFixed(2)}`}</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 700 }}>{shipping === 0 ? 'FREE' : formatPrice(shipping)}</Typography>
             </Box>
 
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1.5 }}>
               <Typography variant="body2" color="text.secondary">Estimated Tax (8%)</Typography>
-              <Typography variant="body2" sx={{ fontWeight: 700 }}>${tax.toFixed(2)}</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 700 }}>{formatPrice(tax)}</Typography>
             </Box>
 
             {discountAmount > 0 && (
               <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1.5, color: '#10B981' }}>
                 <Typography variant="body2" sx={{ fontWeight: 700 }}>Coupon Discount ({couponCode})</Typography>
-                <Typography variant="body2" sx={{ fontWeight: 700 }}>-${discountAmount.toFixed(2)}</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 700 }}>-{formatPrice(discountAmount)}</Typography>
               </Box>
             )}
 
@@ -129,7 +130,7 @@ export const CartPage: React.FC = () => {
 
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
               <Typography variant="h6" sx={{ fontWeight: 800 }}>Grand Total</Typography>
-              <Typography variant="h5" sx={{ fontWeight: 800, color: '#2563EB' }}>${grandTotal.toFixed(2)}</Typography>
+              <Typography variant="h5" sx={{ fontWeight: 800, color: '#2563EB' }}>{formatPrice(grandTotal)}</Typography>
             </Box>
 
             {/* Coupon Promo Input */}

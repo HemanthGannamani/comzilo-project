@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Container,
@@ -23,14 +23,14 @@ import {
   Chip,
   InputAdornment,
 } from '@mui/material';
-import { Search, ShoppingCart, Heart, Filter, PackageX } from 'lucide-react';
+import { Search, ShoppingCart, Heart, Filter, PackageX, Globe } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useGetProductsQuery } from '../../api/catalogApi';
 import { useAppDispatch } from '../../store/hooks';
 import { addToCart } from '../../store/cartSlice';
 import { toggleWishlist } from '../../store/wishlistSlice';
+import { SUPPORTED_COUNTRIES, formatPrice } from '../../utils/currencyService';
 import toast from 'react-hot-toast';
-import { axiosInstance } from '../../api/axiosInstance';
 
 interface ProductTypeItem {
   code: string;
@@ -60,6 +60,7 @@ export const ProductListingPage: React.FC = () => {
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
+  const [selectedCountry, setSelectedCountry] = useState('IN'); // Location-aware country currency
 
   // Pass selected multi-type filter array to backend MySQL query
   const typesQuery = selectedTypes.length > 0 ? selectedTypes.join(',') : undefined;
@@ -93,22 +94,45 @@ export const ProductListingPage: React.FC = () => {
     toast.success(`${prod.name} added to cart`);
   };
 
-  // Real database rows only (No mock / hardcoded fallback)
+  // Real database rows only from MySQL (Zero mock / hardcoded fallback)
   const products = data?.data?.products || data?.data || [];
 
   return (
     <Container maxWidth="xl" sx={{ py: 5 }}>
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" sx={{ fontWeight: 800, color: '#0F172A', mb: 0.5 }}>
-          Enterprise Storefront Catalog
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
-          Browse all active products powered by MySQL backend database filtering.
-        </Typography>
+      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
+        <Box>
+          <Typography variant="h4" sx={{ fontWeight: 800, color: '#0F172A', mb: 0.5 }}>
+            Enterprise Storefront Catalog
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            Browse all active products powered by MySQL backend database filtering.
+          </Typography>
+        </Box>
+
+        {/* STEP 3: COUNTRY & LOCATION-AWARE CURRENCY SELECTOR */}
+        <Paper variant="outlined" sx={{ p: 1.5, px: 2, borderRadius: 3, display: 'flex', alignItems: 'center', gap: 1.5, borderColor: '#CBD5E1', bgcolor: '#F8FAFC' }}>
+          <Globe size={18} color="#2563EB" />
+          <Typography variant="body2" sx={{ fontWeight: 700, color: '#334155' }}>
+            Storefront Country:
+          </Typography>
+          <FormControl size="small" sx={{ minWidth: 200 }}>
+            <Select
+              value={selectedCountry}
+              onChange={(e) => setSelectedCountry(e.target.value)}
+              sx={{ bgcolor: '#FFFFFF', fontWeight: 700, borderRadius: 2 }}
+            >
+              {SUPPORTED_COUNTRIES.map((c) => (
+                <MenuItem key={c.countryCode} value={c.countryCode}>
+                  {c.flag} {c.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Paper>
       </Box>
 
       <Grid container spacing={4}>
-        {/* SIDEBAR FILTER PANEL */}
+        {/* STEP 2: SIDEBAR FILTER PANEL FOR MULTI-TYPE CHECKBOXES */}
         <Grid item xs={12} md={3}>
           <Paper variant="outlined" sx={{ p: 3, borderRadius: 3, borderColor: '#E2E8F0', sticky: 'top', top: 20 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
@@ -144,7 +168,7 @@ export const ProductListingPage: React.FC = () => {
 
             {/* PRICE RANGE FILTER */}
             <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5, color: '#334155' }}>
-              Price Range (₹)
+              Price Range
             </Typography>
             <Box sx={{ display: 'flex', gap: 1.5, mb: 2 }}>
               <TextField
@@ -163,7 +187,7 @@ export const ProductListingPage: React.FC = () => {
               />
             </Box>
 
-            {selectedTypes.length > 0 && (
+            {(selectedTypes.length > 0 || minPrice || maxPrice) && (
               <Button
                 variant="outlined"
                 color="error"
@@ -176,7 +200,7 @@ export const ProductListingPage: React.FC = () => {
                 }}
                 sx={{ mt: 1, fontWeight: 700 }}
               >
-                Clear Filters
+                Clear All Filters
               </Button>
             )}
           </Paper>
@@ -202,7 +226,7 @@ export const ProductListingPage: React.FC = () => {
 
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
               {selectedTypes.length > 0 && (
-                <Chip label={`${selectedTypes.length} Types Active`} color="primary" size="small" sx={{ fontWeight: 700 }} />
+                <Chip label={`${selectedTypes.length} Product Types Filtered`} color="primary" size="small" sx={{ fontWeight: 700 }} />
               )}
               <FormControl size="small" sx={{ minWidth: 160 }}>
                 <InputLabel>Sort By</InputLabel>
@@ -215,6 +239,7 @@ export const ProductListingPage: React.FC = () => {
             </Box>
           </Box>
 
+          {/* STEP 4: EMPTY STATE WHEN ZERO MATCHING PRODUCTS EXIST */}
           {products.length === 0 && !isLoading ? (
             <Paper sx={{ textAlign: 'center', py: 8, border: '1px dashed #CBD5E1', borderRadius: 3, bgcolor: '#F8FAFC' }}>
               <PackageX size={56} color="#94A3B8" />
@@ -223,7 +248,7 @@ export const ProductListingPage: React.FC = () => {
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
                 {selectedTypes.length > 0 || search || minPrice || maxPrice
-                  ? 'No matching active products found for your selected backend filters.'
+                  ? 'No products match your selected product type filters in MySQL database.'
                   : 'There are currently no active products in the storefront catalog.'}
               </Typography>
             </Paper>
@@ -250,7 +275,7 @@ export const ProductListingPage: React.FC = () => {
                       </Button>
                       {prod.productType && (
                         <Chip
-                          label={prod.productType.toUpperCase()}
+                          label={prod.productType.toUpperCase().replace(/_/g, ' ')}
                           size="small"
                           color="primary"
                           sx={{ position: 'absolute', top: 8, left: 8, fontWeight: 800, fontSize: 10 }}
@@ -270,8 +295,10 @@ export const ProductListingPage: React.FC = () => {
                         {prod.name}
                       </Typography>
                       <Rating value={4.8} precision={0.5} size="small" readOnly />
+
+                      {/* LOCATION-AWARE DYNAMIC CURRENCY FORMATTING */}
                       <Typography variant="h6" sx={{ fontWeight: 800, color: '#2563EB', mt: 1 }}>
-                        ₹{Number(prod.price || 0).toLocaleString()}
+                        {formatPrice(prod.price, selectedCountry)}
                       </Typography>
                     </CardContent>
                     <CardActions sx={{ p: 2, pt: 0 }}>

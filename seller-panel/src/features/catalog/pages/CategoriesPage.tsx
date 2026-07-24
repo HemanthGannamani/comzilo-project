@@ -35,7 +35,7 @@ import {
   Search,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import axiosInstance from '../../../api/axiosInstance';
+import { axiosInstance } from '../../../api/axiosInstance';
 
 export const CategoriesPage: React.FC = () => {
   const [categories, setCategories] = useState<any[]>([]);

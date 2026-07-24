@@ -19,7 +19,7 @@ import {
 } from '@mui/material';
 import { Plus, Edit2, Trash2, Globe, Award, Image as ImageIcon } from 'lucide-react';
 import toast from 'react-hot-toast';
-import axiosInstance from '../../../api/axiosInstance';
+import { axiosInstance } from '../../../api/axiosInstance';
 
 export const BrandsPage: React.FC = () => {
   const [brands, setBrands] = useState<any[]>([]);

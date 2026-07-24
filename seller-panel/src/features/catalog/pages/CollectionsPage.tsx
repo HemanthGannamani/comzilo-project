@@ -17,7 +17,7 @@ import {
 } from '@mui/material';
 import { Plus, Layers, Sparkles } from 'lucide-react';
 import toast from 'react-hot-toast';
-import axiosInstance from '../../../api/axiosInstance';
+import { axiosInstance } from '../../../api/axiosInstance';
 
 export const CollectionsPage: React.FC = () => {
   const [collections, setCollections] = useState<any[]>([]);

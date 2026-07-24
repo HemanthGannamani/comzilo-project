@@ -16,7 +16,7 @@ import {
 } from '@mui/material';
 import { Plus, Tag as TagIcon } from 'lucide-react';
 import toast from 'react-hot-toast';
-import axiosInstance from '../../../api/axiosInstance';
+import { axiosInstance } from '../../../api/axiosInstance';
 
 export const TagsPage: React.FC = () => {
   const [tags, setTags] = useState<any[]>([]);

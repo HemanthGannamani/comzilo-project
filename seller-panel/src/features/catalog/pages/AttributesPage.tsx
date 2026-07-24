@@ -17,7 +17,7 @@ import {
 } from '@mui/material';
 import { Plus, Sliders, Palette } from 'lucide-react';
 import toast from 'react-hot-toast';
-import axiosInstance from '../../../api/axiosInstance';
+import { axiosInstance } from '../../../api/axiosInstance';
 
 export const AttributesPage: React.FC = () => {
   const [attributes, setAttributes] = useState<any[]>([]);

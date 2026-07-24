@@ -215,9 +215,10 @@ export class ProductService {
     });
   }
 
-  public async getProduct(tenantId: number, storeId: number, productId: number): Promise<Product> {
+  public async getProduct(tenantId: number | null, storeId: number, productId: number): Promise<Product> {
     const { ProductImage } = require('../database/models');
-    const product = await this.productRepo.findOne(tenantId, {
+    const effectiveTenant = tenantId === 0 ? null : tenantId;
+    const product = await this.productRepo.findOne(effectiveTenant, {
       where: { id: productId },
       include: [
         {
@@ -241,7 +242,7 @@ export class ProductService {
   }
 
   public async listProducts(
-    tenantId: number,
+    tenantId: number | null,
     storeId: number,
     filters: any = {}
   ): Promise<{ rows: Product[]; count: number }> {
@@ -286,9 +287,12 @@ export class ProductService {
       ];
     }
 
+    // For public storefront requests with allStores, do not restrict query to single tenantId
+    const effectiveTenantId = allStores ? null : tenantId;
+
     const { ProductImage } = require('../database/models');
     const [rows, count] = await Promise.all([
-      this.productRepo.findMany(tenantId, {
+      this.productRepo.findMany(effectiveTenantId, {
         where,
         limit: Number(limit),
         offset: Number(offset),
@@ -300,7 +304,7 @@ export class ProductService {
           },
         ],
       }),
-      this.productRepo.count(tenantId, { where }),
+      this.productRepo.count(effectiveTenantId, { where }),
     ]);
 
     return { rows, count };

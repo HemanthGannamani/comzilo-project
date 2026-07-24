@@ -117,8 +117,13 @@ export class ProductController {
 
   public getProduct = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const tenantId = req.context!.tenantId!;
-      const storeId = await this.getStoreId(req);
+      const tenantId = req.headers.authorization ? req.context?.tenantId || 1 : null;
+      let storeId = 1;
+      try {
+        storeId = await this.getStoreId(req);
+      } catch {
+        storeId = 1;
+      }
       const productId = parseInt(req.params.id, 10);
 
       const product = await this.productService.getProduct(tenantId, storeId, productId);

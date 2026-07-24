@@ -145,18 +145,28 @@ export class ProductController {
 
   public listProducts = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const tenantId = req.context?.tenantId || 1;
-      let storeId = 1;
-      try {
-        storeId = await this.getStoreId(req);
-      } catch {
-        storeId = 1;
+      // Resolve tenant context from query override or request context (set by tenantResolver)
+      const queryTenantId = req.query.tenant_id ? Number(req.query.tenant_id) : undefined;
+      const tenantId = queryTenantId || req.context?.tenantId || 1;
+
+      // Resolve store context from query or request context
+      const queryStoreId = req.query.store_id ? Number(req.query.store_id) : undefined;
+      let storeId = queryStoreId || 1;
+      if (!queryStoreId) {
+        try {
+          storeId = await this.getStoreId(req);
+        } catch {
+          storeId = 1;
+        }
       }
-      
-      const filters: any = { ...req.query };
-      if (!req.headers.authorization) {
-        filters.allStores = true;
-      }
+
+      // Enforce Option B Multi-Tenant SaaS ERP Tenant Isolation
+      // Only set allStores = true if marketplace = true is explicitly requested
+      const isMarketplaceRequest = req.query.marketplace === 'true';
+      const filters: any = {
+        ...req.query,
+        allStores: isMarketplaceRequest,
+      };
 
       const products = await this.productService.listProducts(tenantId, storeId, filters);
 

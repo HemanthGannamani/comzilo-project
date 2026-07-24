@@ -148,4 +148,15 @@ export class MarketingController {
       next(err);
     }
   };
+
+  // Marketing Analytics
+  public getMarketingAnalytics = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const tenantId = req.headers.authorization ? req.context?.tenantId || 1 : null;
+      const analytics = await this.service.getMarketingAnalytics(tenantId);
+      success(res, 'Marketing analytics retrieved successfully', analytics);
+    } catch (err) {
+      next(err);
+    }
+  };
 }

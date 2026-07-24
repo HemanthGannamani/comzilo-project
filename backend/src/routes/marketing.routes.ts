@@ -35,4 +35,7 @@ router.post('/customer-segments', authenticate, controller.createCustomerSegment
 router.get('/automation-rules', authenticate, controller.getAutomationRules);
 router.post('/automation-rules', authenticate, controller.createAutomationRule);
 
+// Marketing Analytics
+router.get('/analytics', authenticate, controller.getMarketingAnalytics);
+
 export default router;

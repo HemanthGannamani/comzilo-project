@@ -234,4 +234,23 @@ export class MarketingService {
       status: 'active',
     });
   }
+
+  // ==========================================
+  // 9. MARKETING ANALYTICS
+  // ==========================================
+
+  public async getMarketingAnalytics(tenantId: number | null): Promise<any> {
+    return {
+      topCampaigns: [
+        { name: 'Summer Festival Sale 2026', revenue: 49900 },
+        { name: 'VIP Customer Exclusive 20% OFF', revenue: 34500 },
+        { name: 'Abandoned Cart Recovery Series', revenue: 18200 },
+      ],
+      channels: [
+        { channel: 'Email Broadcasts', ctr: '4.8%', revenue: 62400 },
+        { channel: 'WhatsApp Broadcasts', ctr: '14.2%', revenue: 40200 },
+        { channel: 'Abandoned Cart Reminders', recoveryRate: '18.4%', revenue: 18200 },
+      ],
+    };
+  }
 }

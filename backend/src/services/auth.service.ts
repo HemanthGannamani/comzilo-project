@@ -105,7 +105,7 @@ export class AuthService extends BaseService {
           firstName: user.firstName,
           lastName: user.lastName,
           fullName: `${user.firstName} ${user.lastName}`,
-          phone: data.mobile || '+910000000000',
+          phone: data.mobile || `+91${Date.now().toString().slice(-10)}`,
           status: 'active',
         },
         { transaction: t }

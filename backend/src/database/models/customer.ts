@@ -133,7 +133,7 @@ Customer.init(
     },
     phone: {
       type: DataTypes.STRING(50),
-      allowNull: false,
+      allowNull: true,
     },
     alternatePhone: {
       type: DataTypes.STRING(50),

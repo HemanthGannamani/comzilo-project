@@ -14,6 +14,9 @@ import {
   OtpRequest,
   PasswordResetToken,
   UserProfile,
+  Customer,
+  Role,
+  UserRole,
 } from '../database/models';
 import { UserRepository } from '../repositories/user.repository';
 import { RefreshTokenRepository } from '../repositories/refreshToken.repository';
@@ -90,6 +93,36 @@ export class AuthService extends BaseService {
         },
         { transaction: t }
       );
+
+      // Create Customer Record
+      await Customer.create(
+        {
+          tenantId,
+          storeId: 1,
+          customerCode: `CUST-${Date.now().toString().slice(-6)}`,
+          userId: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          fullName: `${user.firstName} ${user.lastName}`,
+          phone: data.mobile || '+910000000000',
+          status: 'active',
+        },
+        { transaction: t }
+      );
+
+      // Assign Customer Role
+      const customerRole = await Role.findOne({ where: { name: 'CUSTOMER' }, transaction: t });
+      if (customerRole) {
+        await UserRole.create(
+          {
+            tenantId,
+            userId: user.id,
+            roleId: customerRole.id,
+          },
+          { transaction: t }
+        );
+      }
 
       return user;
     });

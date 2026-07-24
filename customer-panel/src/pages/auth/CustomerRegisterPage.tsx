@@ -1,17 +1,29 @@
 import React, { useState } from 'react';
-import { Container, Paper, Typography, TextField, Button, Box, Grid } from '@mui/material';
+import { Container, Paper, Typography, TextField, Button, Box, Grid, Alert } from '@mui/material';
 import { UserPlus } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
 export const CustomerRegisterPage: React.FC = () => {
   const [formData, setFormData] = useState({ firstName: '', lastName: '', email: '', password: '' });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast.success('Registration successful! Please sign in.');
-    navigate('/login');
+    setLoading(true);
+    setError(null);
+
+    try {
+      await axiosInstance.post('/auth/register', formData);
+      toast.success('Customer account registered successfully! Please sign in.');
+      navigate('/login');
+    } catch (err: any) {
+      setError(err?.response?.data?.message || 'Registration failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -27,6 +39,12 @@ export const CustomerRegisterPage: React.FC = () => {
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
           Join Comzilo Store to enjoy fast checkout and order tracking
         </Typography>
+
+        {error && (
+          <Alert severity="error" sx={{ mb: 3, textAlign: 'left' }}>
+            {error}
+          </Alert>
+        )}
 
         <form onSubmit={handleRegister}>
           <Grid container spacing={2} sx={{ mb: 2 }}>

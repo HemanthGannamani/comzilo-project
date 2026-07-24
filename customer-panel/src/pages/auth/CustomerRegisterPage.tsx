@@ -3,6 +3,7 @@ import { Container, Paper, Typography, TextField, Button, Box, Grid, Alert } fro
 import { UserPlus } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { axiosInstance } from '../../api/axiosInstance';
 
 export const CustomerRegisterPage: React.FC = () => {
   const [formData, setFormData] = useState({ firstName: '', lastName: '', email: '', password: '' });

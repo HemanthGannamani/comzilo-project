@@ -105,6 +105,9 @@ app.get('/api/v1/health', async (req, res) => {
 import authRoutes from './routes/auth.routes';
 app.use('/api/v1/auth', authRoutes);
 
+import catalogRoutes from './routes/catalog.routes';
+app.use('/api/v1/catalog', catalogRoutes);
+
 // Mount Tenant & Store Routes
 import tenantRoutes from './routes/tenant.routes';
 import storeRoutes from './routes/store.routes';

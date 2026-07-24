@@ -31,12 +31,9 @@ export const authenticate = async (
   try {
     const decoded = jwt.verify(token, env.JWT_ACCESS_SECRET) as TokenPayload;
 
-    // Tenant Isolation Check: Verify token tenant matches current resolved tenant context (Super Admin bypass)
-    if (req.context.tenantId !== null && req.context.tenantId !== decoded.tenantId) {
-      const isSuper = await authzService.isSuperAdmin(decoded.userId);
-      if (!isSuper) {
-        throw new AuthorizationError('Authenticated user does not belong to this tenant');
-      }
+    // Adopt tenant identity from verified access token
+    if (decoded.tenantId) {
+      req.context.tenantId = decoded.tenantId;
     }
 
     // Set credentials on request context

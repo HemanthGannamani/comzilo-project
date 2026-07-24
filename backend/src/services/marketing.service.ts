@@ -10,7 +10,8 @@ import { Notification } from '../database/models/notification';
 import { Order } from '../database/models/order';
 import { Customer } from '../database/models/customer';
 import { NotFoundError, ValidationError } from '../shared/errors/AppError';
-import { Op } from 'sequelize';
+import { Op, QueryTypes } from 'sequelize';
+import { sequelize } from '../config/database';
 
 export class MarketingService {
   // ==========================================
@@ -66,7 +67,15 @@ export class MarketingService {
   // ==========================================
 
   public async getEmailProviders(tenantId: number | null): Promise<any[]> {
-    return [
+    const where: any = {};
+    if (tenantId !== null) where.tenant_id = tenantId;
+
+    const dbRows: any[] = await sequelize.query(
+      'SELECT * FROM marketing_email_providers WHERE tenant_id = :tenantId',
+      { replacements: { tenantId: tenantId || 1 }, type: QueryTypes.SELECT }
+    );
+
+    const defaultProviders = [
       { id: 'smtp', name: 'Custom SMTP Server', type: 'smtp', status: 'configured', isDefault: true },
       { id: 'ses', name: 'Amazon SES', type: 'api', status: 'active', isDefault: false },
       { id: 'mailgun', name: 'Mailgun API', type: 'api', status: 'inactive', isDefault: false },
@@ -74,6 +83,51 @@ export class MarketingService {
       { id: 'zeptomail', name: 'ZeptoMail', type: 'api', status: 'inactive', isDefault: false },
       { id: 'mailchimp', name: 'Mailchimp Transactional', type: 'api', status: 'inactive', isDefault: false },
     ];
+
+    if (dbRows.length === 0) return defaultProviders;
+
+    return defaultProviders.map((dp) => {
+      const saved = dbRows.find((r: any) => r.provider_type === dp.id);
+      return saved
+        ? {
+            ...dp,
+            status: saved.status,
+            configJson: JSON.parse(saved.config_json || '{}'),
+            isDefault: Boolean(saved.is_default),
+          }
+        : dp;
+    });
+  }
+
+  public async saveEmailProvider(tenantId: number, data: any): Promise<any> {
+    if (!data.providerId) throw new ValidationError('Provider ID is required');
+
+    const configJson = JSON.stringify({
+      smtpHost: data.smtpHost || '',
+      smtpPort: data.smtpPort || 587,
+      smtpUsername: data.smtpUsername || '',
+      smtpPassword: data.smtpPassword ? '******' : '',
+      apiKey: data.apiKey || '',
+      senderName: data.senderName || 'Comzilo Merchant',
+      senderEmail: data.senderEmail || 'notifications@comzilo.com',
+    });
+
+    await sequelize.query(
+      `INSERT INTO marketing_email_providers (tenant_id, name, provider_type, config_json, is_default, status, created_at, updated_at)
+       VALUES (:tenantId, :name, :providerType, :configJson, :isDefault, 'active', NOW(), NOW())
+       ON DUPLICATE KEY UPDATE name = VALUES(name), config_json = VALUES(config_json), status = 'active', updated_at = NOW()`,
+      {
+        replacements: {
+          tenantId,
+          name: data.providerName || data.providerId,
+          providerType: data.providerId,
+          configJson,
+          isDefault: data.isDefault ? 1 : 0,
+        },
+      }
+    );
+
+    return { success: true, message: `Email Provider ${data.providerId} configuration saved successfully!` };
   }
 
   // ==========================================

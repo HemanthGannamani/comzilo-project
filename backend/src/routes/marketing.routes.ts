@@ -10,6 +10,7 @@ router.get('/dashboard', authenticate, controller.getDashboardStats);
 
 // Email Providers & Templates
 router.get('/email-providers', authenticate, controller.getEmailProviders);
+router.post('/email-providers', authenticate, controller.saveEmailProvider);
 router.get('/email-templates', authenticate, controller.getEmailTemplates);
 router.post('/email-templates', authenticate, controller.createEmailTemplate);
 

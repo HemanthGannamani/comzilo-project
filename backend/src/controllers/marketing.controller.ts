@@ -28,6 +28,16 @@ export class MarketingController {
     }
   };
 
+  public saveEmailProvider = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const tenantId = req.context?.tenantId || 1;
+      const result = await this.service.saveEmailProvider(tenantId, req.body);
+      success(res, 'Email provider saved successfully', result);
+    } catch (err) {
+      next(err);
+    }
+  };
+
   // Email Templates
   public getEmailTemplates = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {

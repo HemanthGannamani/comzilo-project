@@ -9,41 +9,46 @@ import { productValidation } from '../validations/product.validation';
 const router = Router();
 const controller = new ProductController();
 
-// All product routes require tenant context, authentication, and authorization resolution
+// All product routes require tenant context resolution
 router.use(tenantResolver);
-router.use(requireAuth);
-router.use(authorize);
 
+// Public storefront catalog endpoints
 router.get('/types', controller.getProductTypes);
+router.get('/', validateRequest({ query: productValidation.listProducts }), controller.listProducts);
+router.get('/:id', controller.getProduct);
 
-router.get(
-  '/',
-  requirePermission('product.read'),
-  validateRequest({ query: productValidation.listProducts }),
-  controller.listProducts
-);
-
+// Protected management endpoints (require authentication & authorization)
 router.post(
   '/',
+  requireAuth,
+  authorize,
   requirePermission('product.create'),
   validateRequest({ body: productValidation.createProduct }),
   controller.createProduct
 );
 
-router.get('/:id', requirePermission('product.read', 'id'), controller.getProduct);
-
 router.put(
   '/:id',
+  requireAuth,
+  authorize,
   requirePermission('product.update', 'id'),
   validateRequest({ body: productValidation.updateProduct }),
   controller.updateProduct
 );
 
-router.delete('/:id', requirePermission('product.delete', 'id'), controller.deleteProduct);
+router.delete(
+  '/:id',
+  requireAuth,
+  authorize,
+  requirePermission('product.delete', 'id'),
+  controller.deleteProduct
+);
 
 router.post(
   '/:id/restore',
-  requirePermission('product.delete', 'id'), // Often restore uses same permission as delete
+  requireAuth,
+  authorize,
+  requirePermission('product.delete', 'id'),
   controller.restoreProduct
 );
 

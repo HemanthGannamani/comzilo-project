@@ -95,7 +95,8 @@ export const ProductListingPage: React.FC = () => {
   };
 
   // Real database rows only from MySQL (Zero mock / hardcoded fallback)
-  const products = data?.data?.products || data?.data || [];
+  const rawProducts = data?.data?.products || data?.data || [];
+  const products = Array.isArray(rawProducts) ? rawProducts : [];
 
   return (
     <Container maxWidth="xl" sx={{ py: 5 }}>
@@ -108,27 +109,6 @@ export const ProductListingPage: React.FC = () => {
             Browse all active products powered by MySQL backend database filtering.
           </Typography>
         </Box>
-
-        {/* STEP 3: COUNTRY & LOCATION-AWARE CURRENCY SELECTOR */}
-        <Paper variant="outlined" sx={{ p: 1.5, px: 2, borderRadius: 3, display: 'flex', alignItems: 'center', gap: 1.5, borderColor: '#CBD5E1', bgcolor: '#F8FAFC' }}>
-          <Globe size={18} color="#2563EB" />
-          <Typography variant="body2" sx={{ fontWeight: 700, color: '#334155' }}>
-            Storefront Country:
-          </Typography>
-          <FormControl size="small" sx={{ minWidth: 200 }}>
-            <Select
-              value={selectedCountry}
-              onChange={(e) => setSelectedCountry(e.target.value)}
-              sx={{ bgcolor: '#FFFFFF', fontWeight: 700, borderRadius: 2 }}
-            >
-              {SUPPORTED_COUNTRIES.map((c) => (
-                <MenuItem key={c.countryCode} value={c.countryCode}>
-                  {c.flag} {c.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Paper>
       </Box>
 
       <Grid container spacing={4}>
@@ -296,9 +276,9 @@ export const ProductListingPage: React.FC = () => {
                       </Typography>
                       <Rating value={4.8} precision={0.5} size="small" readOnly />
 
-                      {/* LOCATION-AWARE DYNAMIC CURRENCY FORMATTING */}
+                      {/* LOCATION-AWARE AUTOMATIC CURRENCY FORMATTING */}
                       <Typography variant="h6" sx={{ fontWeight: 800, color: '#2563EB', mt: 1 }}>
-                        {formatPrice(prod.price, selectedCountry)}
+                        {formatPrice(prod.price)}
                       </Typography>
                     </CardContent>
                     <CardActions sx={{ p: 2, pt: 0 }}>

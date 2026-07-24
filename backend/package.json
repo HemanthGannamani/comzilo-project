@@ -24,6 +24,7 @@
     "db:test:reset": "cross-env NODE_ENV=test ts-node src/database/helpers/reset.ts"
   },
   "dependencies": {
+    "@types/multer": "^2.2.0",
     "bcrypt": "^5.1.1",
     "compression": "^1.7.4",
     "cookie-parser": "^1.4.6",
@@ -34,6 +35,7 @@
     "helmet": "^7.1.0",
     "joi": "^17.13.1",
     "jsonwebtoken": "^9.0.2",
+    "multer": "^2.2.0",
     "mysql2": "^3.9.7",
     "sequelize": "^6.37.3",
     "swagger-jsdoc": "^6.3.0",

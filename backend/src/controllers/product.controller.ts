@@ -230,4 +230,69 @@ export class ProductController {
       next(error);
     }
   };
+
+  public uploadProductImage = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const productId = parseInt(req.params.id, 10);
+      const file = req.file;
+
+      let imageUrl = req.body.imageUrl || req.body.url;
+      if (file) {
+        imageUrl = `/uploads/products/${file.filename}`;
+      }
+
+      if (!imageUrl) {
+        throw new ValidationError('No image file or imageUrl provided');
+      }
+
+      const { ProductImage } = require('../database/models');
+      const isPrimary = req.body.isPrimary === 'true' || req.body.isPrimary === true;
+      const displayOrder = parseInt(req.body.displayOrder || '0', 10);
+
+      const productImage = await ProductImage.create({
+        productId,
+        imageUrl,
+        url: imageUrl,
+        thumbnailUrl: imageUrl,
+        displayOrder,
+        isPrimary,
+      });
+
+      created(res, 'Product image uploaded successfully', productImage);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public getProductImages = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const productId = parseInt(req.params.id, 10);
+      const { ProductImage } = require('../database/models');
+      const images = await ProductImage.findAll({
+        where: { productId },
+        order: [['displayOrder', 'ASC'], ['id', 'ASC']],
+      });
+      success(res, RESPONSE_MESSAGES.SUCCESS, images);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public deleteProductImage = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const productId = parseInt(req.params.id, 10);
+      const imageId = parseInt(req.params.imageId, 10);
+      const { ProductImage } = require('../database/models');
+
+      const image = await ProductImage.findOne({ where: { id: imageId, productId } });
+      if (!image) {
+        throw new NotFoundError('Product image not found');
+      }
+
+      await image.destroy();
+      success(res, 'Product image deleted successfully');
+    } catch (error) {
+      next(error);
+    }
+  };
 }

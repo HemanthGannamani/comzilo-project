@@ -5,6 +5,7 @@ import { authenticate as requireAuth } from '../middleware/auth.middleware';
 import { authorize, requirePermission } from '../middleware/authz.middleware';
 import { validate as validateRequest } from '../middleware/validate';
 import { productValidation } from '../validations/product.validation';
+import { uploadProductImageMiddleware } from '../middleware/upload.middleware';
 
 const router = Router();
 const controller = new ProductController();
@@ -51,5 +52,10 @@ router.post(
   requirePermission('product.delete', 'id'),
   controller.restoreProduct
 );
+
+// Product Image Management Endpoints
+router.get('/:id/images', controller.getProductImages);
+router.post('/:id/images', uploadProductImageMiddleware.single('image'), controller.uploadProductImage);
+router.delete('/:id/images/:imageId', controller.deleteProductImage);
 
 export { router as productRoutes };

@@ -47,11 +47,14 @@ app.use(
   })
 );
 
+import path from 'path';
+
 // Compression & Parser Middlewares
 app.use(compression());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+app.use('/uploads', express.static(path.join(process.cwd(), 'public', 'uploads')));
 
 // Request Context Initialization
 app.use(requestContext);

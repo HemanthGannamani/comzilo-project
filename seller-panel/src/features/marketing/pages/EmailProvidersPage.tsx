@@ -18,7 +18,7 @@ import {
   Switch,
   Divider,
 } from '@mui/material';
-import { Server, Settings2, Send, CheckCircle2, ShieldCheck, Power } from 'lucide-react';
+import { Server, Settings2, Send, Power } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { axiosInstance } from '../../../api/axiosInstance';
 
@@ -74,19 +74,29 @@ export const EmailProvidersPage: React.FC = () => {
   };
 
   const handleQuickToggleStatus = async (prov: any) => {
-    const newStatus = prov.status === 'active' || prov.status === 'configured' ? 'inactive' : 'active';
+    const isActiveCurrently = prov.status === 'active' || prov.status === 'configured';
+    const newStatus = isActiveCurrently ? 'inactive' : 'active';
+    const cfg = prov.configJson || {};
+
     try {
       await axiosInstance.post('/marketing/email-providers', {
         providerId: prov.id,
         providerName: prov.name,
         status: newStatus,
-        isDefault: prov.isDefault,
-        ...(prov.configJson || {}),
+        isDefault: Boolean(prov.isDefault),
+        smtpHost: cfg.smtpHost || (prov.id === 'smtp' ? 'smtp.mailtrap.io' : ''),
+        smtpPort: cfg.smtpPort || '587',
+        smtpUsername: cfg.smtpUsername || '',
+        smtpPassword: cfg.smtpPassword || '',
+        apiKey: cfg.apiKey || '',
+        apiDomain: cfg.apiDomain || '',
+        senderName: cfg.senderName || 'Comzilo Merchant',
+        senderEmail: cfg.senderEmail || 'notifications@comzilo.com',
       });
       toast.success(`${prov.name} is now ${newStatus.toUpperCase()}!`);
       fetchProviders();
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || 'Failed to toggle status');
+      toast.error(err?.response?.data?.message || 'Failed to toggle provider status');
     }
   };
 
@@ -126,7 +136,7 @@ export const EmailProvidersPage: React.FC = () => {
           Email Marketing Providers & SMTP Settings
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          Configure SMTP servers, Amazon SES, Mailgun, Brevo, ZeptoMail, or Mailchimp APIs per tenant. Toggle status between Active and Inactive at any time.
+          Configure SMTP servers, Amazon SES, Mailgun, Brevo, ZeptoMail, or Mailchimp APIs per tenant. Click Activate or Deactivate to toggle provider status.
         </Typography>
       </Box>
 
@@ -178,14 +188,17 @@ export const EmailProvidersPage: React.FC = () => {
                     </Button>
 
                     <Button
-                      variant={isActive ? 'soft' : 'outlined'}
+                      variant={isActive ? 'contained' : 'outlined'}
                       color={isActive ? 'error' : 'success'}
                       size="small"
-                      onClick={() => handleQuickToggleStatus(prov)}
-                      title={isActive ? 'Deactivate Provider' : 'Activate Provider'}
-                      sx={{ minWidth: '40px', px: 1 }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleQuickToggleStatus(prov);
+                      }}
+                      startIcon={<Power size={14} />}
+                      sx={{ fontWeight: 700, borderRadius: 2, whiteSpace: 'nowrap', minWidth: '105px' }}
                     >
-                      <Power size={16} />
+                      {isActive ? 'Deactivate' : 'Activate'}
                     </Button>
                   </Box>
                 </CardContent>
@@ -212,7 +225,7 @@ export const EmailProvidersPage: React.FC = () => {
                   backgroundColor: formData.status === 'active' ? '#F0FDF4' : '#FEF2F2',
                   border: formData.status === 'active' ? '1px solid #BBF7D0' : '1px solid #FECACA',
                   display: 'flex',
-                  justify: 'space-between',
+                  justifyContent: 'space-between',
                   alignItems: 'center',
                 }}
               >

@@ -20,15 +20,14 @@ export const authenticate = async (
   _res: Response,
   next: NextFunction
 ): Promise<void> => {
-  const authHeader = req.headers.authorization;
-
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    throw new AuthenticationError('Authentication credentials were not provided');
-  }
-
-  const token = authHeader.split(' ')[1];
-
   try {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return next(new AuthenticationError('Authentication credentials were not provided'));
+    }
+
+    const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, env.JWT_ACCESS_SECRET) as TokenPayload;
 
     // Adopt tenant identity from verified access token
@@ -39,14 +38,14 @@ export const authenticate = async (
     // Set credentials on request context
     req.context.authenticatedUserId = decoded.userId;
 
-    next();
-  } catch (error) {
+    return next();
+  } catch (error: any) {
     if (error instanceof jwt.TokenExpiredError) {
-      throw new AuthenticationError('Token expired');
+      return next(new AuthenticationError('Token expired'));
     }
     if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
-      throw error;
+      return next(error);
     }
-    throw new AuthenticationError('Authentication failed');
+    return next(new AuthenticationError('Authentication failed'));
   }
 };

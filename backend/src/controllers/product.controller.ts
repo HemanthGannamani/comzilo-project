@@ -145,24 +145,32 @@ export class ProductController {
 
   public listProducts = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      // Resolve tenant context from query override or request context (set by tenantResolver)
       const queryTenantId = req.query.tenant_id ? Number(req.query.tenant_id) : undefined;
-      const tenantId = queryTenantId || req.context?.tenantId || 1;
-
-      // Resolve store context from query or request context
       const queryStoreId = req.query.store_id ? Number(req.query.store_id) : undefined;
+      const queryStoreSlug = req.query.store || req.query.tenant;
+
+      let tenantId: number | null = queryTenantId || req.context?.tenantId || 1;
       let storeId = queryStoreId || 1;
-      if (!queryStoreId) {
-        try {
-          storeId = await this.getStoreId(req);
-        } catch {
-          storeId = 1;
+
+      // If store slug is provided, resolve tenant & store from MySQL
+      if (queryStoreSlug && typeof queryStoreSlug === 'string') {
+        const [storeRes]: any = await sequelize.query(
+          'SELECT id, tenant_id FROM stores WHERE (slug = :slug OR name LIKE :nameLike) AND status = "active" LIMIT 1',
+          {
+            replacements: { slug: queryStoreSlug, nameLike: `%${queryStoreSlug}%` },
+            type: QueryTypes.SELECT,
+          }
+        );
+        if (storeRes) {
+          tenantId = Number(storeRes.tenant_id);
+          storeId = Number(storeRes.id);
         }
       }
 
-      // Enforce Option B Multi-Tenant SaaS ERP Tenant Isolation
-      // Only set allStores = true if marketplace = true is explicitly requested
-      const isMarketplaceRequest = req.query.marketplace === 'true';
+      // If unauthenticated guest request without explicit tenant/store filter -> query published products across stores
+      const isPublicGuestQuery = !req.headers.authorization && !queryTenantId && !queryStoreId && !queryStoreSlug;
+      const isMarketplaceRequest = req.query.marketplace === 'true' || isPublicGuestQuery;
+
       const filters: any = {
         ...req.query,
         allStores: isMarketplaceRequest,

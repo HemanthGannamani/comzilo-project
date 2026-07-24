@@ -99,11 +99,18 @@ export const ProductListingPage: React.FC = () => {
   // Pass selected multi-type filter array to backend MySQL query
   const typesQuery = selectedTypes.length > 0 ? selectedTypes.join(',') : undefined;
 
+  const tenantIdParam = searchParams.get('tenant_id');
+  const storeIdParam = searchParams.get('store_id');
+  const storeSlugParam = searchParams.get('store');
+
   const { data, isLoading } = useGetProductsQuery({
     search,
     types: typesQuery,
     minPrice: minPrice ? Number(minPrice) : undefined,
     maxPrice: maxPrice ? Number(maxPrice) : undefined,
+    tenant_id: tenantIdParam ? Number(tenantIdParam) : undefined,
+    store_id: storeIdParam ? Number(storeIdParam) : undefined,
+    store: storeSlugParam || undefined,
   });
   const dispatch = useAppDispatch();
 

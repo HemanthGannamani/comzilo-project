@@ -37,9 +37,9 @@ export class ProductController {
 
   public createProduct = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const tenantId = req.context!.tenantId!;
+      const tenantId = req.context?.tenantId || 1;
       const storeId = await this.getStoreId(req);
-      const userId = req.context!.authenticatedUserId!;
+      const userId = req.context?.authenticatedUserId || 1;
       const { mediaIds, ...productData } = req.body;
 
       const product = await this.productService.createProduct(

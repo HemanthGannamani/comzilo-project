@@ -61,7 +61,7 @@ export const errorHandler = (
       userId: req.context?.authenticatedUserId || null,
       statusCode,
       errorCode: code,
-      stack: env.NODE_ENV !== 'production' ? err.stack : undefined,
+      stack: err.stack,
       method: req.method,
       path: req.path,
     });

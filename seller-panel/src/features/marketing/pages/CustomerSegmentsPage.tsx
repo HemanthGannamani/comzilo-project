@@ -54,7 +54,7 @@ export const CustomerSegmentsPage: React.FC = () => {
               <CardContent>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
                   <Typography variant="h6" sx={{ fontWeight: 700 }}>{seg.name}</Typography>
-                  <Chip label={`${seg.memberCount || 150} Members`} color="primary" size="small" sx={{ fontWeight: 800 }} />
+                  <Chip label={`${seg.memberCount || 0} Members`} color="primary" size="small" sx={{ fontWeight: 800 }} />
                 </Box>
                 <Typography variant="body2" color="text.secondary">{seg.description || 'Dynamic segmentation rules'}</Typography>
               </CardContent>

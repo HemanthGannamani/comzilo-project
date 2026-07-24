@@ -24,29 +24,33 @@ export const createAuditLog = async (
   const userAgent = context?.userAgent || null;
   const requestId = context?.requestId || null;
 
-  await sequelize.query(
-    `INSERT INTO audit_logs (
-      tenant_id, user_id, action, entity_type, entity_id, 
-      old_values, new_values, ip_address, user_agent, request_id, 
-      created_at
-    ) VALUES (
-      :tenantId, :actorId, :action, :entityType, :entityId, 
-      :previousValues, :newValues, :ipAddress, :userAgent, :requestId, 
-      NOW()
-    )`,
-    {
-      replacements: {
-        tenantId,
-        actorId,
-        action: payload.action,
-        entityType: payload.entityType,
-        entityId: payload.entityId,
-        previousValues: payload.previousValues ? JSON.stringify(payload.previousValues) : null,
-        newValues: payload.newValues ? JSON.stringify(payload.newValues) : null,
-        ipAddress,
-        userAgent,
-        requestId,
-      },
-    }
-  );
+  try {
+    await sequelize.query(
+      `INSERT INTO audit_logs (
+        tenant_id, user_id, action, entity_type, entity_id, 
+        old_values, new_values, ip_address, user_agent, request_id, 
+        created_at
+      ) VALUES (
+        :tenantId, :actorId, :action, :entityType, :entityId, 
+        :previousValues, :newValues, :ipAddress, :userAgent, :requestId, 
+        NOW()
+      )`,
+      {
+        replacements: {
+          tenantId,
+          actorId,
+          action: payload.action,
+          entityType: payload.entityType,
+          entityId: payload.entityId,
+          previousValues: payload.previousValues ? JSON.stringify(payload.previousValues) : null,
+          newValues: payload.newValues ? JSON.stringify(payload.newValues) : null,
+          ipAddress,
+          userAgent,
+          requestId,
+        },
+      }
+    );
+  } catch (auditErr) {
+    console.warn('[AuditLog] Non-fatal audit log insertion warning:', auditErr);
+  }
 };

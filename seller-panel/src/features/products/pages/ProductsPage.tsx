@@ -379,11 +379,13 @@ export const ProductsPage: React.FC = () => {
       return;
     }
 
-    const imagePayload = uploadedImages.map((img, idx) => ({
-      imageUrl: img.url,
-      isPrimary: img.isPrimary || idx === 0,
-      displayOrder: idx,
-    }));
+    const imagePayload = uploadedImages
+      .filter((img) => img.url && img.url.trim().length > 0)
+      .map((img, idx) => ({
+        imageUrl: img.url,
+        isPrimary: img.isPrimary || idx === 0,
+        displayOrder: idx,
+      }));
 
     const payload = {
       name: productForm.name,
@@ -439,7 +441,8 @@ export const ProductsPage: React.FC = () => {
       setFormModalOpen(false);
       refetch();
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || err?.data?.message || 'Failed to create product');
+      const apiErrMsg = err?.response?.data?.errors?.[0]?.message || err?.response?.data?.message || err?.message || 'Failed to create product';
+      toast.error(apiErrMsg);
     }
   };
 

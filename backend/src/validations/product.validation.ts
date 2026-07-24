@@ -28,7 +28,7 @@ export const productValidation = {
     mediaIds: Joi.array().items(Joi.number().integer().positive()).optional(),
     images: Joi.array().items(
       Joi.object({
-        imageUrl: Joi.string().required(),
+        imageUrl: Joi.string().allow('', null).optional(),
         thumbnailUrl: Joi.string().allow('', null).optional(),
         displayOrder: Joi.number().integer().optional(),
         isPrimary: Joi.boolean().optional(),

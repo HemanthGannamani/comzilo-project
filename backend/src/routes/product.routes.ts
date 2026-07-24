@@ -14,6 +14,8 @@ router.use(tenantResolver);
 router.use(requireAuth);
 router.use(authorize);
 
+router.get('/types', controller.getProductTypes);
+
 router.get(
   '/',
   requirePermission('product.read'),

@@ -64,7 +64,6 @@ export abstract class BaseRepository<M extends Model<any, any>> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const recordData = { ...(data as any) };
     if (tenantId !== null) {
-      recordData.tenant_id = tenantId;
       recordData.tenantId = tenantId;
     }
     return this.model.create(recordData, options);

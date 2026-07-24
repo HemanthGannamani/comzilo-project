@@ -138,6 +138,12 @@ Product.init(
       allowNull: true,
       field: 'product_type_id',
     },
+    productType: {
+      type: DataTypes.STRING(50),
+      allowNull: true,
+      defaultValue: 'physical',
+      field: 'product_type',
+    },
     name: {
       type: DataTypes.STRING(255),
       allowNull: false,

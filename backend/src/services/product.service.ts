@@ -6,6 +6,7 @@ import { MediaRepository } from '../repositories/media.repository';
 import { Product } from '../database/models/product';
 import { Media } from '../database/models/media';
 import { ProductMedia } from '../database/models/productMedia';
+import { ProductType } from '../database/models/productType';
 import { NotFoundError, ConflictError } from '../shared/errors/AppError';
 import { sequelize } from '../config/database';
 
@@ -67,12 +68,17 @@ export class ProductService {
     mediaIds?: number[]
   ): Promise<Product> {
     // Check SKU uniqueness
-    const existingSku = await this.productRepo.findOne(tenantId, {
-      where: { storeId, sku: data.sku },
-      paranoid: false,
-    });
-    if (existingSku) {
-      throw new ConflictError(`Product with SKU '${data.sku}' already exists in this store.`);
+    try {
+      const existingSku = await this.productRepo.findOne(tenantId, {
+        where: { storeId, sku: data.sku },
+        paranoid: false,
+      });
+      if (existingSku) {
+        throw new ConflictError(`Product with SKU '${data.sku}' already exists in this store.`);
+      }
+    } catch (err) {
+      console.error('CREATE PRODUCT FINDEONE ERROR:', err);
+      throw err;
     }
 
     // Generate unique slug
@@ -241,12 +247,19 @@ export class ProductService {
     return product;
   }
 
+  public async getProductTypes(): Promise<any[]> {
+    return await ProductType.findAll({
+      where: { status: 'active' },
+      order: [['id', 'ASC']],
+    });
+  }
+
   public async listProducts(
     tenantId: number,
     storeId: number,
     filters: any = {}
   ): Promise<{ rows: Product[]; count: number }> {
-    const { page = 1, limit = 10, search, status, visibility, category } = filters;
+    const { page = 1, limit = 20, search, status, visibility, category, brand, productType, types, minPrice, maxPrice } = filters;
     const offset = (page - 1) * limit;
 
     const where: any = { storeId };
@@ -254,6 +267,24 @@ export class ProductService {
     if (status) where.status = status;
     if (visibility) where.visibility = visibility;
     if (category) where.category = category;
+    if (brand) where.brandId = brand;
+
+    // Multi-type backend filtering (e.g. types=physical,print_on_demand)
+    const rawTypes = productType || types || filters.product_type;
+    if (rawTypes) {
+      const typeList = Array.isArray(rawTypes)
+        ? rawTypes
+        : String(rawTypes).split(',').map((t) => t.trim()).filter(Boolean);
+      if (typeList.length > 0) {
+        where.productType = { [Op.in]: typeList };
+      }
+    }
+
+    if (minPrice !== undefined || maxPrice !== undefined) {
+      where.price = {};
+      if (minPrice !== undefined) where.price[Op.gte] = Number(minPrice);
+      if (maxPrice !== undefined) where.price[Op.lte] = Number(maxPrice);
+    }
 
     if (search) {
       where[Op.or] = [
@@ -267,8 +298,8 @@ export class ProductService {
     const [rows, count] = await Promise.all([
       this.productRepo.findMany(tenantId, {
         where,
-        limit,
-        offset,
+        limit: Number(limit),
+        offset: Number(offset),
         order: [['createdAt', 'DESC']],
       }),
       this.productRepo.count(tenantId, { where }),

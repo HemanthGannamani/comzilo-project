@@ -311,7 +311,7 @@ Product.belongsTo(Store, { foreignKey: 'store_id', as: 'store' });
 
 // Product <-> ProductType
 ProductType.hasMany(Product, { foreignKey: 'product_type_id', as: 'products' });
-Product.belongsTo(ProductType, { foreignKey: 'product_type_id', as: 'productType' });
+Product.belongsTo(ProductType, { foreignKey: 'product_type_id', as: 'productTypeRecord' });
 
 // Product <-> ProductVariant
 Product.hasMany(ProductVariant, { foreignKey: 'product_id', as: 'variants' });

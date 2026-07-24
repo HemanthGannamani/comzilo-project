@@ -3,9 +3,9 @@ import { baseApi } from '../baseApi';
 export const catalogApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     // PRODUCTS
-    getProducts: builder.query<any, { page?: number; limit?: number; search?: string; categoryId?: number; brandId?: number; collectionId?: number; status?: string }>({
+    getProducts: builder.query<any, { page?: number; limit?: number; search?: string; categoryId?: number; brandId?: number; collectionId?: number; status?: string; types?: string; productType?: string }>({
       query: (params) => ({
-        url: '/store/products',
+        url: '/products',
         params,
       }),
       providesTags: ['Product'],

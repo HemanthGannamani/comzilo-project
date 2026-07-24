@@ -129,6 +129,15 @@ export class ProductController {
     }
   };
 
+  public getProductTypes = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const types = await this.productService.getProductTypes();
+      success(res, 'Product types retrieved successfully', types);
+    } catch (error) {
+      next(error);
+    }
+  };
+
   public listProducts = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const tenantId = req.context!.tenantId!;

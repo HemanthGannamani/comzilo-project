@@ -77,6 +77,8 @@ const PRODUCT_IMAGE_MAP: Record<string, string> = {
 };
 
 const getProductImage = (prod: any): string => {
+  if (prod?.images?.[0]?.imageUrl) return prod.images[0].imageUrl;
+  if (prod?.images?.[0]?.url) return prod.images[0].url;
   if (prod?.media?.[0]?.url) return prod.media[0].url;
   if (prod?.image) return prod.image;
   if (prod?.sku && PRODUCT_IMAGE_MAP[prod.sku]) return PRODUCT_IMAGE_MAP[prod.sku];

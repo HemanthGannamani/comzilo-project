@@ -32,6 +32,7 @@ import { Media } from './media';
 import { Product } from './product';
 import { ProductMedia } from './productMedia';
 import { ProductType } from './productType';
+import { ProductImage } from './productImage';
 import { ProductVariant } from './productVariant';
 import { ProductOptionSet } from './productOptionSet';
 import { ProductOptionValue } from './productOptionValue';
@@ -347,6 +348,10 @@ ProductVirtual.belongsTo(Product, { foreignKey: 'product_id', as: 'product' });
 // Product <-> ProductPodTemplate
 Product.hasOne(ProductPodTemplate, { foreignKey: 'product_id', as: 'podTemplateRecord' });
 ProductPodTemplate.belongsTo(Product, { foreignKey: 'product_id', as: 'product' });
+
+// Product <-> ProductImage
+Product.hasMany(ProductImage, { foreignKey: 'product_id', as: 'images' });
+ProductImage.belongsTo(Product, { foreignKey: 'product_id', as: 'product' });
 
 // Product <-> ProductVersion
 Product.hasMany(ProductVersion, { foreignKey: 'product_id', as: 'versions' });
@@ -895,6 +900,7 @@ export {
   ProviderWebhook,
   ShippingRateRule,
   GoodsIssue,
+  ProductImage,
 };
 
 // Shipping Associations

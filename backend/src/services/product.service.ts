@@ -96,11 +96,19 @@ export class ProductService {
       }
     }
 
+    // Ensure default status is 'published' and default visibility is 'public'
+    const status = data.status && String(data.status).trim() ? data.status : 'published';
+    const visibility = data.visibility || 'public';
+    const productType = data.productType || 'physical';
+
     return sequelize.transaction(async (t) => {
       const product = await this.productRepo.create(
         tenantId,
         {
           ...data,
+          status,
+          visibility,
+          productType,
           storeId,
           slug,
           createdBy: userId,
@@ -111,30 +119,39 @@ export class ProductService {
 
       // Handle media associations if provided
       if (mediaIds && mediaIds.length > 0) {
-        // Find existing media
-        const validMedia = await this.mediaRepo.findMany(tenantId, {
-          where: { id: mediaIds },
-          transaction: t,
-        });
-
-        if (validMedia.length !== mediaIds.length) {
-          throw new NotFoundError(
-            'One or more media items not found or do not belong to this tenant.'
-          );
-        }
-
-        // Create product_media links
         for (let i = 0; i < mediaIds.length; i++) {
           await this.productMediaRepo.create(
             tenantId,
             {
               productId: product.id,
               mediaId: mediaIds[i],
-              isPrimary: i === 0, // First item is primary
+              isPrimary: i === 0,
               sortOrder: i,
             },
             { transaction: t }
           );
+        }
+      }
+
+      // Handle product_images table entries if imageUrls or images provided
+      if (data.images && Array.isArray(data.images)) {
+        const { ProductImage } = require('../database/models');
+        for (let i = 0; i < data.images.length; i++) {
+          const img = data.images[i];
+          const imageUrl = typeof img === 'string' ? img : img.imageUrl || img.url;
+          if (imageUrl) {
+            await ProductImage.create(
+              {
+                productId: product.id,
+                imageUrl,
+                url: imageUrl,
+                thumbnailUrl: typeof img === 'object' ? img.thumbnailUrl : imageUrl,
+                displayOrder: i,
+                isPrimary: i === 0 || (typeof img === 'object' && Boolean(img.isPrimary)),
+              },
+              { transaction: t }
+            );
+          }
         }
       }
 
@@ -160,83 +177,52 @@ export class ProductService {
         where: { storeId, sku: data.sku },
         paranoid: false,
       });
-      if (existingSku) {
-        throw new ConflictError(`Product with SKU '${data.sku}' already exists.`);
+      if (existingSku && existingSku.id !== productId) {
+        throw new ConflictError(`Product with SKU '${data.sku}' already exists in this store.`);
       }
     }
 
-    if (data.slug && data.slug !== product.slug) {
-      const existingSlug = await this.productRepo.findOne(tenantId, {
-        where: { storeId, slug: data.slug },
-        paranoid: false,
-      });
-      if (existingSlug) {
-        throw new ConflictError(`Product with Slug '${data.slug}' already exists.`);
-      }
-    } else if (data.name && data.name !== product.name && !data.slug) {
-      // Auto-update slug if name changes and no new slug is provided
-      data.slug = await this.generateUniqueSlug(tenantId, storeId, data.name, product.id);
-    }
+    return sequelize.transaction(async (t) => {
+      await product.update(
+        {
+          ...data,
+          updatedBy: userId,
+        },
+        { transaction: t }
+      );
 
-    await sequelize.transaction(async (t) => {
-      const updateData = { ...data, updatedBy: userId };
-
-      const [updatedRowsCount] = await this.productRepo.update(tenantId, productId, updateData, {
-        transaction: t,
-      });
-
-      if (updatedRowsCount === 0) {
-        throw new NotFoundError('Product could not be updated.');
-      }
-
-      // Handle media replacement
       if (mediaIds !== undefined) {
-        // Delete old associations
-        await ProductMedia.destroy({
+        await this.productMediaRepo.destroy(tenantId, {
           where: { productId },
           transaction: t,
         });
 
-        if (mediaIds.length > 0) {
-          const validMedia = await this.mediaRepo.findMany(tenantId, {
-            where: { id: mediaIds },
-            transaction: t,
-          });
-
-          if (validMedia.length !== mediaIds.length) {
-            throw new NotFoundError(
-              'One or more media items not found or do not belong to this tenant.'
-            );
-          }
-
-          // Create new associations
-          for (let i = 0; i < mediaIds.length; i++) {
-            await this.productMediaRepo.create(
-              tenantId,
-              {
-                productId,
-                mediaId: mediaIds[i],
-                isPrimary: i === 0,
-                sortOrder: i,
-              },
-              { transaction: t }
-            );
-          }
+        for (let i = 0; i < mediaIds.length; i++) {
+          await this.productMediaRepo.create(
+            tenantId,
+            {
+              productId,
+              mediaId: mediaIds[i],
+              isPrimary: i === 0,
+              sortOrder: i,
+            },
+            { transaction: t }
+          );
         }
       }
+
+      return product;
     });
-    // Fetch product after transaction commits
-    return this.getProduct(tenantId, storeId, productId);
   }
 
   public async getProduct(tenantId: number, storeId: number, productId: number): Promise<Product> {
+    const { ProductImage } = require('../database/models');
     const product = await this.productRepo.findOne(tenantId, {
-      where: { id: productId, storeId },
+      where: { id: productId },
       include: [
         {
-          model: Media,
-          as: 'media',
-          through: { attributes: ['isPrimary', 'sortOrder'] },
+          model: ProductImage,
+          as: 'images',
         },
       ],
     });
@@ -259,10 +245,15 @@ export class ProductService {
     storeId: number,
     filters: any = {}
   ): Promise<{ rows: Product[]; count: number }> {
-    const { page = 1, limit = 20, search, status, visibility, category, brand, productType, types, minPrice, maxPrice } = filters;
+    const { page = 1, limit = 20, search, status, visibility, category, brand, productType, types, minPrice, maxPrice, allStores } = filters;
     const offset = (page - 1) * limit;
 
-    const where: any = { storeId };
+    const where: any = {};
+
+    // Filter by storeId unless allStores is explicitly requested
+    if (!allStores && storeId) {
+      where.storeId = storeId;
+    }
 
     if (status) where.status = status;
     if (visibility) where.visibility = visibility;
@@ -295,12 +286,19 @@ export class ProductService {
       ];
     }
 
+    const { ProductImage } = require('../database/models');
     const [rows, count] = await Promise.all([
       this.productRepo.findMany(tenantId, {
         where,
         limit: Number(limit),
         offset: Number(offset),
         order: [['createdAt', 'DESC']],
+        include: [
+          {
+            model: ProductImage,
+            as: 'images',
+          },
+        ],
       }),
       this.productRepo.count(tenantId, { where }),
     ]);

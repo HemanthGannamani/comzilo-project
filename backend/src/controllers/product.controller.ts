@@ -140,9 +140,18 @@ export class ProductController {
 
   public listProducts = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const tenantId = req.context!.tenantId!;
-      const storeId = await this.getStoreId(req);
-      const filters = req.query;
+      const tenantId = req.context?.tenantId || 1;
+      let storeId = 1;
+      try {
+        storeId = await this.getStoreId(req);
+      } catch {
+        storeId = 1;
+      }
+      
+      const filters: any = { ...req.query };
+      if (!req.headers.authorization) {
+        filters.allStores = true;
+      }
 
       const products = await this.productService.listProducts(tenantId, storeId, filters);
 

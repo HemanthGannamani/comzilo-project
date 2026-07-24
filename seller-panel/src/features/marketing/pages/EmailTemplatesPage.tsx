@@ -54,9 +54,9 @@ export const EmailTemplatesPage: React.FC = () => {
               <CardContent>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
                   <Typography variant="h6" sx={{ fontWeight: 700 }}>{tpl.name}</Typography>
-                  <Chip label={tpl.channel.toUpperCase()} color="primary" size="small" sx={{ fontWeight: 800 }} />
+                  <Chip label={(tpl.channel || 'email').toUpperCase()} color="primary" size="small" sx={{ fontWeight: 800 }} />
                 </Box>
-                <Typography variant="caption" color="text.secondary" display="block">Subject: {tpl.subjectTemplate}</Typography>
+                <Typography variant="caption" color="text.secondary" display="block">Subject: {tpl.subject || tpl.subjectTemplate || tpl.name}</Typography>
               </CardContent>
             </Card>
           </Grid>

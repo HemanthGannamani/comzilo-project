@@ -54,9 +54,11 @@ export const CampaignsPage: React.FC = () => {
               <CardContent>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
                   <Typography variant="h6" sx={{ fontWeight: 700 }}>{cmp.name}</Typography>
-                  <Chip label={cmp.status.toUpperCase()} color="success" size="small" sx={{ fontWeight: 800 }} />
+                  <Chip label={(cmp.status || 'scheduled').toUpperCase()} color="success" size="small" sx={{ fontWeight: 800 }} />
                 </Box>
-                <Typography variant="caption" color="text.secondary" display="block">Channel: {cmp.type.toUpperCase()}</Typography>
+                <Typography variant="caption" color="text.secondary" display="block">
+                  Channel: {(cmp.channel || cmp.type || 'email').toUpperCase()}
+                </Typography>
               </CardContent>
             </Card>
           </Grid>

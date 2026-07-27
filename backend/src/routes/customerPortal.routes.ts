@@ -29,4 +29,7 @@ router.get('/invoices', controller.listMyInvoices);
 
 router.post('/change-password', controller.changePassword);
 
+router.post('/validate-coupon', controller.validateCoupon);
+router.post('/place-order', controller.placeOrder);
+
 export default router;

@@ -95,6 +95,23 @@ export const customerPortalApi = baseApi.injectEndpoints({
       }),
     }),
 
+    validateCoupon: builder.mutation<any, { code: string; subtotal: number }>({
+      query: (data) => ({
+        url: '/customer-portal/validate-coupon',
+        method: 'POST',
+        body: data,
+      }),
+    }),
+
+    placeOrder: builder.mutation<any, any>({
+      query: (data) => ({
+        url: '/customer-portal/place-order',
+        method: 'POST',
+        body: data,
+      }),
+      invalidatesTags: ['Order', 'Customer'],
+    }),
+
     getMyNotifications: builder.query<any, void>({
       query: () => '/notifications',
     }),
@@ -129,6 +146,8 @@ export const {
   useSetDefaultAddressMutation,
   useGetMyInvoicesQuery,
   useChangeMyPasswordMutation,
+  useValidateCouponMutation,
+  usePlaceOrderMutation,
   useGetMyNotificationsQuery,
   useMarkNotificationReadMutation,
   useDeleteNotificationMutation,

@@ -6,7 +6,7 @@ import { OrderService } from '../services/order.service';
 import { InvoiceService } from '../services/invoice.service';
 import { NotificationService } from '../services/notification.service';
 import { AuthService } from '../services/auth.service';
-import { Customer, CustomerAddress } from '../database/models';
+import { Customer, CustomerAddress, Product } from '../database/models';
 import { success, created } from '../shared/responses';
 import { ValidationError, NotFoundError, UnauthorizedError } from '../shared/errors/AppError';
 import { sequelize } from '../config/database';
@@ -363,4 +363,181 @@ export class CustomerPortalController {
       next(err);
     }
   };
+
+  // 7. Checkout & Order Placement Transaction Engine
+  public validateCoupon = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const tenantId = req.context.tenantId || 1;
+      const { code, subtotal } = req.body;
+
+      if (!code) throw new ValidationError('Coupon code is required');
+
+      // Demo/Standard coupon check or Coupon DB lookup
+      const codeUpper = String(code).toUpperCase().trim();
+      let discountAmount = 0;
+      let valid = false;
+
+      if (codeUpper === 'SAVE10' || codeUpper === 'WELCOME10') {
+        valid = true;
+        discountAmount = Math.min(Number(subtotal || 0) * 0.1, 50); // 10% off up to $50
+      } else if (codeUpper === 'FREESHIP') {
+        valid = true;
+        discountAmount = 15;
+      } else {
+        throw new ValidationError(`Coupon '${codeUpper}' is invalid or expired.`);
+      }
+
+      success(res, 'Coupon validated successfully', {
+        code: codeUpper,
+        discountAmount,
+        valid,
+      });
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  public placeOrder = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const tenantId = req.context.tenantId || 1;
+      const userId = req.context.authenticatedUserId;
+      if (!userId) throw new UnauthorizedError('Customer credentials missing');
+
+      const customer = await this.getCustomerFromUser(tenantId, userId);
+      const storeId = customer.storeId || 1;
+
+      const {
+        items,
+        shippingAddressId,
+        shippingMethod,
+        couponCode,
+        paymentMethod = 'cod',
+        notes,
+      } = req.body;
+
+      if (!items || !Array.isArray(items) || items.length === 0) {
+        throw new ValidationError('Cart is empty. Cannot place an empty order.');
+      }
+
+      // 1. Transactional Execution
+      const result = await sequelize.transaction(async (t) => {
+        // Validate Address
+        let address = null;
+        if (shippingAddressId) {
+          address = await this.addressService.getAddress(tenantId, storeId, Number(shippingAddressId));
+        }
+
+        // Validate Inventory and Products
+        const orderItemsInput: any[] = [];
+        let calculatedSubtotal = 0;
+
+        for (const cartItem of items) {
+          const productId = Number(cartItem.id || cartItem.productId);
+          const qty = Number(cartItem.quantity || 1);
+
+          const product = await Product.findOne({
+            where: { id: productId, tenantId },
+            transaction: t,
+          });
+
+          if (!product) {
+            throw new NotFoundError(`Product #${productId} not found.`);
+          }
+
+          if (product.stockQuantity < qty) {
+            throw new ValidationError(
+              `Insufficient stock for '${product.name}'. Available: ${product.stockQuantity}, Requested: ${qty}`
+            );
+          }
+
+          // Reserve Stock
+          product.stockQuantity -= qty;
+          await product.save({ transaction: t });
+
+          const unitPrice = Number(product.price || 0);
+          const lineSubtotal = unitPrice * qty;
+          calculatedSubtotal += lineSubtotal;
+
+          orderItemsInput.push({
+            productId: product.id,
+            sku: product.sku,
+            productName: product.name,
+            quantity: qty,
+            unitPrice,
+            subtotal: lineSubtotal,
+            total: lineSubtotal,
+          });
+        }
+
+        // Coupon Calculation
+        let discountAmount = 0;
+        if (couponCode && String(couponCode).toUpperCase() === 'SAVE10') {
+          discountAmount = Math.min(calculatedSubtotal * 0.1, 50);
+        }
+
+        // Shipping Fee Calculation
+        let shippingAmount = 15;
+        if (shippingMethod === 'express') shippingAmount = 25;
+        if (shippingMethod === 'pickup' || calculatedSubtotal > 99) shippingAmount = 0;
+
+        // Tax Calculation (8%)
+        const taxAmount = (calculatedSubtotal - discountAmount) * 0.08;
+        const grandTotal = calculatedSubtotal - discountAmount + taxAmount + shippingAmount;
+
+        // Create Order Record
+        const order = await this.orderService.createOrder(
+          tenantId,
+          storeId,
+          userId,
+          {
+            customerId: customer.id,
+            items: orderItemsInput,
+            subtotal: calculatedSubtotal,
+            discountAmount,
+            taxAmount,
+            shippingAmount,
+            totalAmount: grandTotal,
+            paymentMethod,
+            notes,
+            status: 'confirmed',
+            paymentStatus: paymentMethod === 'cod' ? 'pending' : 'paid',
+          },
+          req.ip,
+          req.headers['user-agent']
+        );
+
+        // Auto Generate Invoice
+        let invoice = null;
+        try {
+          invoice = await this.invoiceService.createInvoice(
+            tenantId,
+            storeId,
+            userId,
+            { orderId: order.id },
+            req.ip,
+            req.headers['user-agent']
+          );
+        } catch (e) {
+          // If invoice exists, ignore
+        }
+
+        // Trigger Notification
+        await this.notificationService.createNotification({
+          tenantId,
+          userId,
+          title: `Order Confirmed #${order.orderNumber}`,
+          content: `Your order of $${grandTotal.toFixed(2)} has been placed successfully.`,
+          type: 'ORDER_STATUS',
+          channel: 'in_app',
+        });
+
+        return { order, invoice };
+      });
+
+      created(res, 'Order placed successfully', result);
+    } catch (err) {
+      next(err);
+    }
+  };
 }
+

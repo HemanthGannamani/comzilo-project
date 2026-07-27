@@ -306,7 +306,14 @@ export const EmailProvidersPage: React.FC = () => {
                 label="SMTP Port"
                 sx={{ width: 180 }}
                 value={formData.smtpPort}
-                onChange={(e) => setFormData({ ...formData, smtpPort: e.target.value })}
+                onChange={(e) => {
+                  const p = e.target.value;
+                  setFormData({
+                    ...formData,
+                    smtpPort: p,
+                    encryption: p === '465' ? 'ssl' : 'tls',
+                  });
+                }}
               >
                 <MenuItem value="587">587 (TLS)</MenuItem>
                 <MenuItem value="465">465 (SSL)</MenuItem>
@@ -340,7 +347,14 @@ export const EmailProvidersPage: React.FC = () => {
               label="Encryption Security"
               fullWidth
               value={formData.encryption}
-              onChange={(e) => setFormData({ ...formData, encryption: e.target.value })}
+              onChange={(e) => {
+                const enc = e.target.value;
+                setFormData({
+                  ...formData,
+                  encryption: enc,
+                  smtpPort: enc === 'ssl' ? '465' : '587',
+                });
+              }}
             >
               <MenuItem value="tls">TLS (STARTTLS - Port 587)</MenuItem>
               <MenuItem value="ssl">SSL (Port 465)</MenuItem>

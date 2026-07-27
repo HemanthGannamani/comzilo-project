@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Paper,
@@ -12,14 +12,20 @@ import {
   Button,
   Chip,
   CircularProgress,
+  Tabs,
+  Tab,
 } from '@mui/material';
-import { Download, FileText, Printer, Eye } from 'lucide-react';
+import { Download, Printer, CreditCard, RefreshCw } from 'lucide-react';
 import { CustomerAccountLayout } from '../../components/layout/CustomerAccountLayout';
-import { useGetMyInvoicesQuery } from '../../api/customerPortalApi';
+import { useGetMyInvoicesQuery, useGetMyPaymentsQuery } from '../../api/customerPortalApi';
 
 export const CustomerInvoicesPage: React.FC = () => {
-  const { data: invoiceData, isLoading } = useGetMyInvoicesQuery();
+  const [tab, setTab] = useState(0);
+  const { data: invoiceData, isLoading: loadingInvoices } = useGetMyInvoicesQuery();
+  const { data: paymentData, isLoading: loadingPayments } = useGetMyPaymentsQuery();
+
   const invoices = invoiceData?.data?.rows || invoiceData?.data || [];
+  const payments = paymentData?.data?.rows || paymentData?.data || [];
 
   const handlePrintDownload = (inv: any) => {
     const printWindow = window.open('', '_blank');
@@ -67,57 +73,110 @@ export const CustomerInvoicesPage: React.FC = () => {
     <CustomerAccountLayout>
       <Paper sx={{ p: 4, borderRadius: 3, border: '1px solid #E2E8F0', boxShadow: 'none' }}>
         <Typography variant="h5" sx={{ fontWeight: 800, color: '#0F172A', mb: 0.5 }}>
-          Download Billing Invoices
+          Invoices & Payment History
         </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>
-          Access, view, print, or download PDF tax invoices for your completed purchases.
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+          Access, view, print tax invoices and track payment gateway transaction histories.
         </Typography>
 
-        {isLoading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
-            <CircularProgress size={36} />
-          </Box>
-        ) : invoices.length === 0 ? (
-          <Typography color="text.secondary" align="center" sx={{ py: 6 }}>
-            No billing invoices found. Invoices are generated automatically upon order placement.
-          </Typography>
-        ) : (
-          <TableContainer>
-            <Table>
-              <TableHead sx={{ bgcolor: '#F8FAFC' }}>
-                <TableRow>
-                  <TableCell sx={{ fontWeight: 800 }}>Invoice #</TableCell>
-                  <TableCell sx={{ fontWeight: 800 }}>Date</TableCell>
-                  <TableCell sx={{ fontWeight: 800 }}>Amount</TableCell>
-                  <TableCell sx={{ fontWeight: 800 }}>Status</TableCell>
-                  <TableCell sx={{ fontWeight: 800 }} align="right">Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {invoices.map((inv: any) => (
-                  <TableRow key={inv.id} hover>
-                    <TableCell sx={{ fontWeight: 700 }}>{inv.invoiceNumber}</TableCell>
-                    <TableCell>{new Date(inv.createdAt).toLocaleDateString()}</TableCell>
-                    <TableCell sx={{ fontWeight: 800, color: '#2563EB' }}>${inv.total}</TableCell>
-                    <TableCell>
-                      <Chip label={inv.invoiceStatus?.toUpperCase() || 'PAID'} color="success" size="small" sx={{ fontWeight: 700 }} />
-                    </TableCell>
-                    <TableCell align="right">
-                      <Button
-                        variant="outlined"
-                        size="small"
-                        startIcon={<Printer size={14} />}
-                        onClick={() => handlePrintDownload(inv)}
-                        sx={{ borderRadius: 2 }}
-                      >
-                        Print / Download PDF
-                      </Button>
-                    </TableCell>
+        <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+          <Tabs value={tab} onChange={(_, v) => setTab(v)}>
+            <Tab label={`Tax Invoices (${invoices.length})`} sx={{ fontWeight: 700 }} />
+            <Tab label={`Payment Transactions (${payments.length})`} sx={{ fontWeight: 700 }} />
+          </Tabs>
+        </Box>
+
+        {tab === 0 && (
+          loadingInvoices ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+              <CircularProgress size={36} />
+            </Box>
+          ) : invoices.length === 0 ? (
+            <Typography color="text.secondary" align="center" sx={{ py: 6 }}>
+              No billing invoices found. Invoices are generated automatically upon order placement.
+            </Typography>
+          ) : (
+            <TableContainer>
+              <Table>
+                <TableHead sx={{ bgcolor: '#F8FAFC' }}>
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: 800 }}>Invoice #</TableCell>
+                    <TableCell sx={{ fontWeight: 800 }}>Date</TableCell>
+                    <TableCell sx={{ fontWeight: 800 }}>Amount</TableCell>
+                    <TableCell sx={{ fontWeight: 800 }}>Status</TableCell>
+                    <TableCell sx={{ fontWeight: 800 }} align="right">Actions</TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                </TableHead>
+                <TableBody>
+                  {invoices.map((inv: any) => (
+                    <TableRow key={inv.id} hover>
+                      <TableCell sx={{ fontWeight: 700 }}>{inv.invoiceNumber}</TableCell>
+                      <TableCell>{new Date(inv.createdAt).toLocaleDateString()}</TableCell>
+                      <TableCell sx={{ fontWeight: 800, color: '#2563EB' }}>${inv.total}</TableCell>
+                      <TableCell>
+                        <Chip label={inv.invoiceStatus?.toUpperCase() || 'PAID'} color="success" size="small" sx={{ fontWeight: 700 }} />
+                      </TableCell>
+                      <TableCell align="right">
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          startIcon={<Printer size={14} />}
+                          onClick={() => handlePrintDownload(inv)}
+                          sx={{ borderRadius: 2 }}
+                        >
+                          Print / Download PDF
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )
+        )}
+
+        {tab === 1 && (
+          loadingPayments ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+              <CircularProgress size={36} />
+            </Box>
+          ) : payments.length === 0 ? (
+            <Typography color="text.secondary" align="center" sx={{ py: 6 }}>
+              No payment transactions recorded yet.
+            </Typography>
+          ) : (
+            <TableContainer>
+              <Table>
+                <TableHead sx={{ bgcolor: '#F8FAFC' }}>
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: 800 }}>Payment #</TableCell>
+                    <TableCell sx={{ fontWeight: 800 }}>Date</TableCell>
+                    <TableCell sx={{ fontWeight: 800 }}>Gateway / Method</TableCell>
+                    <TableCell sx={{ fontWeight: 800 }}>Amount</TableCell>
+                    <TableCell sx={{ fontWeight: 800 }}>Status</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {payments.map((p: any) => (
+                    <TableRow key={p.id} hover>
+                      <TableCell sx={{ fontWeight: 700 }}>{p.paymentNumber}</TableCell>
+                      <TableCell>{new Date(p.createdAt).toLocaleDateString()}</TableCell>
+                      <TableCell sx={{ textTransform: 'uppercase', fontWeight: 600 }}>{p.paymentMethod || p.gateway}</TableCell>
+                      <TableCell sx={{ fontWeight: 800, color: '#2563EB' }}>${p.amount}</TableCell>
+                      <TableCell>
+                        <Chip
+                          label={p.paymentStatus?.toUpperCase()}
+                          color={p.paymentStatus === 'paid' || p.paymentStatus === 'captured' ? 'success' : 'warning'}
+                          size="small"
+                          sx={{ fontWeight: 700 }}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )
         )}
       </Paper>
     </CustomerAccountLayout>

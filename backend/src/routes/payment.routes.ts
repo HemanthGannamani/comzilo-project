@@ -45,5 +45,10 @@ router.post(
   controller.refundPayment
 );
 
+// Razorpay Gateway Endpoints
+router.post('/create-order', controller.createRazorpayOrder);
+router.post('/verify', controller.verifyRazorpayPayment);
+router.post('/webhooks/razorpay', controller.handleRazorpayWebhook);
+
 export default router;
 export { router as paymentRoutes };

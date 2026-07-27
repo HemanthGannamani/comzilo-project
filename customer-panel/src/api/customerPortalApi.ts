@@ -87,6 +87,28 @@ export const customerPortalApi = baseApi.injectEndpoints({
       providesTags: ['Order'],
     }),
 
+    getMyPayments: builder.query<any, void>({
+      query: () => '/customer-portal/payments',
+      providesTags: ['Order'],
+    }),
+
+    createRazorpayOrder: builder.mutation<any, { orderId: number | string; amount: number; currency?: string }>({
+      query: (data) => ({
+        url: '/payments/create-order',
+        method: 'POST',
+        body: data,
+      }),
+    }),
+
+    verifyRazorpayPayment: builder.mutation<any, any>({
+      query: (data) => ({
+        url: '/payments/verify',
+        method: 'POST',
+        body: data,
+      }),
+      invalidatesTags: ['Order'],
+    }),
+
     changeMyPassword: builder.mutation<any, any>({
       query: (data) => ({
         url: '/customer-portal/change-password',
@@ -145,6 +167,9 @@ export const {
   useDeleteMyAddressMutation,
   useSetDefaultAddressMutation,
   useGetMyInvoicesQuery,
+  useGetMyPaymentsQuery,
+  useCreateRazorpayOrderMutation,
+  useVerifyRazorpayPaymentMutation,
   useChangeMyPasswordMutation,
   useValidateCouponMutation,
   usePlaceOrderMutation,

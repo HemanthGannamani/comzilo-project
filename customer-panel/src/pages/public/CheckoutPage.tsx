@@ -288,29 +288,17 @@ export const CheckoutPage: React.FC = () => {
                 </Grid>
 
                 <Grid item xs={12} sm={6}>
-                  <Paper sx={{ p: 2, borderRadius: 2, border: paymentMethod === 'stripe' ? '2px solid #2563EB' : '1px solid #E2E8F0' }}>
-                    <FormControlLabel
-                      value="stripe"
-                      control={<Radio size="small" />}
-                      label={
-                        <Box sx={{ ml: 0.5 }}>
-                          <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>Credit/Debit Card (Stripe)</Typography>
-                          <Typography variant="caption" color="text.secondary">Encrypted card checkout</Typography>
-                        </Box>
-                      }
-                    />
-                  </Paper>
-                </Grid>
-
-                <Grid item xs={12} sm={6}>
                   <Paper sx={{ p: 2, borderRadius: 2, border: paymentMethod === 'razorpay' ? '2px solid #2563EB' : '1px solid #E2E8F0' }}>
                     <FormControlLabel
                       value="razorpay"
                       control={<Radio size="small" />}
                       label={
                         <Box sx={{ ml: 0.5 }}>
-                          <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>Razorpay Unified API</Typography>
-                          <Typography variant="caption" color="text.secondary">UPI, NetBanking & Cards</Typography>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>Razorpay Gateway</Typography>
+                            <Chip label="ACTIVE" color="success" size="small" sx={{ height: 18, fontSize: '0.65rem' }} />
+                          </Box>
+                          <Typography variant="caption" color="text.secondary">UPI, Credit/Debit Cards & NetBanking</Typography>
                         </Box>
                       }
                     />
@@ -318,14 +306,37 @@ export const CheckoutPage: React.FC = () => {
                 </Grid>
 
                 <Grid item xs={12} sm={6}>
-                  <Paper sx={{ p: 2, borderRadius: 2, border: paymentMethod === 'paypal' ? '2px solid #2563EB' : '1px solid #E2E8F0' }}>
+                  <Paper sx={{ p: 2, borderRadius: 2, border: paymentMethod === 'stripe' ? '2px solid #2563EB' : '1px solid #E2E8F0', opacity: 0.6 }}>
                     <FormControlLabel
-                      value="paypal"
+                      value="stripe"
+                      disabled
                       control={<Radio size="small" />}
                       label={
                         <Box sx={{ ml: 0.5 }}>
-                          <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>PayPal Express</Typography>
-                          <Typography variant="caption" color="text.secondary">International PayPal wallet</Typography>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>Stripe Credit Card</Typography>
+                            <Chip label="COMING SOON" size="small" sx={{ height: 18, fontSize: '0.65rem' }} />
+                          </Box>
+                          <Typography variant="caption" color="text.secondary">International Card Gateway</Typography>
+                        </Box>
+                      }
+                    />
+                  </Paper>
+                </Grid>
+
+                <Grid item xs={12} sm={6}>
+                  <Paper sx={{ p: 2, borderRadius: 2, border: paymentMethod === 'paypal' ? '2px solid #2563EB' : '1px solid #E2E8F0', opacity: 0.6 }}>
+                    <FormControlLabel
+                      value="paypal"
+                      disabled
+                      control={<Radio size="small" />}
+                      label={
+                        <Box sx={{ ml: 0.5 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>PayPal Express</Typography>
+                            <Chip label="COMING SOON" size="small" sx={{ height: 18, fontSize: '0.65rem' }} />
+                          </Box>
+                          <Typography variant="caption" color="text.secondary">PayPal Global Wallet</Typography>
                         </Box>
                       }
                     />

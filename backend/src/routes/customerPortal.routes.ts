@@ -26,6 +26,7 @@ router.delete('/addresses/:id', controller.deleteMyAddress);
 router.patch('/addresses/:id/default', controller.setDefaultAddress);
 
 router.get('/invoices', controller.listMyInvoices);
+router.get('/payments', controller.listMyPayments);
 
 router.post('/change-password', controller.changePassword);
 

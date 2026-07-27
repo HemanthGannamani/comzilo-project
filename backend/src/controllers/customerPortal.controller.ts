@@ -4,6 +4,7 @@ import { CustomerService } from '../services/customer.service';
 import { CustomerAddressService } from '../services/customerAddress.service';
 import { OrderService } from '../services/order.service';
 import { InvoiceService } from '../services/invoice.service';
+import { PaymentService } from '../services/payment.service';
 import { NotificationService } from '../services/notification.service';
 import { AuthService } from '../services/auth.service';
 import { Customer, CustomerAddress, Product } from '../database/models';
@@ -18,6 +19,7 @@ export class CustomerPortalController {
   private addressService = new CustomerAddressService();
   private orderService = new OrderService();
   private invoiceService = new InvoiceService();
+  private paymentService = new PaymentService();
   private notificationService = new NotificationService();
   private authService = new AuthService();
 
@@ -345,6 +347,24 @@ export class CustomerPortalController {
       const myInvoices = (invoiceResult.rows || []).filter((inv: any) => orderIds.includes(inv.orderId));
 
       success(res, 'Customer invoices retrieved successfully', { rows: myInvoices, count: myInvoices.length });
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  public listMyPayments = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const tenantId = req.context.tenantId || 1;
+      const userId = req.context.authenticatedUserId;
+      if (!userId) throw new UnauthorizedError('Customer credentials missing');
+
+      const customer = await this.getCustomerFromUser(tenantId, userId);
+      const storeId = customer.storeId || 1;
+
+      const paymentResult = await this.paymentService.listPayments(tenantId, storeId, { limit: 100 });
+      const myPayments = (paymentResult.rows || []);
+
+      success(res, 'Customer payment history retrieved successfully', { rows: myPayments, count: myPayments.length });
     } catch (err) {
       next(err);
     }

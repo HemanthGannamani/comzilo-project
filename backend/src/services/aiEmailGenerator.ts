@@ -128,7 +128,48 @@ export class AiEmailGenerator {
       </p>
     `;
 
-    if (purpose.toLowerCase().includes('welcome')) {
+    if (purpose.toLowerCase().includes('seller')) {
+      bodyContent = `
+        <div style="text-align: center; margin-bottom: 24px;">
+          <div style="display: inline-block; background-color: #ECFDF5; color: #059669; font-weight: 700; font-size: 14px; padding: 6px 16px; border-radius: 9999px; border: 1px solid #A7F3D0;">
+            🎉 Seller Account Approved & Activated
+          </div>
+        </div>
+        <p style="font-size: 15px; color: #374151; line-height: 1.6;">
+          Congratulations! Your seller account for <strong>${brand}</strong> has been approved successfully. You can now log in to the Comzilo Seller Portal to manage your business, products, and customer orders.
+        </p>
+        <div style="background: #F9FAFB; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #E5E7EB;">
+          <h4 style="margin: 0 0 12px 0; color: #111827; font-size: 15px;">Your Portal Login Credentials:</h4>
+          <table width="100%" style="font-size: 14px; color: #374151; border-collapse: collapse;">
+            <tr>
+              <td style="padding: 6px 0; font-weight: 600; width: 150px;">Seller Name:</td>
+              <td style="padding: 6px 0;">{{seller_name}}</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px 0; font-weight: 600;">Login Email:</td>
+              <td style="padding: 6px 0;">{{seller_email}}</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px 0; font-weight: 600;">Temporary Password:</td>
+              <td style="padding: 6px 0;"><code style="background: #FEF3C7; color: #92400E; padding: 4px 10px; border-radius: 4px; font-weight: 700; font-family: monospace; font-size: 15px;">{{temporary_password}}</code></td>
+            </tr>
+          </table>
+        </div>
+        <div style="background-color: #FEF2F2; border-left: 4px solid #EF4444; padding: 12px 16px; border-radius: 4px; margin-bottom: 24px;">
+          <p style="margin: 0; font-size: 13px; color: #991B1B; font-weight: 600;">
+            🔒 Security Notice: For security reasons, please change your password immediately after your first login.
+          </p>
+        </div>
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="{{seller_login_url}}" target="_blank" style="background-color: #0284C7; color: #FFFFFF; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 15px; display: inline-block; box-shadow: 0 4px 6px -1px rgba(2, 132, 199, 0.3);">
+            Log In to Seller Portal &rarr;
+          </a>
+        </div>
+        <p style="font-size: 13px; color: #6B7280; text-align: center;">
+          If you have any questions, please contact our support team at <a href="mailto:support@comzilo.com" style="color: #0284C7;">support@comzilo.com</a>.
+        </p>
+      `;
+    } else if (purpose.toLowerCase().includes('welcome')) {
       bodyContent = `
         <p style="font-size: 15px; color: #374151; line-height: 1.6;">
           Welcome to the family! We are thrilled to have you onboard with <strong>${brand}</strong>. Discover curated products, exclusive deals, and fast delivery built just for you.
@@ -165,30 +206,21 @@ export class AiEmailGenerator {
               <table width="100%" maxWidth="600" cellpadding="0" cellspacing="0" style="max-width: 600px; background-color: #FFFFFF; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
                 <!-- Header -->
                 <tr>
-                  <td style="background-color: #4F46E5; padding: 24px; text-align: center;">
-                    <h1 style="color: #FFFFFF; margin: 0; font-size: 22px; font-weight: 800; tracking: -0.5px;">${brand}</h1>
+                  <td style="background-color: #0284C7; padding: 24px; text-align: center;">
+                    <h1 style="color: #FFFFFF; margin: 0; font-size: 22px; font-weight: 800; tracking: -0.5px;">Comzilo Seller Central</h1>
                   </td>
                 </tr>
                 <!-- Body Content -->
                 <tr>
                   <td style="padding: 32px 24px;">
-                    <h2 style="margin-top: 0; color: #111827; font-size: 18px;">Hi {{customer_name}},</h2>
+                    <h2 style="margin-top: 0; color: #111827; font-size: 18px;">Hi {{seller_name}},</h2>
                     ${bodyContent}
-                    
-                    <!-- Call To Action -->
-                    <div style="text-align: center; margin: 30px 0;">
-                      <a href="{{checkout_link}}" target="_blank" style="background-color: #4F46E5; color: #FFFFFF; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 15px; display: inline-block; box-shadow: 0 2px 4px rgba(79, 70, 229, 0.3);">
-                        Complete Your Order Now &rarr;
-                      </a>
-                    </div>
-
-                    ${recsHtml}
                   </td>
                 </tr>
                 <!-- Footer -->
                 <tr>
                   <td style="background-color: #F9FAFB; padding: 20px 24px; text-align: center; border-top: 1px solid #E5E7EB;">
-                    <p style="margin: 0; font-size: 12px; color: #9CA3AF;">Sent automatically by ${brand}. You received this email because of your recent activity.</p>
+                    <p style="margin: 0; font-size: 12px; color: #9CA3AF;">Regards,<br><strong>Comzilo Team</strong></p>
                   </td>
                 </tr>
               </table>
@@ -200,12 +232,12 @@ export class AiEmailGenerator {
     `;
 
     return {
-      subject: chosenSubject,
+      subject: purpose.toLowerCase().includes('seller') ? 'Welcome to Comzilo Seller Portal' : chosenSubject,
       subjectVariations: subjects,
-      greeting: 'Hi {{customer_name}},',
+      greeting: 'Hi {{seller_name}},',
       bodyHtml: fullHtml,
-      ctaText: 'Complete Your Order Now',
-      ctaLink: '{{checkout_link}}',
+      ctaText: 'Log In to Seller Portal',
+      ctaLink: '{{seller_login_url}}',
       recommendedProductsHtml: recsHtml,
     };
   }
@@ -218,7 +250,11 @@ export class AiEmailGenerator {
     let result = templateStr;
 
     const placeholders: Record<string, string> = {
-      customer_name: data.customerName || data.name || 'Valued Customer',
+      customer_name: data.customerName || data.sellerName || data.ownerName || data.name || 'Valued Customer',
+      seller_name: data.sellerName || data.ownerName || data.customerName || 'Valued Seller',
+      seller_email: data.sellerEmail || data.email || '',
+      temporary_password: data.temporaryPassword || data.tempPassword || '',
+      seller_login_url: data.sellerLoginUrl || 'http://localhost:5173/login',
       customer_email: data.customerEmail || data.email || '',
       store_name: data.storeName || 'Comzilo Store',
       cart_items: data.cartItems || data.itemsText || 'Selected Items',

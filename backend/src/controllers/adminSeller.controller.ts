@@ -3,6 +3,7 @@ import { User, UserRole, UserProfile, Tenant, Store, Role } from '../database/mo
 import { sequelize } from '../config/database';
 import { AdminSellerService } from '../services/adminSeller.service';
 import { NotificationService } from '../services/notification.service';
+import { EmailQueueManager } from '../services/emailQueueManager';
 import { success } from '../shared/responses';
 import { NotFoundError, ValidationError } from '../shared/errors/AppError';
 import { createAuditLog } from '../utils/auditHelper';
@@ -248,7 +249,36 @@ export class AdminSellerController {
         throw new ValidationError(error.details[0].message);
       }
 
-      const seller = await sellerService.createSeller(value, req.context);
+      const tempPassword = value.password || ('Sel' + Math.floor(100 + Math.random() * 900) + 'Pass!' + Math.floor(100 + Math.random() * 900));
+      const passwordHash = await bcrypt.hash(tempPassword, 10);
+
+      const seller = await sellerService.createSeller(
+        {
+          ...value,
+          passwordHash,
+          mustChangePassword: true,
+        },
+        req.context
+      );
+
+      // Enqueue Seller Approval Email via Email Queue Engine (Database First + Gmail SMTP)
+      const emailQueueManager = new EmailQueueManager();
+      await emailQueueManager.addJob({
+        tenantId: seller.tenantId || 1,
+        triggerEvent: 'seller_approval',
+        recipient: seller.email,
+        payload: {
+          sellerName: value.ownerName,
+          sellerEmail: seller.email,
+          temporaryPassword: tempPassword,
+          storeName: value.businessName,
+          sellerLoginUrl: 'http://localhost:5173/login',
+        },
+        delayMinutes: 0,
+      });
+
+      // Process pending queue jobs immediately
+      emailQueueManager.processPendingJobs().catch((err) => console.error('[EmailQueue] Process error:', err));
 
       // Log direct audit seller creation
       await createAuditLog(
@@ -260,7 +290,10 @@ export class AdminSellerController {
         req.context
       );
 
-      success(res, 'Seller created successfully', seller);
+      success(res, 'Seller created successfully. Login credentials have been emailed.', {
+        seller,
+        temporaryPassword: tempPassword,
+      });
     } catch (error) {
       next(error);
     }

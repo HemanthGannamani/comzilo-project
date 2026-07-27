@@ -12,10 +12,16 @@ import { CustomerLoginPage } from '../pages/auth/CustomerLoginPage';
 import { CustomerRegisterPage } from '../pages/auth/CustomerRegisterPage';
 
 import { CustomerDashboardPage } from '../pages/account/CustomerDashboardPage';
+import { CustomerProfilePage } from '../pages/account/CustomerProfilePage';
 import { CustomerOrdersPage } from '../pages/account/CustomerOrdersPage';
+import { CustomerAddressesPage } from '../pages/account/CustomerAddressesPage';
 import { CustomerWishlistPage } from '../pages/account/CustomerWishlistPage';
-import { PageLoader } from '../components/common/PageLoader';
+import { CustomerNotificationsPage } from '../pages/account/CustomerNotificationsPage';
+import { CustomerInvoicesPage } from '../pages/account/CustomerInvoicesPage';
+import { CustomerChangePasswordPage } from '../pages/account/CustomerChangePasswordPage';
+import { CustomerPrivacyPage } from '../pages/account/CustomerPrivacyPage';
 
+import { PageLoader } from '../components/common/PageLoader';
 import { BecomeSellerPage } from '../pages/public/BecomeSellerPage';
 
 export const AppRoutes: React.FC = () => {
@@ -36,10 +42,16 @@ export const AppRoutes: React.FC = () => {
           <Route path="/login" element={<CustomerLoginPage />} />
           <Route path="/register" element={<CustomerRegisterPage />} />
 
-          {/* Customer Portal Account Routes */}
+          {/* Enterprise Customer Portal Account Routes */}
           <Route path="/account" element={<CustomerDashboardPage />} />
+          <Route path="/account/profile" element={<CustomerProfilePage />} />
           <Route path="/account/orders" element={<CustomerOrdersPage />} />
+          <Route path="/account/addresses" element={<CustomerAddressesPage />} />
           <Route path="/account/wishlist" element={<CustomerWishlistPage />} />
+          <Route path="/account/notifications" element={<CustomerNotificationsPage />} />
+          <Route path="/account/invoices" element={<CustomerInvoicesPage />} />
+          <Route path="/account/change-password" element={<CustomerChangePasswordPage />} />
+          <Route path="/account/privacy" element={<CustomerPrivacyPage />} />
         </Route>
 
         {/* Fallback Catch-All */}

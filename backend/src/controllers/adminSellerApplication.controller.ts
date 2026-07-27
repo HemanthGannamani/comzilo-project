@@ -5,6 +5,7 @@ import { NotFoundError, ValidationError } from '../shared/errors/AppError';
 import { createAuditLog } from '../utils/auditHelper';
 import { AdminSellerService } from '../services/adminSeller.service';
 import { NotificationService } from '../services/notification.service';
+import { EmailQueueManager } from '../services/emailQueueManager';
 import { Op } from 'sequelize';
 import bcrypt from 'bcrypt';
 
@@ -215,18 +216,37 @@ export class AdminSellerApplicationController {
         );
       }
 
-      // Welcome / Approved Notification with Credentials
+      // Enqueue Seller Approval Email via Email Queue Engine (Database First + Gmail SMTP)
+      const emailQueueManager = new EmailQueueManager();
+      await emailQueueManager.addJob({
+        tenantId: user.tenantId || 1,
+        triggerEvent: 'seller_approval',
+        recipient: application.email,
+        payload: {
+          sellerName: application.ownerName,
+          sellerEmail: application.email,
+          temporaryPassword,
+          storeName: tenantName,
+          sellerLoginUrl: 'http://localhost:5173/login',
+        },
+        delayMinutes: 0,
+      });
+
+      // Process pending queue jobs immediately
+      emailQueueManager.processPendingJobs().catch((err) => console.error('[EmailQueue] Process error:', err));
+
+      // Notification Service Fallback
       const notificationService = new NotificationService();
       await notificationService.sendNotification(user.tenantId || 1, null, {
         recipient: application.email,
         channel: 'email',
-        title: 'Welcome to Comzilo - Application Approved!',
+        title: 'Welcome to Comzilo Seller Portal',
         content: `Dear ${application.ownerName}, your application for ${application.businessName} has been approved.\n\nCredentials:\nEmail: ${application.email}\nTemporary Password: ${temporaryPassword}\nTenant: ${tenantName}\nStore: ${storeName}\n\nPlease change your temporary password upon first login.`,
       });
 
       success(
         res,
-        'Seller application approved and onboarding completed successfully',
+        'Seller approved successfully. Login credentials have been emailed.',
         {
           application,
           credentials: {

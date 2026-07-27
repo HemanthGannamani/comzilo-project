@@ -1,14 +1,17 @@
 import React from 'react';
-import { Container, Typography, Grid, Card, CardMedia, CardContent, CardActions, Button } from '@mui/material';
-import { ShoppingCart, Trash2 } from 'lucide-react';
+import { Container, Typography, Grid, Card, CardMedia, CardContent, CardActions, Button, Box } from '@mui/material';
+import { ShoppingCart, Trash2, ArrowLeft } from 'lucide-react';
+import { CustomerAccountLayout } from '../../components/layout/CustomerAccountLayout';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { addToCart } from '../../store/cartSlice';
 import { toggleWishlist } from '../../store/wishlistSlice';
+import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
 export const CustomerWishlistPage: React.FC = () => {
   const { items } = useAppSelector((state) => state.wishlist);
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
 
   const handleMoveToCart = (prod: any) => {
     dispatch(addToCart({ id: prod.id, name: prod.name, price: prod.price, image: prod.image || '', quantity: 1 }));
@@ -17,23 +20,40 @@ export const CustomerWishlistPage: React.FC = () => {
   };
 
   return (
-    <Container maxWidth="lg" sx={{ py: 6 }}>
-      <Typography variant="h4" sx={{ fontWeight: 800, color: '#0F172A', mb: 4 }}>
-        My Saved Wishlist ({items.length} Items)
-      </Typography>
+    <CustomerAccountLayout>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Box>
+          <Typography variant="h5" sx={{ fontWeight: 800, color: '#0F172A', mb: 0.5 }}>
+            My Saved Wishlist ({items.length} Items)
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Save items to purchase later or move directly to cart.
+          </Typography>
+        </Box>
+        <Button startIcon={<ArrowLeft size={18} />} onClick={() => navigate('/products')}>
+          Continue Shopping
+        </Button>
+      </Box>
 
       {items.length === 0 ? (
-        <Typography variant="body1" color="text.secondary">
-          Your wishlist is currently empty. Explore our products and click the heart icon to save items!
-        </Typography>
+        <Box sx={{ p: 6, textAlign: 'center', borderRadius: 3, border: '1px solid #E2E8F0', bgcolor: '#FFFFFF' }}>
+          <Typography color="text.secondary">
+            Your wishlist is currently empty. Explore our catalog and click the heart icon to save products!
+          </Typography>
+        </Box>
       ) : (
         <Grid container spacing={3}>
           {items.map((prod) => (
-            <Grid key={prod.id} item xs={12} sm={6} md={3}>
-              <Card sx={{ borderRadius: 3, border: '1px solid #E2E8F0', boxShadow: 'none' }}>
-                <CardMedia component="img" height="180" image={prod.image || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500'} alt={prod.name} />
-                <CardContent>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{prod.name}</Typography>
+            <Grid key={prod.id} item xs={12} sm={6} md={4}>
+              <Card sx={{ borderRadius: 3, border: '1px solid #E2E8F0', boxShadow: 'none', display: 'flex', flexDirection: 'column', height: '100%' }}>
+                <CardMedia
+                  component="img"
+                  height="180"
+                  image={prod.image || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500'}
+                  alt={prod.name}
+                />
+                <CardContent sx={{ flexGrow: 1 }}>
+                  <Typography variant="subtitle1" noWrap sx={{ fontWeight: 700 }}>{prod.name}</Typography>
                   <Typography variant="h6" sx={{ fontWeight: 800, color: '#2563EB', mt: 1 }}>${prod.price}</Typography>
                 </CardContent>
                 <CardActions sx={{ p: 2, pt: 0, gap: 1 }}>
@@ -49,6 +69,6 @@ export const CustomerWishlistPage: React.FC = () => {
           ))}
         </Grid>
       )}
-    </Container>
+    </CustomerAccountLayout>
   );
 };

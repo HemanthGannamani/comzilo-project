@@ -6,6 +6,7 @@ export interface CustomerAttributes {
   uuid: string;
   tenantId: number;
   storeId: number;
+  userId?: number | null;
   customerCode: string;
   firstName: string;
   lastName: string;
@@ -58,6 +59,7 @@ export class Customer
   declare uuid: string;
   declare tenantId: number;
   declare storeId: number;
+  declare userId: number | null;
   declare customerCode: string;
   declare firstName: string;
   declare lastName: string;
@@ -106,6 +108,11 @@ Customer.init(
       type: DataTypes.BIGINT.UNSIGNED,
       allowNull: false,
       field: 'store_id',
+    },
+    userId: {
+      type: DataTypes.BIGINT.UNSIGNED,
+      allowNull: true,
+      field: 'user_id',
     },
     customerCode: {
       type: DataTypes.STRING(100),

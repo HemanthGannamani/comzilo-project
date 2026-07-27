@@ -137,6 +137,8 @@ import { stockReservationRoutes } from './routes/stockReservation.routes';
 import customerRoutes from './routes/customer.routes';
 import customerAddressRoutes from './routes/customerAddress.routes';
 import customerDocumentRoutes from './routes/customerDocument.routes';
+import customerPortalRoutes from './routes/customerPortal.routes';
+
 
 // Step 14 Routes
 import orderRoutes from './routes/order.routes';
@@ -186,6 +188,7 @@ app.use('/api/v1/stock-transfers', stockTransferRoutes);
 app.use('/api/v1/stock-reservations', stockReservationRoutes);
 
 app.use('/api/v1/customers', customerRoutes);
+app.use('/api/v1/customer-portal', customerPortalRoutes);
 app.use('/api/v1/customer-addresses', customerAddressRoutes);
 app.use('/api/v1/customer-documents', customerDocumentRoutes);
 app.use('/api/v1/orders', orderRoutes);

@@ -50,7 +50,7 @@ export const LoginPage: React.FC = () => {
 
       if (authData.user?.mustChangePassword) {
         toast.error('Temporary password detected. You must change your password immediately.', { duration: 6000 });
-        navigate('/profile');
+        navigate('/change-password');
       } else {
         toast.success(`Welcome back, ${authData.user.firstName}!`);
         navigate('/dashboard');

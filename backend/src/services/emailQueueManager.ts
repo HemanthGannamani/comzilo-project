@@ -134,7 +134,7 @@ export class EmailQueueManager {
         // Safety Check: For abandoned cart emails, check if customer completed an order in the meantime!
         if (job.trigger_event === 'cart_abandoned' && job.cart_token) {
           const [order]: any = await sequelize.query(
-            `SELECT id FROM orders WHERE (cart_id = :cartToken OR id = :cartToken) AND tenant_id = :tenantId LIMIT 1`,
+            `SELECT id FROM orders WHERE (id = :cartToken OR order_number = :cartToken) AND tenant_id = :tenantId LIMIT 1`,
             { replacements: { cartToken: job.cart_token, tenantId: job.tenant_id }, type: QueryTypes.SELECT }
           );
 

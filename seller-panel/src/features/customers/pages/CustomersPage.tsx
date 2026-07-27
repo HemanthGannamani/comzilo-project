@@ -91,8 +91,8 @@ export const CustomersPage: React.FC = () => {
     },
   ];
 
-  const rows = data?.data?.customers || data?.data || [];
-  const totalCount = data?.data?.total || rows.length;
+  const rows = data?.data?.rows || data?.data?.customers || (Array.isArray(data?.data) ? data.data : []);
+  const totalCount = data?.data?.count || data?.data?.total || rows.length;
 
   return (
     <PageContainer

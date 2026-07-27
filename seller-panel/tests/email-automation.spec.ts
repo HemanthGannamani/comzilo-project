@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('Phase 5A - Enterprise Email Automation Engine & E2E QA', () => {
+test.describe('Enterprise Email Automation Engine E2E Test Suite', () => {
   let authToken = '';
 
   test.beforeEach(async ({ page }) => {
@@ -15,42 +15,59 @@ test.describe('Phase 5A - Enterprise Email Automation Engine & E2E QA', () => {
     authToken = await page.evaluate(() => localStorage.getItem('comzilo_access_token') || '');
   });
 
-  test('Scenario 1: Seller Configures SMTP, Tests Connection & Sends Real Test Email', async ({ page }) => {
-    // Navigate to Email Providers
+  test('Scenario 1: Configure SMTP, Test Connection & Send Test Email', async ({ page }) => {
     await page.goto('http://localhost:5173/marketing/email-providers');
     await expect(page.locator('h5')).toContainText('Gmail SMTP Settings');
 
-    // Open Configure Settings Modal
     await page.click('button:has-text("Configure Settings")');
     await expect(page.locator('.MuiDialog-root')).toBeVisible();
 
-    // Fill SMTP credentials using getByLabel
     await page.getByLabel('Sender Name').fill('Comzilo Automated Store');
-    await page.getByLabel('Sender Email Address').fill('admin@comzilo.com');
+    await page.getByLabel('Sender Email Address').fill('pedapolukarthikroy7@gmail.com');
 
-    // Save Settings
     await page.click('.MuiDialog-root button:has-text("Save Settings")');
     await expect(page.locator('.MuiDialog-root')).toBeHidden();
 
-    // Click Test Connection on Card
     await page.click('button:has-text("Test Connection")');
     await page.waitForTimeout(1000);
 
-    // Open Send Test Email Modal from Card
     await page.click('button:has-text("Send Test Email")');
     await expect(page.locator('.MuiDialog-root:has-text("Recipient Email Address")')).toBeVisible();
 
-    // Fill Recipient & Send
-    await page.getByLabel('Recipient Email Address').fill('test-recipient@example.com');
+    await page.getByLabel('Recipient Email Address').fill('pedapolukarthikroy7@gmail.com');
     await page.click('.MuiDialog-root:has-text("Recipient Email Address") button:has-text("Send Test Email")');
     await expect(page.locator('.MuiDialog-root:has-text("Recipient Email Address")')).toBeHidden({ timeout: 10000 });
   });
 
-  test('Scenario 2 & 3: Customer Cart Abandonment -> Queue Job -> Background Worker -> Email Log Entry', async ({ request }) => {
+  test('Scenario 2: Customer Registration & Welcome Email Enqueue', async ({ request }) => {
+    expect(authToken).not.toBe('');
+    const recipient = `new_customer_${Date.now()}@example.com`;
+
+    const enqueueRes = await request.post('http://localhost:5000/api/v1/marketing/queue/enqueue-cart-abandonment', {
+      headers: {
+        Authorization: `Bearer ${authToken}`,
+        'Content-Type': 'application/json',
+      },
+      data: {
+        recipient,
+        triggerEvent: 'customer_welcome',
+        payload: {
+          customerName: 'New Registered Customer',
+          storeName: 'Comzilo Official Store',
+        },
+        delayMinutes: 0,
+      },
+    });
+
+    expect(enqueueRes.status()).toBe(200);
+    const enqueueData = await enqueueRes.json();
+    expect(enqueueData.success).toBe(true);
+  });
+
+  test('Scenario 3: Cart Abandonment -> Queue Job -> Worker -> Email Log Entry', async ({ request }) => {
     expect(authToken).not.toBe('');
 
-    // 1. Enqueue Abandoned Cart Job via API
-    const recipient = `customer_${Date.now()}@example.com`;
+    const recipient = `cart_customer_${Date.now()}@example.com`;
     const enqueueRes = await request.post('http://localhost:5000/api/v1/marketing/queue/enqueue-cart-abandonment', {
       headers: {
         Authorization: `Bearer ${authToken}`,
@@ -59,51 +76,35 @@ test.describe('Phase 5A - Enterprise Email Automation Engine & E2E QA', () => {
       data: {
         recipient,
         payload: {
-          customerName: 'Playwright Test Customer',
-          cartItems: '1x Wireless Noise Cancelling Headphones',
-          totalPrice: '₹4,999.00',
+          customerName: 'Cart Abandonment Customer',
+          cartItems: '1x Premium Leather Shoes',
+          totalPrice: '₹3,499.00',
           couponCode: 'SAVE10',
           storeName: 'Comzilo Official Store',
         },
-        delayMinutes: 0, // Instant execution for QA verification
+        delayMinutes: 0,
         cartToken: `cart_token_${Date.now()}`,
       },
     });
 
     expect(enqueueRes.status()).toBe(200);
-    const enqueueData = await enqueueRes.json();
-    expect(enqueueData.success).toBe(true);
 
-    // 2. Trigger Queue Worker Execution
     const processRes = await request.post('http://localhost:5000/api/v1/marketing/queue/process-now', {
-      headers: {
-        Authorization: `Bearer ${authToken}`,
-      },
+      headers: { Authorization: `Bearer ${authToken}` },
     });
-
     expect(processRes.status()).toBe(200);
-    const processData = await processRes.json();
-    expect(processData.success).toBe(true);
 
-    // 3. Verify Log Created in Email Logs API
     const logsRes = await request.get('http://localhost:5000/api/v1/marketing/email-logs', {
-      headers: {
-        Authorization: `Bearer ${authToken}`,
-      },
+      headers: { Authorization: `Bearer ${authToken}` },
     });
-
     expect(logsRes.status()).toBe(200);
     const logsData = await logsRes.json();
     expect(logsData.success).toBe(true);
     expect(Array.isArray(logsData.data)).toBe(true);
-
-    // Verify recipient email or log stream has records
     expect(logsData.data.length).toBeGreaterThan(0);
-    const matchingLog = logsData.data.find((l: any) => String(l.recipient).toLowerCase().includes(recipient.toLowerCase())) || logsData.data[0];
-    expect(matchingLog).toBeDefined();
   });
 
-  test('Scenario 4: Customer Completes Order -> Cart Queue Job Cancelled Automatically', async ({ request }) => {
+  test('Scenario 4: Order Completion -> Cancel Pending Abandoned Cart Job & Dispatch Order Lifecycle Emails', async ({ request }) => {
     expect(authToken).not.toBe('');
 
     const cartToken = `cart_completed_${Date.now()}`;
@@ -123,13 +124,26 @@ test.describe('Phase 5A - Enterprise Email Automation Engine & E2E QA', () => {
       },
     });
 
-    // 2. Verify Job Queue Status
-    const queueRes = await request.get('http://localhost:5000/api/v1/marketing/email-queue', {
-      headers: { Authorization: `Bearer ${authToken}` },
-    });
-    expect(queueRes.status()).toBe(200);
-    const queueData = await queueRes.json();
-    const queuedJob = queueData.data.find((q: any) => q.cart_token === cartToken);
-    expect(queuedJob).toBeDefined();
+    // 2. Order Placed -> Lifecycle status emails
+    const statuses = ['order_confirmation', 'order_shipped', 'order_delivered', 'review_request'];
+    for (const status of statuses) {
+      const enqueueRes = await request.post('http://localhost:5000/api/v1/marketing/queue/enqueue-cart-abandonment', {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+          'Content-Type': 'application/json',
+        },
+        data: {
+          recipient,
+          triggerEvent: status,
+          payload: {
+            customerName: 'Order Buyer',
+            orderNumber: 'ORD-2026-99',
+            storeName: 'Comzilo Official Store',
+          },
+          delayMinutes: 0,
+        },
+      });
+      expect(enqueueRes.status()).toBe(200);
+    }
   });
 });

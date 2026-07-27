@@ -105,23 +105,25 @@ export class AuthService extends BaseService {
         { transaction: t }
       );
 
+      let targetTenantId = tenantId;
       let targetStoreId = data.storeId || context?.storeId || 1;
 
-      // If storeSlug is provided in payload, look up store_id
+      // If storeSlug is provided in payload, look up store_id and tenant_id
       if (data.storeSlug) {
         const [foundStore]: any = await sequelize.query(
-          'SELECT id FROM stores WHERE (slug = :slug OR LOWER(name) = LOWER(:slug)) AND status = "active" LIMIT 1',
+          'SELECT id, tenant_id FROM stores WHERE (slug = :slug OR LOWER(name) = LOWER(:slug)) AND status = "active" LIMIT 1',
           { replacements: { slug: data.storeSlug.trim() }, type: QueryTypes.SELECT, transaction: t }
         );
         if (foundStore) {
           targetStoreId = Number(foundStore.id);
+          targetTenantId = Number(foundStore.tenant_id);
         }
       }
 
       // Create Customer Record
       await Customer.create(
         {
-          tenantId,
+          tenantId: targetTenantId,
           storeId: targetStoreId,
           uuid: uuidv4(),
           customerCode: `CUST-${Date.now().toString().slice(-6)}`,

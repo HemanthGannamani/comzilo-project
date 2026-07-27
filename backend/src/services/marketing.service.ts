@@ -80,36 +80,53 @@ export class MarketingService {
   // ==========================================
 
   public async getEmailProviders(tenantId: number | null): Promise<any[]> {
-    const where: any = {};
-    if (tenantId !== null) where.tenant_id = tenantId;
-
     const dbRows: any[] = await sequelize.query(
       'SELECT * FROM marketing_email_providers WHERE tenant_id = :tenantId',
       { replacements: { tenantId: tenantId || 1 }, type: QueryTypes.SELECT }
     );
 
-    const defaultProviders = [
-      { id: 'smtp', name: 'Custom SMTP Server', type: 'smtp', status: 'configured', isDefault: true },
-      { id: 'ses', name: 'Amazon SES', type: 'api', status: 'active', isDefault: false },
-      { id: 'mailgun', name: 'Mailgun API', type: 'api', status: 'inactive', isDefault: false },
-      { id: 'brevo', name: 'Brevo (Sendinblue)', type: 'api', status: 'active', isDefault: false },
-      { id: 'zeptomail', name: 'ZeptoMail', type: 'api', status: 'inactive', isDefault: false },
-      { id: 'mailchimp', name: 'Mailchimp Transactional', type: 'api', status: 'inactive', isDefault: false },
+    const defaultGmailProvider = {
+      id: 'smtp',
+      name: 'Gmail SMTP',
+      type: 'smtp',
+      status: 'active',
+      isDefault: true,
+      configJson: {
+        smtpHost: 'smtp.gmail.com',
+        smtpPort: '587',
+        smtpUsername: '',
+        smtpPassword: '',
+        senderName: 'Comzilo Merchant',
+        senderEmail: '',
+        encryption: 'tls',
+      },
+    };
+
+    if (dbRows.length === 0) return [defaultGmailProvider];
+
+    const saved = dbRows.find((r: any) => r.provider_type === 'smtp' || r.provider_type === 'gmail') || dbRows[0];
+    const parsedConfig = typeof saved.config_json === 'string' ? JSON.parse(saved.config_json || '{}') : (saved.config_json || {});
+
+    return [
+      {
+        id: 'smtp',
+        name: 'Gmail SMTP',
+        type: 'smtp',
+        status: saved.status || 'active',
+        isDefault: true,
+        configJson: {
+          ...defaultGmailProvider.configJson,
+          ...parsedConfig,
+          smtpHost: parsedConfig.smtpHost || parsedConfig.host || 'smtp.gmail.com',
+          smtpPort: String(parsedConfig.smtpPort || parsedConfig.port || '587'),
+          smtpUsername: parsedConfig.smtpUsername || parsedConfig.username || '',
+          smtpPassword: parsedConfig.smtpPassword || parsedConfig.password || '',
+          senderName: parsedConfig.senderName || parsedConfig.fromName || 'Comzilo Merchant',
+          senderEmail: parsedConfig.senderEmail || parsedConfig.fromEmail || '',
+          encryption: parsedConfig.encryption || 'tls',
+        },
+      },
     ];
-
-    if (dbRows.length === 0) return defaultProviders;
-
-    return defaultProviders.map((dp) => {
-      const saved = dbRows.find((r: any) => r.provider_type === dp.id);
-      return saved
-        ? {
-            ...dp,
-            status: saved.status,
-            configJson: JSON.parse(saved.config_json || '{}'),
-            isDefault: Boolean(saved.is_default),
-          }
-        : dp;
-    });
   }
 
   public async saveEmailProvider(tenantId: number, data: any): Promise<any> {

@@ -18,7 +18,7 @@ test.describe('Phase 5A - Enterprise Email Automation Engine & E2E QA', () => {
   test('Scenario 1: Seller Configures SMTP, Tests Connection & Sends Real Test Email', async ({ page }) => {
     // Navigate to Email Providers
     await page.goto('http://localhost:5173/marketing/email-providers');
-    await expect(page.locator('h5')).toContainText('Email Marketing Providers');
+    await expect(page.locator('h5')).toContainText('Gmail SMTP Settings');
 
     // Open Configure Settings for Custom SMTP
     await page.click('button:has-text("Configure Settings")');

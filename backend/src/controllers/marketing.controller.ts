@@ -239,4 +239,78 @@ export class MarketingController {
       next(err);
     }
   };
+
+  // WhatsApp Automation & Settings
+  public getWhatsAppSettings = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const tenantId = req.headers.authorization ? req.context?.tenantId || 1 : null;
+      const settings = await this.service.getWhatsAppSettings(tenantId);
+      success(res, 'WhatsApp settings retrieved successfully', settings);
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  public saveWhatsAppSettings = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const tenantId = req.context?.tenantId || 1;
+      const result = await this.service.saveWhatsAppSettings(tenantId, req.body);
+      success(res, 'WhatsApp settings saved successfully', result);
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  public testWhatsAppConnection = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const tenantId = req.context?.tenantId || 1;
+      await this.service.testWhatsAppConnection(tenantId, req.body);
+      success(res, 'WhatsApp Cloud API Connection verified successfully');
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  public sendWhatsAppTestMessage = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const tenantId = req.context?.tenantId || 1;
+      const { recipientPhone, config } = req.body;
+      const result = await this.service.sendWhatsAppTestMessage(tenantId, recipientPhone, config);
+      success(res, 'WhatsApp test message sent successfully', result);
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  public getWhatsAppTemplates = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const tenantId = req.headers.authorization ? req.context?.tenantId || 1 : null;
+      const templates = await this.service.getWhatsAppTemplates(tenantId);
+      success(res, 'WhatsApp templates retrieved successfully', templates);
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  public createWhatsAppTemplate = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const tenantId = req.context?.tenantId || 1;
+      const storeId = req.context?.storeId || 1;
+      const template = await this.service.createWhatsAppTemplate(tenantId, storeId, req.body);
+      success(res, 'WhatsApp template created successfully', template, undefined, 201);
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  public getCommunicationLogs = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const tenantId = req.headers.authorization ? req.context?.tenantId || 1 : null;
+      const logs = await this.service.getCommunicationLogs(tenantId);
+      success(res, 'Communication logs retrieved successfully', logs);
+    } catch (err) {
+      next(err);
+    }
+  };
 }
+

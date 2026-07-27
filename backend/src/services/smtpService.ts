@@ -63,10 +63,18 @@ export class SmtpService {
     let config: SmtpConfig | null = null;
 
     // Fetch DB record for fallback
-    const [dbRow]: any = await sequelize.query(
+    let [dbRow]: any = await sequelize.query(
       'SELECT * FROM marketing_email_providers WHERE tenant_id = :tenantId AND (provider_type = "smtp" OR provider_type = "gmail") ORDER BY id DESC LIMIT 1',
       { replacements: { tenantId: tenantId || 1 }, type: QueryTypes.SELECT }
     );
+
+    if (!dbRow) {
+      const [fallbackRow]: any = await sequelize.query(
+        'SELECT * FROM marketing_email_providers WHERE (provider_type = "smtp" OR provider_type = "gmail") ORDER BY id DESC LIMIT 1',
+        { type: QueryTypes.SELECT }
+      );
+      dbRow = fallbackRow;
+    }
 
     let dbParsed: any = {};
     if (dbRow && dbRow.config_json) {

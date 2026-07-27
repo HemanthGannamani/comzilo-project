@@ -109,6 +109,11 @@ export class SmtpService {
       };
     }
 
+    if (config) {
+      config.username = String(config.username || '').trim();
+      config.password = String(config.password || '').replace(/\s+/g, '');
+    }
+
     // Default Ethereal / Test SMTP fallback if no seller SMTP is configured yet
     if (!config || !config.host || !config.username || !config.password) {
       console.log('[SmtpService] No custom SMTP credentials configured yet. Using Ethereal Test Account fallback.');
@@ -170,6 +175,9 @@ export class SmtpService {
       return true;
     } catch (err: any) {
       const msg = err?.message || String(err);
+      if (msg.includes('535') || msg.includes('BadCredentials') || msg.includes('Username and Password not accepted')) {
+        throw new Error('Invalid Gmail Username or App Password. Google requires a 16-character "App Password" (generated from Google Account Security with 2-Step Verification ON). Regular Gmail passwords are rejected by Google.');
+      }
       throw new Error(msg);
     }
   }

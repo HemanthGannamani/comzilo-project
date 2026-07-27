@@ -328,9 +328,10 @@ export const EmailProvidersPage: React.FC = () => {
                 type="password"
                 fullWidth
                 required
-                placeholder="16-digit App Password"
+                placeholder="16-character App Password"
                 value={formData.smtpPassword}
                 onChange={(e) => setFormData({ ...formData, smtpPassword: e.target.value })}
+                helperText="Requires 16-char App Password from myaccount.google.com/apppasswords"
               />
             </Box>
 

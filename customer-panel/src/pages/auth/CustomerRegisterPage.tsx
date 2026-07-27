@@ -31,7 +31,9 @@ export const CustomerRegisterPage: React.FC = () => {
       toast.success('Customer account registered successfully! Please sign in.');
       navigate(loginLink);
     } catch (err: any) {
-      setError(err?.response?.data?.message || 'Registration failed. Please try again.');
+      const apiMsg = err?.response?.data?.message;
+      const firstDetail = err?.response?.data?.errors?.[0]?.message;
+      setError(firstDetail || apiMsg || 'Registration failed. Please try again.');
     } finally {
       setLoading(false);
     }

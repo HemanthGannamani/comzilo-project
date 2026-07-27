@@ -11,8 +11,8 @@ export class CustomerRepository extends BaseRepository<Customer> {
     const opts = { ...options };
     opts.where = {
       ...opts.where,
-      tenant_id: tenantId,
-      store_id: storeId,
+      tenantId: tenantId,
+      storeId: storeId,
     };
     return opts;
   }

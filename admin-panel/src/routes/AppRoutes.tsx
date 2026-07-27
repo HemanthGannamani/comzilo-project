@@ -25,6 +25,8 @@ import { NotificationsPage } from '../pages/notifications/NotificationsPage';
 import { AdminShippingProvidersPage } from '../pages/AdminShippingProvidersPage';
 import { AdminInventoryPage } from '../pages/AdminInventoryPage';
 
+import { AdminCustomersPage } from '../pages/customers/AdminCustomersPage';
+
 export const AppRoutes: React.FC = () => {
   return (
     <Suspense fallback={<PageLoader />}>
@@ -37,6 +39,7 @@ export const AppRoutes: React.FC = () => {
           <Route element={<AdminLayout />}>
             <Route path="/dashboard" element={<AdminDashboardPage />} />
             <Route path="/tenants" element={<TenantsPage />} />
+            <Route path="/customers" element={<AdminCustomersPage />} />
             <Route path="/seller-applications" element={<SellerApplicationsPage />} />
             <Route path="/sellers" element={<SellersListPage />} />
             <Route path="/sellers/add" element={<AddSellerPage />} />

@@ -83,6 +83,7 @@ export const AdminLayout: React.FC = () => {
     { label: 'Tenant Management', path: '/tenants', icon: <Building2 size={20} /> },
     { label: 'Seller Applications', path: '/seller-applications', icon: <Building2 size={20} /> },
     { label: 'Sellers', path: '/sellers', icon: <Users size={20} /> },
+    { label: 'Customers', path: '/customers', icon: <Users size={20} /> },
     { label: 'Store Management', path: '/stores', icon: <Store size={20} /> },
     { label: 'Subscription Plans', path: '/subscriptions', icon: <CreditCard size={20} /> },
     { label: 'Platform Users', path: '/users', icon: <Users size={20} /> },

@@ -291,6 +291,13 @@ export const adminApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ['Seller', 'SellerApplication', 'Tenant', 'Store', 'Backup' as any],
     }),
+    getAdminCustomers: builder.query<any, { page?: number; limit?: number; search?: string; tenantId?: string | number; storeId?: string | number }>({
+      query: (params) => ({
+        url: '/customers',
+        params,
+      }),
+      providesTags: ['Customer' as any],
+    }),
     getAuditLogs: builder.query<any, any>({
       query: (params) => ({
         url: '/admin/audit-logs',
@@ -343,5 +350,6 @@ export const {
   useCreateBackupMutation,
   useDeleteBackupMutation,
   useRestoreBackupMutation,
+  useGetAdminCustomersQuery,
   useGetAuditLogsQuery,
 } = adminApi;

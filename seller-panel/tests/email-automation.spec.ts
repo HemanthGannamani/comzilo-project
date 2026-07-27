@@ -20,7 +20,7 @@ test.describe('Phase 5A - Enterprise Email Automation Engine & E2E QA', () => {
     await page.goto('http://localhost:5173/marketing/email-providers');
     await expect(page.locator('h5')).toContainText('Gmail SMTP Settings');
 
-    // Open Configure Settings for Custom SMTP
+    // Open Configure Settings Modal
     await page.click('button:has-text("Configure Settings")');
     await expect(page.locator('.MuiDialog-root')).toBeVisible();
 
@@ -28,11 +28,15 @@ test.describe('Phase 5A - Enterprise Email Automation Engine & E2E QA', () => {
     await page.getByLabel('Sender Name').fill('Comzilo Automated Store');
     await page.getByLabel('Sender Email Address').fill('admin@comzilo.com');
 
-    // Click Test Connection
+    // Save Settings
+    await page.click('.MuiDialog-root button:has-text("Save Settings")');
+    await expect(page.locator('.MuiDialog-root')).toBeHidden();
+
+    // Click Test Connection on Card
     await page.click('button:has-text("Test Connection")');
     await page.waitForTimeout(1000);
 
-    // Open Send Test Email Modal
+    // Open Send Test Email Modal from Card
     await page.click('button:has-text("Send Test Email")');
     await expect(page.locator('.MuiDialog-root:has-text("Recipient Email Address")')).toBeVisible();
 
@@ -40,10 +44,6 @@ test.describe('Phase 5A - Enterprise Email Automation Engine & E2E QA', () => {
     await page.getByLabel('Recipient Email Address').fill('test-recipient@example.com');
     await page.click('.MuiDialog-root:has-text("Recipient Email Address") button:has-text("Send Test Email")');
     await expect(page.locator('.MuiDialog-root:has-text("Recipient Email Address")')).toBeHidden({ timeout: 10000 });
-
-    // Save Settings
-    await page.click('.MuiDialog-root:has-text("Configure") button:has-text("Save Settings")');
-    await expect(page.locator('.MuiDialog-root')).toBeHidden();
   });
 
   test('Scenario 2 & 3: Customer Cart Abandonment -> Queue Job -> Background Worker -> Email Log Entry', async ({ request }) => {

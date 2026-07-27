@@ -63,8 +63,8 @@ export class AuthService extends BaseService {
     // If a store slug is provided, verify the store exists in database
     if (data.storeSlug) {
       const [store]: any = await sequelize.query(
-        'SELECT id, tenant_id FROM stores WHERE slug = :slug AND status = "active" LIMIT 1',
-        { replacements: { slug: data.storeSlug }, type: QueryTypes.SELECT }
+        'SELECT id, tenant_id FROM stores WHERE (slug = :slug OR LOWER(name) = LOWER(:slug)) AND status = "active" LIMIT 1',
+        { replacements: { slug: data.storeSlug.trim() }, type: QueryTypes.SELECT }
       );
       if (!store) {
         throw new ValidationError(`Store code "${data.storeSlug}" was not found. Please enter a valid seller store code or leave it blank.`);
@@ -110,8 +110,8 @@ export class AuthService extends BaseService {
       // If storeSlug is provided in payload, look up store_id
       if (data.storeSlug) {
         const [foundStore]: any = await sequelize.query(
-          'SELECT id FROM stores WHERE slug = :slug AND status = "active" LIMIT 1',
-          { replacements: { slug: data.storeSlug }, type: QueryTypes.SELECT, transaction: t }
+          'SELECT id FROM stores WHERE (slug = :slug OR LOWER(name) = LOWER(:slug)) AND status = "active" LIMIT 1',
+          { replacements: { slug: data.storeSlug.trim() }, type: QueryTypes.SELECT, transaction: t }
         );
         if (foundStore) {
           targetStoreId = Number(foundStore.id);

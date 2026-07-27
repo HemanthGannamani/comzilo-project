@@ -12,6 +12,7 @@ import { SellerRegisterPage } from '../pages/auth/SellerRegisterPage';
 import { ForgotPasswordPage } from '../pages/auth/ForgotPasswordPage';
 import { ResetPasswordPage } from '../pages/auth/ResetPasswordPage';
 import { ProfilePage } from '../pages/auth/ProfilePage';
+import { ChangePasswordPage } from '../pages/auth/ChangePasswordPage';
 import { DashboardPage } from '../pages/dashboard/DashboardPage';
 
 import { ProductsPage } from '../features/products/pages/ProductsPage';

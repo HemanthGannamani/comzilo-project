@@ -235,7 +235,7 @@ export const EmailProvidersPage: React.FC = () => {
           Configure Gmail SMTP Settings
         </DialogTitle>
         <DialogContent dividers>
-          <Box container component="form" sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <Box component="form" sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             {/* STATUS SWITCH */}
             <Box
               sx={{

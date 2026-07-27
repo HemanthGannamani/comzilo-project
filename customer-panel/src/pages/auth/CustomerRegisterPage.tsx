@@ -7,7 +7,7 @@ import { axiosInstance } from '../../api/axiosInstance';
 
 export const CustomerRegisterPage: React.FC = () => {
   const { storeSlug } = useParams<{ storeSlug?: string }>();
-  const [formData, setFormData] = useState({ firstName: '', lastName: '', email: '', password: '' });
+  const [formData, setFormData] = useState({ firstName: '', lastName: '', email: '', password: '', storeSlug: storeSlug || '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
@@ -20,7 +20,14 @@ export const CustomerRegisterPage: React.FC = () => {
     setError(null);
 
     try {
-      await axiosInstance.post('/auth/register', formData);
+      const activeSlug = formData.storeSlug || storeSlug;
+      const headers: Record<string, string> = {};
+      if (activeSlug) {
+        headers['x-store-slug'] = activeSlug;
+        localStorage.setItem('comzilo_active_store_slug', activeSlug);
+      }
+
+      await axiosInstance.post('/auth/register', formData, { headers });
       toast.success('Customer account registered successfully! Please sign in.');
       navigate(loginLink);
     } catch (err: any) {
@@ -71,6 +78,16 @@ export const CustomerRegisterPage: React.FC = () => {
               />
             </Grid>
           </Grid>
+
+          <TextField
+            label="Store Code / Store ID (e.g. satish-traders)"
+            fullWidth
+            value={formData.storeSlug || storeSlug || ''}
+            onChange={(e) => setFormData({ ...formData, storeSlug: e.target.value })}
+            placeholder="satish-traders"
+            sx={{ mb: 2 }}
+            helperText="Enter the unique store code or merchant ID you wish to register under."
+          />
 
           <TextField
             label="Email Address"

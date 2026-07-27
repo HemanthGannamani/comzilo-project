@@ -60,25 +60,37 @@ export class SmtpService {
    * Get active SMTP Transporter for a Tenant
    */
   public async getTransporter(tenantId: number, overrideConfig?: SmtpConfig): Promise<{ transporter: nodemailer.Transporter; senderName: string; senderEmail: string }> {
-    let config: SmtpConfig | null = overrideConfig || null;
+    let config: SmtpConfig | null = null;
 
-    if (!config) {
+    if (overrideConfig && (overrideConfig.host || (overrideConfig as any).smtpHost)) {
+      const rawObj: any = overrideConfig;
+      config = {
+        host: rawObj.smtpHost || rawObj.host || 'smtp.gmail.com',
+        port: Number(rawObj.smtpPort || rawObj.port || 587),
+        username: rawObj.smtpUsername || rawObj.username || rawObj.smtpUser || '',
+        password: SmtpService.decryptPassword(rawObj.smtpPassword || rawObj.password || rawObj.smtpPass || ''),
+        encryption: rawObj.encryption || (Number(rawObj.smtpPort || rawObj.port) === 465 ? 'ssl' : 'tls'),
+        senderName: rawObj.senderName || rawObj.fromName || 'Comzilo Store',
+        senderEmail: rawObj.senderEmail || rawObj.fromEmail || rawObj.smtpUsername || rawObj.username || '',
+        providerType: rawObj.providerType || 'smtp',
+      };
+    } else {
       const [row]: any = await sequelize.query(
-        'SELECT * FROM marketing_email_providers WHERE tenant_id = :tenantId AND status = "active" LIMIT 1',
-        { replacements: { tenantId }, type: QueryTypes.SELECT }
+        'SELECT * FROM marketing_email_providers WHERE tenant_id = :tenantId AND status = "active" AND (provider_type = "smtp" OR provider_type = "gmail") ORDER BY id DESC LIMIT 1',
+        { replacements: { tenantId: tenantId || 1 }, type: QueryTypes.SELECT }
       );
 
       if (row && row.config_json) {
         try {
           const parsed = typeof row.config_json === 'string' ? JSON.parse(row.config_json) : row.config_json;
           config = {
-            host: parsed.host || parsed.smtpHost,
-            port: Number(parsed.port || parsed.smtpPort || 587),
-            username: parsed.username || parsed.smtpUser,
-            password: SmtpService.decryptPassword(parsed.password || parsed.smtpPass),
-            encryption: parsed.encryption || (Number(parsed.port) === 465 ? 'ssl' : 'tls'),
-            senderName: parsed.senderName || parsed.fromName || 'Comzilo Merchant',
-            senderEmail: parsed.senderEmail || parsed.fromEmail || parsed.username,
+            host: parsed.smtpHost || parsed.host || 'smtp.gmail.com',
+            port: Number(parsed.smtpPort || parsed.port || 587),
+            username: parsed.smtpUsername || parsed.username || parsed.smtpUser || '',
+            password: SmtpService.decryptPassword(parsed.smtpPassword || parsed.password || parsed.smtpPass || ''),
+            encryption: parsed.encryption || (Number(parsed.smtpPort || parsed.port) === 465 ? 'ssl' : 'tls'),
+            senderName: parsed.senderName || parsed.fromName || 'Comzilo Store',
+            senderEmail: parsed.senderEmail || parsed.fromEmail || parsed.smtpUsername || parsed.username || '',
             providerType: row.provider_type || 'smtp',
           };
         } catch (e) {
@@ -88,7 +100,8 @@ export class SmtpService {
     }
 
     // Default Ethereal / Test SMTP fallback if no seller SMTP is configured yet
-    if (!config || !config.host) {
+    if (!config || !config.host || !config.username) {
+      console.log('[SmtpService] No custom SMTP credentials configured yet. Using Ethereal Test Account fallback.');
       const testAccount = await nodemailer.createTestAccount();
       const testTransporter = nodemailer.createTransport({
         host: 'smtp.ethereal.email',
@@ -107,6 +120,16 @@ export class SmtpService {
     }
 
     const isSecure = config.encryption === 'ssl' || config.port === 465;
+
+    console.log('[SmtpService] Active Provider Loaded:', {
+      providerId: config.providerType || 'smtp',
+      host: config.host,
+      port: config.port,
+      username: config.username,
+      secure: isSecure,
+      status: 'LOADED_SUCCESSFULLY',
+    });
+
     const transporter = nodemailer.createTransport({
       host: config.host,
       port: config.port,
@@ -122,7 +145,7 @@ export class SmtpService {
 
     return {
       transporter,
-      senderName: config.senderName || 'Comzilo Merchant',
+      senderName: config.senderName || 'Comzilo Store',
       senderEmail: config.senderEmail || config.username,
     };
   }

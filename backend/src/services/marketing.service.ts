@@ -130,7 +130,7 @@ export class MarketingService {
   }
 
   public async saveEmailProvider(tenantId: number, data: any): Promise<any> {
-    if (!data.providerId) throw new ValidationError('Provider ID is required');
+    const providerId = data.providerId || 'smtp';
 
     // Encrypt password if provided
     let rawPassword = data.smtpPassword || data.password || '';
@@ -139,81 +139,147 @@ export class MarketingService {
     } else if (rawPassword === '******') {
       // Fetch existing password from DB
       const [existing]: any = await sequelize.query(
-        'SELECT config_json FROM marketing_email_providers WHERE tenant_id = :tenantId AND provider_type = :providerType LIMIT 1',
-        { replacements: { tenantId, providerType: data.providerId }, type: QueryTypes.SELECT }
+        'SELECT config_json FROM marketing_email_providers WHERE tenant_id = :tenantId AND (provider_type = "smtp" OR provider_type = "gmail") LIMIT 1',
+        { replacements: { tenantId }, type: QueryTypes.SELECT }
       );
       if (existing && existing.config_json) {
         try {
-          const parsed = JSON.parse(existing.config_json);
+          const parsed = typeof existing.config_json === 'string' ? JSON.parse(existing.config_json) : existing.config_json;
           rawPassword = parsed.password || parsed.smtpPassword || '';
         } catch {}
       }
     }
 
+    const smtpHost = data.smtpHost || data.host || 'smtp.gmail.com';
+    const smtpPort = Number(data.smtpPort || data.port || 587);
+    const smtpUsername = data.smtpUsername || data.username || '';
+    const senderName = data.senderName || data.fromName || 'Comzilo Store';
+    const senderEmail = data.senderEmail || data.fromEmail || smtpUsername || '';
+    const encryption = data.encryption || (smtpPort === 465 ? 'SSL' : 'TLS');
+
     const configObj = {
-      host: data.smtpHost || data.host || '',
-      port: Number(data.smtpPort || data.port || 587),
-      username: data.smtpUsername || data.username || '',
+      smtpHost,
+      smtpPort,
+      smtpUsername,
+      smtpPassword: rawPassword,
+      senderName,
+      senderEmail,
+      encryption,
+      host: smtpHost,
+      port: smtpPort,
+      username: smtpUsername,
       password: rawPassword,
-      encryption: data.encryption || (Number(data.smtpPort || data.port) === 465 ? 'ssl' : 'tls'),
-      senderName: data.senderName || data.fromName || 'Comzilo Merchant',
-      senderEmail: data.senderEmail || data.fromEmail || data.smtpUsername || data.username || '',
-      providerType: data.providerId,
+      providerType: 'smtp',
     };
 
     const configJson = JSON.stringify(configObj);
     const status = data.status || 'active';
 
-    await sequelize.query(
-      `INSERT INTO marketing_email_providers (tenant_id, name, provider_type, config_json, is_default, status, created_at, updated_at)
-       VALUES (:tenantId, :name, :providerType, :configJson, :isDefault, :status, NOW(), NOW())
-       ON DUPLICATE KEY UPDATE name = VALUES(name), config_json = VALUES(config_json), status = :status, is_default = VALUES(is_default), updated_at = NOW()`,
-      {
-        replacements: {
-          tenantId,
-          name: data.providerName || data.providerId,
-          providerType: data.providerId,
-          configJson,
-          isDefault: data.isDefault ? 1 : 0,
-          status,
-        },
-      }
+    // 1. Check if a row already exists for this tenant
+    const [existingRow]: any = await sequelize.query(
+      'SELECT id FROM marketing_email_providers WHERE tenant_id = :tenantId AND (provider_type = "smtp" OR provider_type = "gmail") LIMIT 1',
+      { replacements: { tenantId }, type: QueryTypes.SELECT }
     );
 
-    return { success: true, message: `Email Provider ${data.providerId} configured & saved successfully!` };
+    let activeRowId: number;
+
+    if (existingRow) {
+      activeRowId = existingRow.id;
+      await sequelize.query(
+        `UPDATE marketing_email_providers 
+         SET name = :name, provider_type = 'smtp', config_json = :configJson, is_default = 1, status = :status, updated_at = NOW() 
+         WHERE id = :id`,
+        {
+          replacements: {
+            id: existingRow.id,
+            name: 'Gmail SMTP',
+            configJson,
+            status,
+          },
+        }
+      );
+    } else {
+      const [insertRes]: any = await sequelize.query(
+        `INSERT INTO marketing_email_providers (tenant_id, name, provider_type, config_json, is_default, status, created_at, updated_at)
+         VALUES (:tenantId, 'Gmail SMTP', 'smtp', :configJson, 1, :status, NOW(), NOW())`,
+        {
+          replacements: {
+            tenantId,
+            configJson,
+            status,
+          },
+        }
+      );
+      activeRowId = insertRes;
+    }
+
+    // 2. Clean up any stale duplicate rows for this tenant to ensure strictly 1 active Gmail SMTP record
+    if (activeRowId) {
+      await sequelize.query(
+        'DELETE FROM marketing_email_providers WHERE tenant_id = :tenantId AND id != :activeRowId',
+        { replacements: { tenantId, activeRowId }, type: QueryTypes.DELETE }
+      );
+    }
+
+    return {
+      success: true,
+      message: 'Gmail SMTP settings saved successfully!',
+      config: configObj,
+    };
   }
 
   public async testSmtpConnection(tenantId: number, config?: any): Promise<boolean> {
-    const formattedConfig = config
-      ? {
-          host: config.smtpHost || config.host,
-          port: Number(config.smtpPort || config.port || 587),
-          username: config.smtpUsername || config.username,
-          password: config.smtpPassword || config.password,
-          encryption: config.encryption,
-          senderName: config.senderName,
-          senderEmail: config.senderEmail,
-        }
-      : undefined;
+    let formattedConfig: any = undefined;
+    if (config && (config.smtpHost || config.host || config.smtpUsername || config.username)) {
+      formattedConfig = {
+        host: config.smtpHost || config.host || 'smtp.gmail.com',
+        port: Number(config.smtpPort || config.port || 587),
+        username: config.smtpUsername || config.username || '',
+        password: config.smtpPassword || config.password || '',
+        encryption: config.encryption || (Number(config.smtpPort || config.port) === 465 ? 'ssl' : 'tls'),
+        senderName: config.senderName || config.fromName || 'Comzilo Store',
+        senderEmail: config.senderEmail || config.fromEmail || config.smtpUsername || config.username || '',
+        providerType: 'smtp',
+      };
+    }
 
     return await this.smtpService.verifyConnection(tenantId, formattedConfig);
   }
 
   public async sendTestEmail(tenantId: number, recipientEmail: string, config?: any): Promise<{ success: boolean; messageId: string }> {
     if (!recipientEmail) throw new ValidationError('Recipient Email Address is required');
-    const formattedConfig = config
-      ? {
-          host: config.smtpHost || config.host,
-          port: Number(config.smtpPort || config.port || 587),
-          username: config.smtpUsername || config.username,
-          password: config.smtpPassword || config.password,
-          encryption: config.encryption,
-          senderName: config.senderName,
-          senderEmail: config.senderEmail,
-        }
-      : undefined;
+    let formattedConfig: any = undefined;
+    if (config && (config.smtpHost || config.host || config.smtpUsername || config.username)) {
+      formattedConfig = {
+        host: config.smtpHost || config.host || 'smtp.gmail.com',
+        port: Number(config.smtpPort || config.port || 587),
+        username: config.smtpUsername || config.username || '',
+        password: config.smtpPassword || config.password || '',
+        encryption: config.encryption || (Number(config.smtpPort || config.port) === 465 ? 'ssl' : 'tls'),
+        senderName: config.senderName || config.fromName || 'Comzilo Store',
+        senderEmail: config.senderEmail || config.fromEmail || config.smtpUsername || config.username || '',
+        providerType: 'smtp',
+      };
+    }
 
-    return await this.smtpService.sendTestEmail(tenantId, recipientEmail, formattedConfig);
+    return await this.smtpService.sendEmail({
+      tenantId,
+      to: recipientEmail,
+      subject: 'Test Email - Comzilo Gmail SMTP Verification',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
+          <h2 style="color: #0284c7;">✅ Gmail SMTP Connection Verified</h2>
+          <p>Hello,</p>
+          <p>This is a test email sent from <strong>Comzilo Store</strong> via <strong>Gmail SMTP</strong>.</p>
+          <p>Your SMTP configuration has been saved and verified successfully!</p>
+          <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
+          <p style="font-size: 12px; color: #64748b;">Dispatched at: ${new Date().toLocaleString()}</p>
+        </div>
+      `,
+      templateName: 'smtp_test',
+      providerType: 'smtp',
+      overrideConfig: formattedConfig,
+    });
   }
 
   public async generateAiEmailContent(input: any): Promise<any> {

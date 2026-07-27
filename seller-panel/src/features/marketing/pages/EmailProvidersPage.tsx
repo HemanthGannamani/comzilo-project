@@ -58,7 +58,7 @@ export const EmailProvidersPage: React.FC = () => {
         smtpHost: cfg.smtpHost || cfg.host || 'smtp.gmail.com',
         smtpPort: String(cfg.smtpPort || cfg.port || '587'),
         smtpUsername: cfg.smtpUsername || cfg.username || '',
-        smtpPassword: cfg.smtpPassword || cfg.password || '',
+        smtpPassword: (cfg.smtpPassword || cfg.password) ? '******' : '',
         senderName: cfg.senderName || cfg.fromName || 'Comzilo Store',
         senderEmail: cfg.senderEmail || cfg.fromEmail || '',
         encryption: cfg.encryption || 'tls',

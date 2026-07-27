@@ -1,15 +1,26 @@
 import { Request, Response, NextFunction } from 'express';
+import { QueryTypes } from 'sequelize';
 import { CustomerService } from '../services/customer.service';
 import { success, created } from '../shared/responses';
 import { ValidationError } from '../shared/errors/AppError';
+import { sequelize } from '../config/database';
 
 export class CustomerController {
   private customerService = new CustomerService();
 
-  private getStoreId(req: Request): number {
-    const storeId = Number(
+  private async getStoreIdAsync(req: Request, tenantId: number): Promise<number> {
+    let storeId = Number(
       req.headers['x-store-id'] || req.query.storeId || req.body.storeId || req.context?.storeId
     );
+    if (!storeId || isNaN(storeId)) {
+      const [store]: any = await sequelize.query(
+        'SELECT id FROM stores WHERE tenant_id = :tenantId AND status = "active" ORDER BY id ASC LIMIT 1',
+        { replacements: { tenantId }, type: QueryTypes.SELECT }
+      );
+      if (store) {
+        storeId = Number(store.id);
+      }
+    }
     if (!storeId || isNaN(storeId)) {
       throw new ValidationError('Store context is required');
     }
@@ -23,7 +34,7 @@ export class CustomerController {
   ): Promise<void> => {
     try {
       const tenantId = req.context!.tenantId!;
-      const storeId = this.getStoreId(req);
+      const storeId = await this.getStoreIdAsync(req, tenantId);
       const userId = req.context!.authenticatedUserId!;
       const ip = req.ip;
       const userAgent = req.headers['user-agent'];
@@ -46,7 +57,7 @@ export class CustomerController {
   public getCustomer = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const tenantId = req.context!.tenantId!;
-      const storeId = this.getStoreId(req);
+      const storeId = await this.getStoreIdAsync(req, tenantId);
       const id = Number(req.params.id);
 
       const customer = await this.customerService.getCustomer(tenantId, storeId, id);
@@ -59,7 +70,7 @@ export class CustomerController {
   public listCustomers = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const tenantId = req.context!.tenantId!;
-      const storeId = this.getStoreId(req);
+      const storeId = await this.getStoreIdAsync(req, tenantId);
 
       const result = await this.customerService.listCustomers(tenantId, storeId, req.query);
       success(res, 'Customers listed successfully', result);
@@ -75,7 +86,7 @@ export class CustomerController {
   ): Promise<void> => {
     try {
       const tenantId = req.context!.tenantId!;
-      const storeId = this.getStoreId(req);
+      const storeId = await this.getStoreIdAsync(req, tenantId);
       const id = Number(req.params.id);
       const userId = req.context!.authenticatedUserId!;
       const ip = req.ip;
@@ -99,7 +110,7 @@ export class CustomerController {
   public blockCustomer = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const tenantId = req.context!.tenantId!;
-      const storeId = this.getStoreId(req);
+      const storeId = await this.getStoreIdAsync(req, tenantId);
       const id = Number(req.params.id);
       const userId = req.context!.authenticatedUserId!;
       const ip = req.ip;
@@ -126,7 +137,7 @@ export class CustomerController {
   ): Promise<void> => {
     try {
       const tenantId = req.context!.tenantId!;
-      const storeId = this.getStoreId(req);
+      const storeId = await this.getStoreIdAsync(req, tenantId);
       const id = Number(req.params.id);
       const userId = req.context!.authenticatedUserId!;
       const ip = req.ip;
@@ -153,7 +164,7 @@ export class CustomerController {
   ): Promise<void> => {
     try {
       const tenantId = req.context!.tenantId!;
-      const storeId = this.getStoreId(req);
+      const storeId = await this.getStoreIdAsync(req, tenantId);
       const id = Number(req.params.id);
       const userId = req.context!.authenticatedUserId!;
       const ip = req.ip;
@@ -180,7 +191,7 @@ export class CustomerController {
   ): Promise<void> => {
     try {
       const tenantId = req.context!.tenantId!;
-      const storeId = this.getStoreId(req);
+      const storeId = await this.getStoreIdAsync(req, tenantId);
       const id = Number(req.params.id);
       const userId = req.context!.authenticatedUserId!;
       const ip = req.ip;
@@ -207,7 +218,7 @@ export class CustomerController {
   ): Promise<void> => {
     try {
       const tenantId = req.context!.tenantId!;
-      const storeId = this.getStoreId(req);
+      const storeId = await this.getStoreIdAsync(req, tenantId);
       const id = Number(req.params.id);
       const userId = req.context!.authenticatedUserId!;
       const ip = req.ip;
@@ -227,7 +238,7 @@ export class CustomerController {
   ): Promise<void> => {
     try {
       const tenantId = req.context!.tenantId!;
-      const storeId = this.getStoreId(req);
+      const storeId = await this.getStoreIdAsync(req, tenantId);
       const id = Number(req.params.id);
       const userId = req.context!.authenticatedUserId!;
       const ip = req.ip;

@@ -28,7 +28,8 @@ export class EmailQueueManager {
   }): Promise<number> {
     const { tenantId, triggerEvent, recipient, payload, delayMinutes = 0, cartToken } = params;
 
-    const scheduledAt = new Date(Date.now() + delayMinutes * 60 * 1000)
+    const offsetMs = delayMinutes > 0 ? delayMinutes * 60 * 1000 : -1000;
+    const scheduledAt = new Date(Date.now() + offsetMs)
       .toISOString()
       .slice(0, 19)
       .replace('T', ' ');

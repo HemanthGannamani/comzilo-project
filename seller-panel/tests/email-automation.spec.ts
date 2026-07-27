@@ -38,7 +38,7 @@ test.describe('Phase 5A - Enterprise Email Automation Engine & E2E QA', () => {
 
     // Fill Recipient & Send
     await page.getByLabel('Recipient Email Address').fill('test-recipient@example.com');
-    await page.click('.MuiDialog-actions button:has-text("Send Test Email")');
+    await page.click('.MuiDialog-root:has-text("Recipient Email Address") button:has-text("Send Test Email")');
     await page.waitForTimeout(1500);
 
     // Save Settings

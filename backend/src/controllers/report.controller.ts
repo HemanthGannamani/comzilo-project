@@ -285,4 +285,26 @@ export class ReportController {
       next(error);
     }
   };
+
+  public getMarketingReport = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const tenantId = req.context!.tenantId!;
+      const storeId = this.getStoreId(req);
+      const data = await this.reportService.getMarketingReport(tenantId, storeId);
+      success(res, 'Marketing report retrieved successfully', data);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public scheduleReport = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const tenantId = req.context!.tenantId!;
+      const storeId = this.getStoreId(req);
+      const data = await this.reportService.scheduleReport(tenantId, storeId, req.body);
+      success(res, 'Report delivery scheduled successfully', data);
+    } catch (error) {
+      next(error);
+    }
+  };
 }

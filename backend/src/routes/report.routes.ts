@@ -64,5 +64,8 @@ router.get(
   controller.exportCSV
 );
 
+router.get('/marketing', requirePermission('report.read'), controller.getMarketingReport);
+router.post('/schedule', requirePermission('report.read'), controller.scheduleReport);
+
 export default router;
 export { router as reportRoutes };

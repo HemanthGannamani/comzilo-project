@@ -382,7 +382,7 @@ export class ReportService extends BaseService {
   /**
    * Schedules automated report delivery.
    */
-  public async scheduleReport(tenantId: number, storeId: number, data: any): Promise<any> {
+  public async scheduleReport(tenantId: number, _storeId: number, data: any): Promise<any> {
     return {
       id: Date.now(),
       tenantId,

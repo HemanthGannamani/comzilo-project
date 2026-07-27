@@ -55,8 +55,8 @@ export const customerValidation = {
     customerType: Joi.string().valid('individual', 'business').optional(),
     email: Joi.string().email().optional(),
     phone: Joi.string().optional(),
-    customerCode: Joi.string().optional(),
-    companyName: Joi.string().optional(),
+    tenantId: Joi.alternatives().try(Joi.number().integer(), Joi.string().allow('')).optional(),
+    storeId: Joi.alternatives().try(Joi.number().integer(), Joi.string().allow('')).optional(),
   }).unknown(false),
 
   createAddress: Joi.object({

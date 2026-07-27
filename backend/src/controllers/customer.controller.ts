@@ -69,10 +69,21 @@ export class CustomerController {
 
   public listCustomers = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const tenantId = req.context!.tenantId!;
-      const storeId = await this.getStoreIdAsync(req, tenantId);
+      const qTenantId = req.query.tenantId ? Number(req.query.tenantId) : null;
+      const qStoreId = req.query.storeId ? Number(req.query.storeId) : null;
 
-      const result = await this.customerService.listCustomers(tenantId, storeId, req.query);
+      const tenantId = qTenantId || req.context?.tenantId || null;
+      let storeId = qStoreId;
+
+      if (!storeId && tenantId) {
+        try {
+          storeId = await this.getStoreIdAsync(req, tenantId);
+        } catch {
+          storeId = null;
+        }
+      }
+
+      const result = await this.customerService.listCustomers(tenantId as any, storeId as any, req.query);
       success(res, 'Customers listed successfully', result);
     } catch (error) {
       next(error);

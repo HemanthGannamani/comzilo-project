@@ -200,6 +200,8 @@ export class CustomerService extends BaseService {
       offset,
       order: [[orderField, orderDirection]],
       include: [
+        { model: Tenant, as: 'tenant', attributes: ['id', 'name', 'slug'] },
+        { model: Store, as: 'store', attributes: ['id', 'name', 'slug'] },
         { model: CustomerPreference, as: 'preference' },
         { model: CustomerTag, as: 'tags', through: { attributes: [] } },
       ],

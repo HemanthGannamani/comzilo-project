@@ -7,13 +7,12 @@ export class CustomerRepository extends BaseRepository<Customer> {
     super(Customer);
   }
 
-  private applyStoreScope(tenantId: number, storeId: number, options: any = {}): any {
+  private applyStoreScope(tenantId?: number | null, storeId?: number | null, options: any = {}): any {
     const opts = { ...options };
-    opts.where = {
-      ...opts.where,
-      tenantId: tenantId,
-      storeId: storeId,
-    };
+    const whereScope: any = { ...opts.where };
+    if (tenantId) whereScope.tenantId = tenantId;
+    if (storeId) whereScope.storeId = storeId;
+    opts.where = whereScope;
     return opts;
   }
 

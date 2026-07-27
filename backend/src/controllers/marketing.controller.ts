@@ -38,6 +38,76 @@ export class MarketingController {
     }
   };
 
+  public testSmtpConnection = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const tenantId = req.context?.tenantId || 1;
+      await this.service.testSmtpConnection(tenantId, req.body);
+      success(res, 'SMTP Connection verified successfully');
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  public sendTestEmail = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const tenantId = req.context?.tenantId || 1;
+      const { recipientEmail, config } = req.body;
+      const result = await this.service.sendTestEmail(tenantId, recipientEmail, config);
+      success(res, 'Test email sent successfully', result);
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  public generateAiEmailContent = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const result = await this.service.generateAiEmailContent(req.body);
+      success(res, 'AI Email template generated successfully', result);
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  public getEmailLogs = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const tenantId = req.headers.authorization ? req.context?.tenantId || 1 : null;
+      const logs = await this.service.getEmailLogs(tenantId);
+      success(res, 'Email logs retrieved successfully', logs);
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  public getEmailQueue = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const tenantId = req.headers.authorization ? req.context?.tenantId || 1 : null;
+      const queue = await this.service.getEmailQueue(tenantId);
+      success(res, 'Email queue retrieved successfully', queue);
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  public enqueueCartAbandonment = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const tenantId = req.context?.tenantId || 1;
+      const { recipient, payload, delayMinutes, cartToken } = req.body;
+      const jobId = await this.service.enqueueCartAbandonment(tenantId, recipient, payload, delayMinutes, cartToken);
+      success(res, 'Cart abandonment email queued successfully', { jobId });
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  public processQueueNow = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const result = await this.service.processQueueNow();
+      success(res, 'Email queue processed successfully', result);
+    } catch (err) {
+      next(err);
+    }
+  };
+
   // Email Templates
   public getEmailTemplates = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {

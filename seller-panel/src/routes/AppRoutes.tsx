@@ -33,6 +33,7 @@ import { AbandonedCartPage } from '../features/marketing/pages/AbandonedCartPage
 import { CustomerSegmentsPage } from '../features/marketing/pages/CustomerSegmentsPage';
 import { AutomationRulesPage } from '../features/marketing/pages/AutomationRulesPage';
 import { MarketingAnalyticsPage } from '../features/marketing/pages/MarketingAnalyticsPage';
+import { EmailLogsPage } from '../features/marketing/pages/EmailLogsPage';
 
 import { WarehousesPage } from '../features/inventory/pages/WarehousesPage';
 import { WarehouseLocationsPage } from '../features/inventory/pages/WarehouseLocationsPage';
@@ -109,6 +110,7 @@ export const AppRoutes: React.FC = () => {
               <Route path="customer-segments" element={<CustomerSegmentsPage />} />
               <Route path="automation-rules" element={<AutomationRulesPage />} />
               <Route path="analytics" element={<MarketingAnalyticsPage />} />
+              <Route path="email-logs" element={<EmailLogsPage />} />
             </Route>
 
             {/* Inventory Routes */}

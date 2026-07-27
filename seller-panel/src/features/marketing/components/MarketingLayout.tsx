@@ -30,6 +30,7 @@ export const MarketingLayout: React.FC = () => {
     if (path.includes('/marketing/customer-segments') || path.includes('/marketing/segments')) return 7;
     if (path.includes('/marketing/automation-rules')) return 8;
     if (path.includes('/marketing/analytics')) return 9;
+    if (path.includes('/marketing/email-logs')) return 10;
     return 0; // Default: Dashboard
   };
 
@@ -65,6 +66,9 @@ export const MarketingLayout: React.FC = () => {
       case 9:
         navigate('/marketing/analytics');
         break;
+      case 10:
+        navigate('/marketing/email-logs');
+        break;
     }
   };
 
@@ -82,6 +86,7 @@ export const MarketingLayout: React.FC = () => {
           <Tab icon={<Users size={18} />} iconPosition="start" label="Segments" sx={{ fontWeight: 700 }} />
           <Tab icon={<GitBranch size={18} />} iconPosition="start" label="Automation Rules" sx={{ fontWeight: 700 }} />
           <Tab icon={<BarChart3 size={18} />} iconPosition="start" label="Analytics" sx={{ fontWeight: 700 }} />
+          <Tab icon={<Mail size={18} />} iconPosition="start" label="Email History & Logs" sx={{ fontWeight: 700 }} />
         </Tabs>
       </Paper>
       <Box>

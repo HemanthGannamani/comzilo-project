@@ -100,15 +100,52 @@ export const EmailProvidersPage: React.FC = () => {
     }
   };
 
+  const [testEmailModalOpen, setTestEmailModalOpen] = useState(false);
+  const [testRecipientEmail, setTestRecipientEmail] = useState('');
+  const [isTesting, setIsTesting] = useState(false);
+  const [isSendingTest, setIsSendingTest] = useState(false);
+
   const handleTestConnection = async () => {
-    toast.promise(
-      new Promise((resolve) => setTimeout(resolve, 1200)),
-      {
-        loading: `Testing connection to ${selectedProvider?.name}...`,
-        success: `Successfully connected to ${selectedProvider?.name}!`,
-        error: 'Connection test failed',
-      }
-    );
+    setIsTesting(true);
+    try {
+      await axiosInstance.post('/marketing/email-providers/test-connection', {
+        providerId: selectedProvider?.id,
+        ...formData,
+      });
+      toast.success(`Connection to ${selectedProvider?.name} verified successfully!`);
+    } catch (err: any) {
+      const errMsg = err?.response?.data?.message || err?.message || 'SMTP Connection failed';
+      toast.error(`SMTP Error: ${errMsg}`, { duration: 6000 });
+    } finally {
+      setIsTesting(false);
+    }
+  };
+
+  const handleOpenSendTestModal = () => {
+    setTestRecipientEmail(formData.senderEmail || 'admin@comzilo.com');
+    setTestEmailModalOpen(true);
+  };
+
+  const handleSendTestEmailSubmit = async () => {
+    if (!testRecipientEmail) {
+      toast.error('Recipient Email Address is required');
+      return;
+    }
+    setIsSendingTest(true);
+    try {
+      await axiosInstance.post('/marketing/email-providers/send-test-email', {
+        providerId: selectedProvider?.id,
+        recipientEmail: testRecipientEmail,
+        config: formData,
+      });
+      toast.success('Test Email Sent Successfully');
+      setTestEmailModalOpen(false);
+    } catch (err: any) {
+      const errMsg = err?.response?.data?.message || err?.message || 'Failed to send test email';
+      toast.error(`SMTP Error: ${errMsg}`, { duration: 7000 });
+    } finally {
+      setIsSendingTest(false);
+    }
   };
 
   const handleSaveSettings = async () => {
@@ -136,7 +173,7 @@ export const EmailProvidersPage: React.FC = () => {
           Email Marketing Providers & SMTP Settings
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          Configure SMTP servers, Amazon SES, Mailgun, Brevo, ZeptoMail, or Mailchimp APIs per tenant. Click Activate or Deactivate to toggle provider status.
+          Configure SMTP servers, Amazon SES, Mailgun, Brevo, ZeptoMail, or Mailchimp APIs per tenant. Test connection & send real test emails directly to your inbox.
         </Typography>
       </Box>
 
@@ -363,15 +400,48 @@ export const EmailProvidersPage: React.FC = () => {
           </Grid>
         </DialogContent>
         <DialogActions sx={{ px: 3, py: 2, justifyContent: 'space-between' }}>
-          <Button variant="outlined" color="info" onClick={handleTestConnection} startIcon={<Send size={16} />}>
-            Test Connection
-          </Button>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button variant="outlined" color="info" onClick={handleTestConnection} disabled={isTesting} startIcon={<Server size={16} />}>
+              {isTesting ? 'Testing...' : 'Test Connection'}
+            </Button>
+            <Button variant="outlined" color="success" onClick={handleOpenSendTestModal} startIcon={<Send size={16} />}>
+              Send Test Email
+            </Button>
+          </Box>
           <Box sx={{ display: 'flex', gap: 1 }}>
             <Button onClick={() => setModalOpen(false)}>Cancel</Button>
             <Button variant="contained" onClick={handleSaveSettings} sx={{ fontWeight: 700 }}>
               Save Settings
             </Button>
           </Box>
+        </DialogActions>
+      </Dialog>
+
+      {/* RECIPIENT POPUP MODAL FOR SEND TEST EMAIL */}
+      <Dialog open={testEmailModalOpen} onClose={() => setTestEmailModalOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Send size={20} color="#059669" />
+          Send Test Email
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Enter a recipient email address to send a real test message via <strong>{selectedProvider?.name}</strong>.
+          </Typography>
+          <TextField
+            label="Recipient Email Address"
+            type="email"
+            fullWidth
+            required
+            autoFocus
+            value={testRecipientEmail}
+            onChange={(e) => setTestRecipientEmail(e.target.value)}
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setTestEmailModalOpen(false)}>Cancel</Button>
+          <Button variant="contained" color="success" onClick={handleSendTestEmailSubmit} disabled={isSendingTest} sx={{ fontWeight: 700 }}>
+            {isSendingTest ? 'Sending...' : 'Send Test Email'}
+          </Button>
         </DialogActions>
       </Dialog>
     </Box>

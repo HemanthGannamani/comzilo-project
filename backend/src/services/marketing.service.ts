@@ -13,7 +13,20 @@ import { NotFoundError, ValidationError } from '../shared/errors/AppError';
 import { Op, QueryTypes } from 'sequelize';
 import { sequelize } from '../config/database';
 
+import { SmtpService } from './smtpService';
+import { AiEmailGenerator } from './aiEmailGenerator';
+import { EmailQueueManager } from './emailQueueManager';
+
 export class MarketingService {
+  private smtpService = new SmtpService();
+  private aiGenerator = new AiEmailGenerator();
+  private queueManager = new EmailQueueManager();
+
+  // Initialize background queue worker
+  constructor() {
+    this.queueManager.startWorker(15000);
+  }
+
   // ==========================================
   // 1. MARKETING DASHBOARD & ANALYTICS
   // ==========================================
@@ -102,16 +115,36 @@ export class MarketingService {
   public async saveEmailProvider(tenantId: number, data: any): Promise<any> {
     if (!data.providerId) throw new ValidationError('Provider ID is required');
 
-    const configJson = JSON.stringify({
-      smtpHost: data.smtpHost || '',
-      smtpPort: data.smtpPort || 587,
-      smtpUsername: data.smtpUsername || '',
-      smtpPassword: data.smtpPassword ? '******' : '',
-      apiKey: data.apiKey || '',
-      senderName: data.senderName || 'Comzilo Merchant',
-      senderEmail: data.senderEmail || 'notifications@comzilo.com',
-    });
+    // Encrypt password if provided
+    let rawPassword = data.smtpPassword || data.password || '';
+    if (rawPassword && rawPassword !== '******') {
+      rawPassword = SmtpService.encryptPassword(rawPassword);
+    } else if (rawPassword === '******') {
+      // Fetch existing password from DB
+      const [existing]: any = await sequelize.query(
+        'SELECT config_json FROM marketing_email_providers WHERE tenant_id = :tenantId AND provider_type = :providerType LIMIT 1',
+        { replacements: { tenantId, providerType: data.providerId }, type: QueryTypes.SELECT }
+      );
+      if (existing && existing.config_json) {
+        try {
+          const parsed = JSON.parse(existing.config_json);
+          rawPassword = parsed.password || parsed.smtpPassword || '';
+        } catch {}
+      }
+    }
 
+    const configObj = {
+      host: data.smtpHost || data.host || '',
+      port: Number(data.smtpPort || data.port || 587),
+      username: data.smtpUsername || data.username || '',
+      password: rawPassword,
+      encryption: data.encryption || (Number(data.smtpPort || data.port) === 465 ? 'ssl' : 'tls'),
+      senderName: data.senderName || data.fromName || 'Comzilo Merchant',
+      senderEmail: data.senderEmail || data.fromEmail || data.smtpUsername || data.username || '',
+      providerType: data.providerId,
+    };
+
+    const configJson = JSON.stringify(configObj);
     const status = data.status || 'active';
 
     await sequelize.query(
@@ -130,7 +163,84 @@ export class MarketingService {
       }
     );
 
-    return { success: true, message: `Email Provider ${data.providerId} status updated to ${status.toUpperCase()}!` };
+    return { success: true, message: `Email Provider ${data.providerId} configured & saved successfully!` };
+  }
+
+  public async testSmtpConnection(tenantId: number, config?: any): Promise<boolean> {
+    const formattedConfig = config
+      ? {
+          host: config.smtpHost || config.host,
+          port: Number(config.smtpPort || config.port || 587),
+          username: config.smtpUsername || config.username,
+          password: config.smtpPassword || config.password,
+          encryption: config.encryption,
+          senderName: config.senderName,
+          senderEmail: config.senderEmail,
+        }
+      : undefined;
+
+    return await this.smtpService.verifyConnection(tenantId, formattedConfig);
+  }
+
+  public async sendTestEmail(tenantId: number, recipientEmail: string, config?: any): Promise<{ success: boolean; messageId: string }> {
+    if (!recipientEmail) throw new ValidationError('Recipient Email Address is required');
+    const formattedConfig = config
+      ? {
+          host: config.smtpHost || config.host,
+          port: Number(config.smtpPort || config.port || 587),
+          username: config.smtpUsername || config.username,
+          password: config.smtpPassword || config.password,
+          encryption: config.encryption,
+          senderName: config.senderName,
+          senderEmail: config.senderEmail,
+        }
+      : undefined;
+
+    return await this.smtpService.sendTestEmail(tenantId, recipientEmail, formattedConfig);
+  }
+
+  public async generateAiEmailContent(input: any): Promise<any> {
+    return this.aiGenerator.generateTemplate(input);
+  }
+
+  public async getEmailLogs(tenantId: number | null): Promise<any[]> {
+    let logs: any[] = [];
+    if (tenantId !== null) {
+      logs = await sequelize.query(
+        'SELECT * FROM marketing_email_logs WHERE tenant_id = :tenantId ORDER BY id DESC LIMIT 100',
+        { replacements: { tenantId }, type: QueryTypes.SELECT }
+      );
+    }
+    if (logs.length === 0) {
+      logs = await sequelize.query(
+        'SELECT * FROM marketing_email_logs ORDER BY id DESC LIMIT 100',
+        { type: QueryTypes.SELECT }
+      );
+    }
+    return logs;
+  }
+
+  public async getEmailQueue(tenantId: number | null): Promise<any[]> {
+    const whereClause = tenantId !== null ? 'WHERE tenant_id = :tenantId' : '';
+    return await sequelize.query(
+      `SELECT * FROM marketing_email_queue ${whereClause} ORDER BY id DESC LIMIT 100`,
+      { replacements: { tenantId }, type: QueryTypes.SELECT }
+    );
+  }
+
+  public async enqueueCartAbandonment(tenantId: number, recipient: string, payload: any, delayMinutes = 5, cartToken?: string): Promise<number> {
+    return await this.queueManager.addJob({
+      tenantId,
+      triggerEvent: 'cart_abandoned',
+      recipient,
+      payload,
+      delayMinutes,
+      cartToken,
+    });
+  }
+
+  public async processQueueNow(): Promise<any> {
+    return await this.queueManager.processPendingJobs();
   }
 
   // ==========================================

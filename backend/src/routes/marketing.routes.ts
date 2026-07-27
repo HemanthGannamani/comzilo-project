@@ -11,8 +11,18 @@ router.get('/dashboard', authenticate, controller.getDashboardStats);
 // Email Providers & Templates
 router.get('/email-providers', authenticate, controller.getEmailProviders);
 router.post('/email-providers', authenticate, controller.saveEmailProvider);
+router.post('/email-providers/test-connection', authenticate, controller.testSmtpConnection);
+router.post('/email-providers/send-test-email', authenticate, controller.sendTestEmail);
+
 router.get('/email-templates', authenticate, controller.getEmailTemplates);
 router.post('/email-templates', authenticate, controller.createEmailTemplate);
+router.post('/email-templates/ai-generate', authenticate, controller.generateAiEmailContent);
+
+// Email Logs & Queue Engine
+router.get('/email-logs', authenticate, controller.getEmailLogs);
+router.get('/email-queue', authenticate, controller.getEmailQueue);
+router.post('/queue/enqueue-cart-abandonment', authenticate, controller.enqueueCartAbandonment);
+router.post('/queue/process-now', authenticate, controller.processQueueNow);
 
 // Campaigns
 router.get('/campaigns', authenticate, controller.getCampaigns);

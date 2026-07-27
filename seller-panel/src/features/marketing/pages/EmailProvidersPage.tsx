@@ -139,12 +139,12 @@ export const EmailProvidersPage: React.FC = () => {
         config: formData,
       });
       toast.success('Test Email Sent Successfully');
-      setTestEmailModalOpen(false);
     } catch (err: any) {
       const errMsg = err?.response?.data?.message || err?.message || 'Failed to send test email';
       toast.error(`SMTP Error: ${errMsg}`, { duration: 7000 });
     } finally {
       setIsSendingTest(false);
+      setTestEmailModalOpen(false);
     }
   };
 

@@ -39,10 +39,10 @@ test.describe('Phase 5A - Enterprise Email Automation Engine & E2E QA', () => {
     // Fill Recipient & Send
     await page.getByLabel('Recipient Email Address').fill('test-recipient@example.com');
     await page.click('.MuiDialog-root:has-text("Recipient Email Address") button:has-text("Send Test Email")');
-    await page.waitForTimeout(1500);
+    await expect(page.locator('.MuiDialog-root:has-text("Recipient Email Address")')).toBeHidden({ timeout: 10000 });
 
     // Save Settings
-    await page.click('button:has-text("Save Settings")');
+    await page.click('.MuiDialog-root:has-text("Configure") button:has-text("Save Settings")');
     await expect(page.locator('.MuiDialog-root')).toBeHidden();
   });
 

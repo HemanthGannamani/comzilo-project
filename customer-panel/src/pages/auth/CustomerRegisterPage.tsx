@@ -1,15 +1,18 @@
 import React, { useState } from 'react';
 import { Container, Paper, Typography, TextField, Button, Box, Grid, Alert } from '@mui/material';
 import { UserPlus } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { axiosInstance } from '../../api/axiosInstance';
 
 export const CustomerRegisterPage: React.FC = () => {
+  const { storeSlug } = useParams<{ storeSlug?: string }>();
   const [formData, setFormData] = useState({ firstName: '', lastName: '', email: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+
+  const loginLink = storeSlug ? `/store/${storeSlug}/login` : '/login';
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,7 +22,7 @@ export const CustomerRegisterPage: React.FC = () => {
     try {
       await axiosInstance.post('/auth/register', formData);
       toast.success('Customer account registered successfully! Please sign in.');
-      navigate('/login');
+      navigate(loginLink);
     } catch (err: any) {
       setError(err?.response?.data?.message || 'Registration failed. Please try again.');
     } finally {
@@ -96,7 +99,7 @@ export const CustomerRegisterPage: React.FC = () => {
 
         <Typography variant="body2" color="text.secondary">
           Already have an account?{' '}
-          <Typography component={Link} to="/login" variant="body2" sx={{ fontWeight: 700, color: '#2563EB', textDecoration: 'none' }}>
+          <Typography component={Link} to={loginLink} variant="body2" sx={{ fontWeight: 700, color: '#2563EB', textDecoration: 'none' }}>
             Sign In
           </Typography>
         </Typography>

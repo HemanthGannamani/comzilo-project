@@ -16,6 +16,15 @@ axiosInstance.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
+    // Extract storeSlug from URL path (e.g. /store/satish-traders/...) or fallback to localStorage
+    const match = window.location.pathname.match(/\/store\/([^/]+)/);
+    const activeStoreSlug = match ? match[1] : localStorage.getItem('comzilo_active_store_slug');
+    if (activeStoreSlug) {
+      config.headers['x-store-slug'] = activeStoreSlug;
+      localStorage.setItem('comzilo_active_store_slug', activeStoreSlug);
+    }
+
     return config;
   },
   (error) => Promise.reject(error)

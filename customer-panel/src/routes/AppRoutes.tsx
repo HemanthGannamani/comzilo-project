@@ -38,9 +38,12 @@ export const AppRoutes: React.FC = () => {
           <Route path="/checkout" element={<CheckoutPage />} />
           <Route path="/order-confirmation" element={<OrderConfirmationPage />} />
 
-          {/* Auth Routes */}
+          {/* Auth & Storefront Store-specific Routes */}
           <Route path="/login" element={<CustomerLoginPage />} />
           <Route path="/register" element={<CustomerRegisterPage />} />
+          <Route path="/store/:storeSlug" element={<HomePage />} />
+          <Route path="/store/:storeSlug/login" element={<CustomerLoginPage />} />
+          <Route path="/store/:storeSlug/register" element={<CustomerRegisterPage />} />
 
           {/* Enterprise Customer Portal Account Routes */}
           <Route path="/account" element={<CustomerDashboardPage />} />

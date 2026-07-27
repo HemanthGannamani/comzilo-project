@@ -94,11 +94,13 @@ export class AuthService extends BaseService {
         { transaction: t }
       );
 
+      const targetStoreId = data.storeId || context?.storeId || 1;
+
       // Create Customer Record
       await Customer.create(
         {
           tenantId,
-          storeId: 1,
+          storeId: targetStoreId,
           customerCode: `CUST-${Date.now().toString().slice(-6)}`,
           userId: user.id,
           email: user.email,

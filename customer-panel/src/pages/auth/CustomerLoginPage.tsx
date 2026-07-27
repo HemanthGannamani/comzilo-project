@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { Container, Paper, Typography, TextField, Button, Box, Alert } from '@mui/material';
 import { ShoppingBag, Lock } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAppDispatch } from '../../store/hooks';
 import { setCredentials } from '../../store/authSlice';
 import { axiosInstance } from '../../api/axiosInstance';
 import toast from 'react-hot-toast';
 
 export const CustomerLoginPage: React.FC = () => {
+  const { storeSlug } = useParams<{ storeSlug?: string }>();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -15,6 +16,8 @@ export const CustomerLoginPage: React.FC = () => {
 
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
+
+  const registerLink = storeSlug ? `/store/${storeSlug}/register` : '/register';
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -106,7 +109,7 @@ export const CustomerLoginPage: React.FC = () => {
 
         <Typography variant="body2" color="text.secondary">
           Don't have a customer account?{' '}
-          <Typography component={Link} to="/register" variant="body2" sx={{ fontWeight: 700, color: '#2563EB', textDecoration: 'none' }}>
+          <Typography component={Link} to={registerLink} variant="body2" sx={{ fontWeight: 700, color: '#2563EB', textDecoration: 'none' }}>
             Register Now
           </Typography>
         </Typography>

@@ -57,7 +57,7 @@ export const tenantResolver = async (
       );
       if (!results) {
         const [storeRes]: any = await sequelize.query(
-          'SELECT tenant_id FROM stores WHERE slug = :slug AND status = "active" LIMIT 1',
+          'SELECT id, tenant_id, slug FROM stores WHERE slug = :slug AND status = "active" LIMIT 1',
           {
             replacements: { slug },
             type: QueryTypes.SELECT,
@@ -75,6 +75,8 @@ export const tenantResolver = async (
           if (tRes) {
             tenantId = Number(tRes.id);
             tenantUuid = tRes.uuid;
+            req.context.storeId = Number(storeRes.id);
+            req.context.storeSlug = storeRes.slug;
           }
         }
       } else {

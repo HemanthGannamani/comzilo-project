@@ -243,7 +243,11 @@ export class MarketingService {
       };
     }
 
-    return await this.smtpService.verifyConnection(tenantId, formattedConfig);
+    try {
+      return await this.smtpService.verifyConnection(tenantId, formattedConfig);
+    } catch (err: any) {
+      throw new ValidationError(`SMTP Connection Failed: ${err.message || String(err)}`);
+    }
   }
 
   public async sendTestEmail(tenantId: number, recipientEmail: string, config?: any): Promise<{ success: boolean; messageId: string }> {
@@ -262,24 +266,28 @@ export class MarketingService {
       };
     }
 
-    return await this.smtpService.sendEmail({
-      tenantId,
-      to: recipientEmail,
-      subject: 'Test Email - Comzilo Gmail SMTP Verification',
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
-          <h2 style="color: #0284c7;">✅ Gmail SMTP Connection Verified</h2>
-          <p>Hello,</p>
-          <p>This is a test email sent from <strong>Comzilo Store</strong> via <strong>Gmail SMTP</strong>.</p>
-          <p>Your SMTP configuration has been saved and verified successfully!</p>
-          <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
-          <p style="font-size: 12px; color: #64748b;">Dispatched at: ${new Date().toLocaleString()}</p>
-        </div>
-      `,
-      templateName: 'smtp_test',
-      providerType: 'smtp',
-      overrideConfig: formattedConfig,
-    });
+    try {
+      return await this.smtpService.sendEmail({
+        tenantId,
+        to: recipientEmail,
+        subject: 'Test Email - Comzilo Gmail SMTP Verification',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
+            <h2 style="color: #0284c7;">✅ Gmail SMTP Connection Verified</h2>
+            <p>Hello,</p>
+            <p>This is a test email sent from <strong>Comzilo Store</strong> via <strong>Gmail SMTP</strong>.</p>
+            <p>Your SMTP configuration has been saved and verified successfully!</p>
+            <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
+            <p style="font-size: 12px; color: #64748b;">Dispatched at: ${new Date().toLocaleString()}</p>
+          </div>
+        `,
+        templateName: 'smtp_test',
+        providerType: 'smtp',
+        overrideConfig: formattedConfig,
+      });
+    } catch (err: any) {
+      throw new ValidationError(`Test Email Dispatch Failed: ${err.message || String(err)}`);
+    }
   }
 
   public async generateAiEmailContent(input: any): Promise<any> {

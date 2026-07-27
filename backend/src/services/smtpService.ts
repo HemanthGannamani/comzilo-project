@@ -62,45 +62,55 @@ export class SmtpService {
   public async getTransporter(tenantId: number, overrideConfig?: SmtpConfig): Promise<{ transporter: nodemailer.Transporter; senderName: string; senderEmail: string }> {
     let config: SmtpConfig | null = null;
 
-    if (overrideConfig && (overrideConfig.host || (overrideConfig as any).smtpHost)) {
-      const rawObj: any = overrideConfig;
-      config = {
-        host: rawObj.smtpHost || rawObj.host || 'smtp.gmail.com',
-        port: Number(rawObj.smtpPort || rawObj.port || 587),
-        username: rawObj.smtpUsername || rawObj.username || rawObj.smtpUser || '',
-        password: SmtpService.decryptPassword(rawObj.smtpPassword || rawObj.password || rawObj.smtpPass || ''),
-        encryption: rawObj.encryption || (Number(rawObj.smtpPort || rawObj.port) === 465 ? 'ssl' : 'tls'),
-        senderName: rawObj.senderName || rawObj.fromName || 'Comzilo Store',
-        senderEmail: rawObj.senderEmail || rawObj.fromEmail || rawObj.smtpUsername || rawObj.username || '',
-        providerType: rawObj.providerType || 'smtp',
-      };
-    } else {
-      const [row]: any = await sequelize.query(
-        'SELECT * FROM marketing_email_providers WHERE tenant_id = :tenantId AND status = "active" AND (provider_type = "smtp" OR provider_type = "gmail") ORDER BY id DESC LIMIT 1',
-        { replacements: { tenantId: tenantId || 1 }, type: QueryTypes.SELECT }
-      );
+    // Fetch DB record for fallback
+    const [dbRow]: any = await sequelize.query(
+      'SELECT * FROM marketing_email_providers WHERE tenant_id = :tenantId AND (provider_type = "smtp" OR provider_type = "gmail") ORDER BY id DESC LIMIT 1',
+      { replacements: { tenantId: tenantId || 1 }, type: QueryTypes.SELECT }
+    );
 
-      if (row && row.config_json) {
-        try {
-          const parsed = typeof row.config_json === 'string' ? JSON.parse(row.config_json) : row.config_json;
-          config = {
-            host: parsed.smtpHost || parsed.host || 'smtp.gmail.com',
-            port: Number(parsed.smtpPort || parsed.port || 587),
-            username: parsed.smtpUsername || parsed.username || parsed.smtpUser || '',
-            password: SmtpService.decryptPassword(parsed.smtpPassword || parsed.password || parsed.smtpPass || ''),
-            encryption: parsed.encryption || (Number(parsed.smtpPort || parsed.port) === 465 ? 'ssl' : 'tls'),
-            senderName: parsed.senderName || parsed.fromName || 'Comzilo Store',
-            senderEmail: parsed.senderEmail || parsed.fromEmail || parsed.smtpUsername || parsed.username || '',
-            providerType: row.provider_type || 'smtp',
-          };
-        } catch (e) {
-          console.warn('[SmtpService] Failed to parse config_json:', e);
-        }
+    let dbParsed: any = {};
+    if (dbRow && dbRow.config_json) {
+      try {
+        dbParsed = typeof dbRow.config_json === 'string' ? JSON.parse(dbRow.config_json) : dbRow.config_json;
+      } catch (e) {
+        console.warn('[SmtpService] Failed to parse db config_json:', e);
       }
     }
 
+    if (overrideConfig && (overrideConfig.host || (overrideConfig as any).smtpHost)) {
+      const rawObj: any = overrideConfig;
+      let rawPass = rawObj.smtpPassword || rawObj.password || '';
+      
+      // If password passed is masked or empty, fallback to DB password
+      if (!rawPass || rawPass === '******') {
+        rawPass = dbParsed.smtpPassword || dbParsed.password || dbParsed.smtpPass || '';
+      }
+
+      config = {
+        host: rawObj.smtpHost || rawObj.host || dbParsed.smtpHost || dbParsed.host || 'smtp.gmail.com',
+        port: Number(rawObj.smtpPort || rawObj.port || dbParsed.smtpPort || dbParsed.port || 587),
+        username: rawObj.smtpUsername || rawObj.username || rawObj.smtpUser || dbParsed.smtpUsername || dbParsed.username || '',
+        password: SmtpService.decryptPassword(rawPass),
+        encryption: rawObj.encryption || dbParsed.encryption || (Number(rawObj.smtpPort || rawObj.port) === 465 ? 'ssl' : 'tls'),
+        senderName: rawObj.senderName || rawObj.fromName || dbParsed.senderName || dbParsed.fromName || 'Comzilo Store',
+        senderEmail: rawObj.senderEmail || rawObj.fromEmail || dbParsed.senderEmail || dbParsed.fromEmail || rawObj.smtpUsername || rawObj.username || '',
+        providerType: rawObj.providerType || 'smtp',
+      };
+    } else if (dbRow && dbRow.config_json) {
+      config = {
+        host: dbParsed.smtpHost || dbParsed.host || 'smtp.gmail.com',
+        port: Number(dbParsed.smtpPort || dbParsed.port || 587),
+        username: dbParsed.smtpUsername || dbParsed.username || dbParsed.smtpUser || '',
+        password: SmtpService.decryptPassword(dbParsed.smtpPassword || dbParsed.password || dbParsed.smtpPass || ''),
+        encryption: dbParsed.encryption || (Number(dbParsed.smtpPort || dbParsed.port) === 465 ? 'ssl' : 'tls'),
+        senderName: dbParsed.senderName || dbParsed.fromName || 'Comzilo Store',
+        senderEmail: dbParsed.senderEmail || dbParsed.fromEmail || dbParsed.smtpUsername || dbParsed.username || '',
+        providerType: dbRow.provider_type || 'smtp',
+      };
+    }
+
     // Default Ethereal / Test SMTP fallback if no seller SMTP is configured yet
-    if (!config || !config.host || !config.username) {
+    if (!config || !config.host || !config.username || !config.password) {
       console.log('[SmtpService] No custom SMTP credentials configured yet. Using Ethereal Test Account fallback.');
       const testAccount = await nodemailer.createTestAccount();
       const testTransporter = nodemailer.createTransport({
@@ -119,7 +129,7 @@ export class SmtpService {
       };
     }
 
-    const isSecure = config.encryption === 'ssl' || config.port === 465;
+    const isSecure = config.encryption?.toLowerCase() === 'ssl' || config.port === 465;
 
     console.log('[SmtpService] Active Provider Loaded:', {
       providerId: config.providerType || 'smtp',
@@ -139,7 +149,7 @@ export class SmtpService {
         pass: config.password,
       },
       tls: {
-        rejectUnauthorized: false, // Prevent self-signed cert blocks in test/dev
+        rejectUnauthorized: false,
       },
     });
 
@@ -154,9 +164,14 @@ export class SmtpService {
    * Test Connection Endpoint Functionality
    */
   public async verifyConnection(tenantId: number, config?: SmtpConfig): Promise<boolean> {
-    const { transporter } = await this.getTransporter(tenantId, config);
-    await transporter.verify();
-    return true;
+    try {
+      const { transporter } = await this.getTransporter(tenantId, config);
+      await transporter.verify();
+      return true;
+    } catch (err: any) {
+      const msg = err?.message || String(err);
+      throw new Error(msg);
+    }
   }
 
   /**

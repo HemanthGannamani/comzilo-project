@@ -12,7 +12,7 @@ test.describe('Phase 4 - Enterprise WhatsApp Automation E2E Suite', () => {
     // 2. Navigate to WhatsApp Automation Workspace
     await page.goto('http://localhost:5173/marketing/whatsapp');
     await page.waitForTimeout(1000);
-    await expect(page.locator('text=Enterprise WhatsApp Automation & Communication Center')).toBeVisible();
+    await expect(page.locator('text=WhatsApp Marketing & Automated Messaging')).toBeVisible();
 
     // 3. Verify Connection Status & Tabs
     await expect(page.locator('text=Meta WhatsApp Business API Credentials')).toBeVisible();

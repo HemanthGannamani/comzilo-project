@@ -60,6 +60,17 @@ export class AuthService extends BaseService {
       throw new NotFoundError('Tenant not found');
     }
 
+    // If a store slug is provided, verify the store exists in database
+    if (data.storeSlug) {
+      const [store]: any = await sequelize.query(
+        'SELECT id, tenant_id FROM stores WHERE slug = :slug AND status = "active" LIMIT 1',
+        { replacements: { slug: data.storeSlug }, type: QueryTypes.SELECT }
+      );
+      if (!store) {
+        throw new ValidationError(`Store code "${data.storeSlug}" was not found. Please enter a valid seller store code or leave it blank.`);
+      }
+    }
+
     // Check duplicate email under this tenant
     const existingUser = await this.userRepository.findByEmail(tenantId, data.email);
     if (existingUser) {

@@ -7,7 +7,7 @@ import { InvoiceService } from '../services/invoice.service';
 import { PaymentService } from '../services/payment.service';
 import { NotificationService } from '../services/notification.service';
 import { AuthService } from '../services/auth.service';
-import { Customer, CustomerAddress, Product, User } from '../database/models';
+import { Customer, CustomerAddress, Product, User, Order } from '../database/models';
 import { v4 as uuidv4 } from 'uuid';
 import { success, created } from '../shared/responses';
 import { ValidationError, NotFoundError, UnauthorizedError } from '../shared/errors/AppError';
@@ -180,11 +180,13 @@ export class CustomerPortalController {
       if (!userId) throw new UnauthorizedError('Customer credentials missing');
 
       const customer = await this.getCustomerFromUser(tenantId, userId);
-      const storeId = customer.storeId || 1;
       const orderId = Number(req.params.id);
 
-      const order = await this.orderService.getOrder(tenantId, storeId, orderId);
-      if (order.customerId !== customer.id) {
+      const order: any = await Order.findByPk(orderId);
+      if (!order || Number(order.tenantId) !== Number(tenantId)) {
+        throw new NotFoundError(`Order with ID ${orderId} not found.`);
+      }
+      if (Number(order.customerId) !== Number(customer.id)) {
         throw new UnauthorizedError('Access denied: You do not own this order');
       }
 
@@ -201,19 +203,25 @@ export class CustomerPortalController {
       if (!userId) throw new UnauthorizedError('Customer credentials missing');
 
       const customer = await this.getCustomerFromUser(tenantId, userId);
-      const storeId = customer.storeId || 1;
       const orderId = Number(req.params.id);
 
-      const order = await this.orderService.getOrder(tenantId, storeId, orderId);
-      if (order.customerId !== customer.id) {
+      const order: any = await Order.findByPk(orderId);
+      if (!order || Number(order.tenantId) !== Number(tenantId)) {
+        throw new NotFoundError(`Order with ID ${orderId} not found.`);
+      }
+      if (Number(order.customerId) !== Number(customer.id)) {
         throw new UnauthorizedError('Access denied: You do not own this order');
       }
 
+      const { reason, notes } = req.body || {};
+
       const cancelled = await this.orderService.cancelOrder(
-        tenantId,
-        storeId,
+        Number(order.tenantId),
+        Number(order.storeId),
         orderId,
         userId,
+        reason,
+        notes,
         req.ip,
         req.headers['user-agent']
       );

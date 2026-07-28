@@ -34,12 +34,13 @@ export const customerPortalApi = baseApi.injectEndpoints({
       providesTags: ['Order'],
     }),
 
-    cancelMyOrder: builder.mutation<any, number | string>({
-      query: (id) => ({
+    cancelMyOrder: builder.mutation<any, { id: number | string; reason?: string; notes?: string }>({
+      query: ({ id, reason, notes }) => ({
         url: `/customer-portal/orders/${id}/cancel`,
         method: 'POST',
+        body: { reason, notes },
       }),
-      invalidatesTags: ['Order'],
+      invalidatesTags: ['Order', 'Customer'],
     }),
 
     getMyAddresses: builder.query<any, void>({

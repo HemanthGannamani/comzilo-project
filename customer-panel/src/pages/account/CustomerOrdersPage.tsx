@@ -16,13 +16,25 @@ import {
   DialogContent,
   DialogActions,
   CircularProgress,
+  MenuItem,
+  Alert,
 } from '@mui/material';
-import { Package, Truck, XCircle, Search, Eye, Download } from 'lucide-react';
+import { Package, Truck, XCircle, Search, Eye, Download, AlertTriangle } from 'lucide-react';
 import { CustomerAccountLayout } from '../../components/layout/CustomerAccountLayout';
 import { OrderNavigationMap } from '../../components/common/OrderNavigationMap';
 import { useGetMyOrdersQuery, useGetMyOrderDetailsQuery, useCancelMyOrderMutation } from '../../api/customerPortalApi';
 import toast from 'react-hot-toast';
 import { useSearchParams } from 'react-router-dom';
+
+const CANCELLATION_REASONS = [
+  'Ordered by mistake',
+  'Found a better price elsewhere',
+  'Delivery time is too long',
+  'Need to change shipping address or items',
+  'Duplicate order placed',
+  'Payment or pricing issue',
+  'Other reason',
+];
 
 export const CustomerOrdersPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -33,7 +45,12 @@ export const CustomerOrdersPage: React.FC = () => {
     selectedIdFromUrl ? Number(selectedIdFromUrl) : null
   );
 
-  const { data: ordersData, isLoading } = useGetMyOrdersQuery({ search });
+  // Cancellation Modal State
+  const [cancellingOrder, setCancellingOrder] = useState<any | null>(null);
+  const [cancelReason, setCancelReason] = useState(CANCELLATION_REASONS[0]);
+  const [cancelNotes, setCancelNotes] = useState('');
+
+  const { data: ordersData, isLoading, refetch } = useGetMyOrdersQuery({ search });
   const { data: orderDetailsData, isLoading: loadingDetails } = useGetMyOrderDetailsQuery(selectedOrderId!, {
     skip: !selectedOrderId,
   });
@@ -43,13 +60,35 @@ export const CustomerOrdersPage: React.FC = () => {
   const orders = ordersData?.data?.rows || ordersData?.data?.orders || [];
   const selectedOrder = orderDetailsData?.data;
 
-  const handleCancel = async (id: number) => {
+  const handleOpenCancelDialog = (ord: any) => {
+    setCancellingOrder(ord);
+    setCancelReason(CANCELLATION_REASONS[0]);
+    setCancelNotes('');
+  };
+
+  const handleConfirmCancellation = async () => {
+    if (!cancellingOrder) return;
     try {
-      await cancelOrder(id).unwrap();
-      toast.success('Order cancelled successfully');
+      await cancelOrder({
+        id: cancellingOrder.id,
+        reason: cancelReason,
+        notes: cancelNotes,
+      }).unwrap();
+
+      toast.success(`Order #${cancellingOrder.orderNumber || cancellingOrder.id} cancelled successfully!`);
+      setCancellingOrder(null);
+      refetch();
+      if (selectedOrderId === cancellingOrder.id) {
+        setSelectedOrderId(null);
+      }
     } catch (err: any) {
       toast.error(err?.data?.message || 'Failed to cancel order');
     }
+  };
+
+  const isCancellable = (status: string) => {
+    const s = (status || '').toLowerCase();
+    return s !== 'cancelled' && s !== 'delivered' && s !== 'shipped' && s !== 'completed';
   };
 
   return (
@@ -85,8 +124,8 @@ export const CustomerOrdersPage: React.FC = () => {
               <React.Fragment key={ord.id}>
                 {idx > 0 && <Divider sx={{ my: 2 }} />}
                 <ListItem sx={{ px: 0, display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center' }}>
-                  <Box sx={{ p: 1.5, bgcolor: '#EFF6FF', borderRadius: 2 }}>
-                    <Package size={24} color="#2563EB" />
+                  <Box sx={{ p: 1.5, bgcolor: ord.status === 'cancelled' ? '#FEF2F2' : '#EFF6FF', borderRadius: 2 }}>
+                    <Package size={24} color={ord.status === 'cancelled' ? '#DC2626' : '#2563EB'} />
                   </Box>
                   <ListItemText
                     primary={
@@ -96,12 +135,12 @@ export const CustomerOrdersPage: React.FC = () => {
                     }
                     secondary={`Placed on ${new Date(ord.createdAt).toLocaleDateString()} • Items: ${ord.items?.length || 1}`}
                   />
-                  <Typography variant="h6" sx={{ fontWeight: 800, color: '#2563EB' }}>
+                  <Typography variant="h6" sx={{ fontWeight: 800, color: ord.status === 'cancelled' ? '#DC2626' : '#2563EB' }}>
                     ${ord.totalAmount}
                   </Typography>
                   <Chip
                     label={ord.status.toUpperCase()}
-                    color={ord.status === 'completed' || ord.status === 'delivered' ? 'success' : 'primary'}
+                    color={ord.status === 'completed' || ord.status === 'delivered' ? 'success' : ord.status === 'cancelled' ? 'error' : 'primary'}
                     size="small"
                     sx={{ fontWeight: 700 }}
                   />
@@ -119,15 +158,15 @@ export const CustomerOrdersPage: React.FC = () => {
                     View Details
                   </Button>
 
-                  {(ord.status === 'pending' || ord.status === 'processing' || ord.status === 'unconfirmed') && (
+                  {isCancellable(ord.status) && (
                     <Button
                       variant="outlined"
                       color="error"
                       size="small"
                       startIcon={<XCircle size={14} />}
-                      onClick={() => handleCancel(ord.id)}
+                      onClick={() => handleOpenCancelDialog(ord)}
                       disabled={isCancelling}
-                      sx={{ borderRadius: 2 }}
+                      sx={{ borderRadius: 2, fontWeight: 700 }}
                     >
                       Cancel Order
                     </Button>
@@ -139,7 +178,69 @@ export const CustomerOrdersPage: React.FC = () => {
         )}
       </Paper>
 
-      {/* 4. ORDER DETAILS MODAL */}
+      {/* CANCEL ORDER REASON DIALOG MODAL */}
+      <Dialog
+        open={Boolean(cancellingOrder)}
+        onClose={() => setCancellingOrder(null)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ fontWeight: 800, pb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+          <AlertTriangle color="#DC2626" size={24} />
+          Cancel Order #{cancellingOrder?.orderNumber}
+        </DialogTitle>
+        <DialogContent dividers>
+          <Alert severity="warning" sx={{ mb: 3 }}>
+            Are you sure you want to cancel this order? Once confirmed, the seller will be notified and stock will be released.
+          </Alert>
+
+          <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
+            Why are you cancelling this order? *
+          </Typography>
+          <TextField
+            select
+            fullWidth
+            value={cancelReason}
+            onChange={(e) => setCancelReason(e.target.value)}
+            sx={{ mb: 2.5 }}
+          >
+            {CANCELLATION_REASONS.map((r) => (
+              <MenuItem key={r} value={r}>
+                {r}
+              </MenuItem>
+            ))}
+          </TextField>
+
+          <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
+            Additional Feedback / Reason Details (Optional)
+          </Typography>
+          <TextField
+            fullWidth
+            multiline
+            rows={3}
+            placeholder="Tell us more about why you chose to cancel..."
+            value={cancelNotes}
+            onChange={(e) => setCancelNotes(e.target.value)}
+          />
+        </DialogContent>
+        <DialogActions sx={{ p: 2.5 }}>
+          <Button onClick={() => setCancellingOrder(null)} sx={{ fontWeight: 600 }}>
+            Keep My Order
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            onClick={handleConfirmCancellation}
+            disabled={isCancelling}
+            startIcon={isCancelling ? <CircularProgress size={16} color="inherit" /> : <XCircle size={16} />}
+            sx={{ fontWeight: 700 }}
+          >
+            Confirm Cancellation
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ORDER DETAILS MODAL */}
       <Dialog
         open={Boolean(selectedOrderId)}
         onClose={() => {
@@ -160,16 +261,30 @@ export const CustomerOrdersPage: React.FC = () => {
           ) : selectedOrder ? (
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
               {/* Status Header Bar */}
-              <Box sx={{ p: 2, bgcolor: '#F8FAFC', borderRadius: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Box sx={{ p: 2, bgcolor: selectedOrder.status === 'cancelled' ? '#FEF2F2' : '#F8FAFC', borderRadius: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Box>
                   <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>
                     ORDER STATUS
                   </Typography>
-                  <Typography variant="h6" sx={{ fontWeight: 800, textTransform: 'capitalize' }}>
+                  <Typography variant="h6" sx={{ fontWeight: 800, textTransform: 'capitalize', color: selectedOrder.status === 'cancelled' ? '#DC2626' : '#0F172A' }}>
                     {selectedOrder.status}
                   </Typography>
                 </Box>
-                <Chip label={`Payment: ${selectedOrder.paymentStatus}`} color="success" sx={{ fontWeight: 700 }} />
+                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                  <Chip label={`Payment: ${selectedOrder.paymentStatus}`} color={selectedOrder.status === 'cancelled' ? 'error' : 'success'} sx={{ fontWeight: 700 }} />
+                  {isCancellable(selectedOrder.status) && (
+                    <Button
+                      variant="contained"
+                      color="error"
+                      size="small"
+                      startIcon={<XCircle size={14} />}
+                      onClick={() => handleOpenCancelDialog(selectedOrder)}
+                      sx={{ fontWeight: 700 }}
+                    >
+                      Cancel Order
+                    </Button>
+                  )}
+                </Box>
               </Box>
 
               {/* Live Order Location & Navigation Map */}

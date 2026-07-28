@@ -14,7 +14,7 @@ import {
   Skeleton,
   Divider,
 } from '@mui/material';
-import { Package, Clock, CheckCircle2, Heart, MapPin, ArrowRight, Eye, RefreshCw } from 'lucide-react';
+import { Package, Clock, CheckCircle2, Heart, MapPin, ArrowRight, Eye, RefreshCw, XCircle } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { CustomerAccountLayout } from '../../components/layout/CustomerAccountLayout';
 import { useGetCustomerDashboardQuery } from '../../api/customerPortalApi';
@@ -206,15 +206,29 @@ export const CustomerDashboardPage: React.FC = () => {
                     size="small"
                     sx={{ fontWeight: 700 }}
                   />
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    startIcon={<Eye size={14} />}
-                    onClick={() => navigate(`/account/orders?id=${ord.id}`)}
-                    sx={{ borderRadius: 2 }}
-                  >
-                    Details
-                  </Button>
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      startIcon={<Eye size={14} />}
+                      onClick={() => navigate(`/account/orders?id=${ord.id}`)}
+                      sx={{ borderRadius: 2 }}
+                    >
+                      Details
+                    </Button>
+                    {ord.status !== 'cancelled' && ord.status !== 'delivered' && ord.status !== 'completed' && (
+                      <Button
+                        variant="outlined"
+                        color="error"
+                        size="small"
+                        startIcon={<XCircle size={14} />}
+                        onClick={() => navigate(`/account/orders?id=${ord.id}`)}
+                        sx={{ borderRadius: 2, fontWeight: 700 }}
+                      >
+                        Cancel Order
+                      </Button>
+                    )}
+                  </Box>
                 </ListItem>
               </React.Fragment>
             ))}

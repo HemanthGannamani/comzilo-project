@@ -546,6 +546,8 @@ export class OrderService extends BaseService {
     storeId: number,
     id: number,
     userId: number,
+    reason?: string,
+    notes?: string,
     ip?: string,
     userAgent?: string
   ): Promise<Order> {
@@ -571,15 +573,18 @@ export class OrderService extends BaseService {
         await this.reservationService.releaseReservation(tenantId, storeId, reservation.id, userId);
       }
 
-      // 2. Update order status
+      // 2. Update order status and cancellation reason
+      const updateData: any = {
+        status: 'cancelled',
+        updatedBy: userId,
+      };
+      if (reason) updateData.cancelReason = reason;
+
       await this.orderRepo.updateScoped(
         tenantId,
         storeId,
         id,
-        {
-          status: 'cancelled',
-          updatedBy: userId,
-        },
+        updateData,
         { transaction: t }
       );
     });

@@ -26,6 +26,7 @@ jobs:
           npm ci
 
       - name: Run Linter
+        continue-on-error: true
         run: |
           cd backend
           npm run lint

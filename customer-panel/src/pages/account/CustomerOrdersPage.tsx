@@ -19,6 +19,7 @@ import {
 } from '@mui/material';
 import { Package, Truck, XCircle, Search, Eye, Download } from 'lucide-react';
 import { CustomerAccountLayout } from '../../components/layout/CustomerAccountLayout';
+import { OrderNavigationMap } from '../../components/common/OrderNavigationMap';
 import { useGetMyOrdersQuery, useGetMyOrderDetailsQuery, useCancelMyOrderMutation } from '../../api/customerPortalApi';
 import toast from 'react-hot-toast';
 import { useSearchParams } from 'react-router-dom';
@@ -170,6 +171,13 @@ export const CustomerOrdersPage: React.FC = () => {
                 </Box>
                 <Chip label={`Payment: ${selectedOrder.paymentStatus}`} color="success" sx={{ fontWeight: 700 }} />
               </Box>
+
+              {/* Live Order Location & Navigation Map */}
+              <OrderNavigationMap
+                orderNumber={selectedOrder.orderNumber}
+                status={selectedOrder.status}
+                destinationAddress={selectedOrder.shippingAddress?.addressLine1 ? `${selectedOrder.shippingAddress.addressLine1}, ${selectedOrder.shippingAddress.city}` : 'Hyderabad, Telangana, India'}
+              />
 
               {/* Items List */}
               <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>

@@ -116,7 +116,7 @@ Order.init(
       defaultValue: 'draft',
     },
     paymentStatus: {
-      type: DataTypes.ENUM('unpaid', 'partially_paid', 'paid', 'refunded'),
+      type: DataTypes.ENUM('unpaid', 'pending', 'partially_paid', 'paid', 'refunded'),
       allowNull: false,
       defaultValue: 'unpaid',
       field: 'payment_status',

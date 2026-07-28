@@ -9,6 +9,7 @@ export interface WarehouseLocationAttributes {
   warehouseId: number;
   name: string;
   code: string;
+  locationCode?: string | null;
   description: string | null;
   zone: string | null;
   aisle: string | null;

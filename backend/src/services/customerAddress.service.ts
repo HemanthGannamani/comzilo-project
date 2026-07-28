@@ -76,6 +76,8 @@ export class CustomerAddressService extends BaseService {
         tenantId,
         storeId,
         {
+          fullName: data.fullName || 'Default Name',
+          phone: data.phone || 'N/A',
           ...data,
           customerId,
         },

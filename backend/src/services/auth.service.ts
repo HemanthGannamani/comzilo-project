@@ -3,6 +3,8 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
+import { QueryTypes } from 'sequelize';
+import { sequelize } from '../config/database';
 import { env } from '../config/env';
 import { BaseService } from '../core/BaseService';
 import {
@@ -106,17 +108,59 @@ export class AuthService extends BaseService {
       );
 
       let targetTenantId = tenantId;
-      let targetStoreId = data.storeId || context?.storeId || 1;
+      let targetStoreId = data.storeId || context?.storeId;
 
-      // If storeSlug is provided in payload, look up store_id and tenant_id
-      if (data.storeSlug) {
+      // If storeSlug or storeName is provided in registration payload, look up store_id and tenant_id
+      const storeInput = (data.storeSlug || data.storeName || '').trim();
+      if (storeInput) {
+        const slugified = storeInput.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+        const fuzzyPattern = `%${storeInput.toLowerCase().replace(/[^a-z0-9]/g, '')}%`;
+
         const [foundStore]: any = await sequelize.query(
-          'SELECT id, tenant_id FROM stores WHERE (slug = :slug OR LOWER(name) = LOWER(:slug)) AND status = "active" LIMIT 1',
-          { replacements: { slug: data.storeSlug.trim() }, type: QueryTypes.SELECT, transaction: t }
+          `SELECT id, tenant_id FROM stores 
+           WHERE (
+             slug = :slug 
+             OR slug = :slugified 
+             OR LOWER(name) = LOWER(:input) 
+             OR LOWER(name) LIKE :fuzzyPattern 
+             OR LOWER(slug) LIKE :fuzzyPattern
+           ) 
+           ORDER BY 
+             CASE 
+               WHEN slug = :slug THEN 1 
+               WHEN slug = :slugified THEN 2 
+               WHEN LOWER(name) = LOWER(:input) THEN 3 
+               ELSE 4 
+             END 
+           LIMIT 1`,
+          {
+            replacements: {
+              slug: storeInput,
+              slugified,
+              input: storeInput,
+              fuzzyPattern,
+            },
+            type: QueryTypes.SELECT,
+            transaction: t,
+          }
         );
         if (foundStore) {
           targetStoreId = Number(foundStore.id);
           targetTenantId = Number(foundStore.tenant_id);
+        }
+      }
+
+      if (!targetStoreId || !targetTenantId) {
+        const [activeStore]: any = await sequelize.query(
+          'SELECT id, tenant_id FROM stores WHERE status = "active" ORDER BY id DESC LIMIT 1',
+          { type: QueryTypes.SELECT, transaction: t }
+        );
+        if (activeStore) {
+          targetStoreId = targetStoreId || Number(activeStore.id);
+          targetTenantId = targetTenantId || Number(activeStore.tenant_id);
+        } else {
+          targetStoreId = targetStoreId || 1;
+          targetTenantId = targetTenantId || 1;
         }
       }
 

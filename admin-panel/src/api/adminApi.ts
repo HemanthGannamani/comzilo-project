@@ -241,6 +241,35 @@ export const adminApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ['EmailTemplate' as any],
     }),
+
+    // SUBSCRIPTION PLANS
+    getSubscriptionPlans: builder.query<any, void>({
+      query: () => '/subscription-plans',
+      providesTags: ['Plan' as any],
+    }),
+    updateSubscriptionPlan: builder.mutation<any, { id: number | string; [key: string]: any }>({
+      query: ({ id, ...body }) => ({
+        url: `/subscription-plans/${id}`,
+        method: 'PUT',
+        body,
+      }),
+      invalidatesTags: ['Plan' as any],
+    }),
+    createSubscriptionPlan: builder.mutation<any, any>({
+      query: (body) => ({
+        url: '/subscription-plans',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['Plan' as any],
+    }),
+    deleteSubscriptionPlan: builder.mutation<any, number | string>({
+      query: (id) => ({
+        url: `/subscription-plans/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['Plan' as any],
+    }),
     getNotifications: builder.query<any, any>({
       query: (params) => ({
         url: '/admin/notifications',
@@ -342,6 +371,10 @@ export const {
   useSaveSystemSettingsMutation,
   useGetEmailTemplatesQuery,
   useSaveEmailTemplateMutation,
+  useGetSubscriptionPlansQuery,
+  useUpdateSubscriptionPlanMutation,
+  useCreateSubscriptionPlanMutation,
+  useDeleteSubscriptionPlanMutation,
   useGetNotificationsQuery,
   useMarkNotificationReadMutation,
   useMarkNotificationUnreadMutation,

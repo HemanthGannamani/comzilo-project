@@ -14,8 +14,9 @@ export interface AuditLogPayload {
 }
 
 export const createAuditLog = async (
-  payload: AuditLogPayload,
-  context?: RequestContext
+  payload: any,
+  context?: RequestContext,
+  ...args: any[]
 ): Promise<void> => {
   const tenantId = payload.tenantId !== undefined ? payload.tenantId : context?.tenantId || null;
   const actorId =

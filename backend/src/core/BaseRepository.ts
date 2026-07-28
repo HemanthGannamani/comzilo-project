@@ -97,6 +97,14 @@ export abstract class BaseRepository<M extends Model<any, any>> {
     return this.model.destroy(queryOptions);
   }
 
+  public async destroy(
+    tenantId: number | null,
+    options?: DestroyOptions
+  ): Promise<number> {
+    const queryOptions = this.applyTenantFilter(tenantId, options);
+    return this.model.destroy(queryOptions);
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public async exists(tenantId: number | null, where: any): Promise<boolean> {
     const queryOptions = this.applyTenantFilter(tenantId, { where });

@@ -44,9 +44,10 @@ export const success = <T>(
   res: Response,
   message: string = RESPONSE_MESSAGES.SUCCESS,
   data: T | null = null,
-  meta: unknown = null
+  meta: unknown = null,
+  statusCode: number = HTTP_STATUS.OK
 ): Response => {
-  return sendResponse(res, HTTP_STATUS.OK, true, message, data, meta);
+  return sendResponse(res, statusCode || HTTP_STATUS.OK, true, message, data, meta);
 };
 
 export const created = <T>(

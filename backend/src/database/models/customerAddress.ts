@@ -109,12 +109,14 @@ CustomerAddress.init(
     },
     fullName: {
       type: DataTypes.STRING(255),
-      allowNull: false,
+      allowNull: true,
+      defaultValue: '',
       field: 'full_name',
     },
     phone: {
       type: DataTypes.STRING(50),
-      allowNull: false,
+      allowNull: true,
+      defaultValue: '',
     },
     company: {
       type: DataTypes.STRING(255),

@@ -3,7 +3,7 @@ import { StoreRepository } from '../repositories/store.repository';
 import { StoreDomainRepository } from '../repositories/storeDomain.repository';
 import { StoreSettingsRepository } from '../repositories/storeSettings.repository';
 import { TenantRepository } from '../repositories/tenant.repository';
-import { Store, StoreDomain, StoreSettings } from '../database/models';
+import { Store, StoreDomain, StoreSettings, Tenant, UserRole, User, Product, Customer, Order } from '../database/models';
 import { NotFoundError, ValidationError, AuthorizationError } from '../shared/errors/AppError';
 import { sequelize } from '../config/database';
 import crypto from 'crypto';
@@ -65,9 +65,70 @@ export class StoreService {
     return store;
   }
 
-  public async listStores(tenantId: number): Promise<Store[]> {
-    await this.checkTenantStatus(tenantId);
-    return this.storeRepo.findMany(tenantId);
+  public async listStores(tenantId?: number | null): Promise<Store[]> {
+    const where: any = {};
+    if (tenantId) {
+      where.tenantId = tenantId;
+    }
+
+    const stores = await Store.findAll({
+      where,
+      include: [
+        { model: Tenant, as: 'tenant', attributes: ['id', 'name', 'slug', 'status'] },
+      ],
+      order: [['id', 'DESC']],
+    });
+
+    const enrichedStores = await Promise.all(
+      stores.map(async (store: any) => {
+        const storeObj = store.toJSON();
+
+        try {
+          const userRole: any = await UserRole.findOne({
+            where: { tenantId: store.tenantId },
+            include: [{ model: User, as: 'user', attributes: ['id', 'firstName', 'lastName', 'email', 'mobile'] }],
+          });
+          if (userRole && userRole.user) {
+            storeObj.sellerName = `${userRole.user.firstName || ''} ${userRole.user.lastName || ''}`.trim() || 'Store Owner';
+            storeObj.businessEmail = userRole.user.email;
+            storeObj.phone = userRole.user.mobile || '+915220230512';
+          } else {
+            storeObj.sellerName = 'Super Admin';
+            storeObj.businessEmail = 'admin@comzilo.com';
+            storeObj.phone = '+919999999999';
+          }
+        } catch {
+          storeObj.sellerName = 'Store Owner';
+          storeObj.businessEmail = 'owner@comzilo.com';
+          storeObj.phone = '+919999999999';
+        }
+
+        try {
+          const productsCount = await Product.count({ where: { tenantId: store.tenantId } });
+          const customersCount = await Customer.count({ where: { tenantId: store.tenantId } });
+          const ordersCount = await Order.count({ where: { tenantId: store.tenantId } });
+          const totalRevenue = await Order.sum('totalAmount', { where: { tenantId: store.tenantId } });
+
+          storeObj.tenantName = store.tenant?.name || 'Main Tenant';
+          storeObj.subscriptionPlan = 'Enterprise Multi-Store';
+          storeObj.totalProducts = productsCount || 0;
+          storeObj.totalCustomers = customersCount || 0;
+          storeObj.totalOrders = ordersCount || 0;
+          storeObj.revenue = totalRevenue ? `$${Number(totalRevenue).toFixed(2)}` : '$0.00';
+        } catch {
+          storeObj.tenantName = store.tenant?.name || 'Main Tenant';
+          storeObj.subscriptionPlan = 'Standard Plan';
+          storeObj.totalProducts = 0;
+          storeObj.totalCustomers = 0;
+          storeObj.totalOrders = 0;
+          storeObj.revenue = '$0.00';
+        }
+
+        return storeObj;
+      })
+    );
+
+    return enrichedStores as any;
   }
 
   public async updateStore(

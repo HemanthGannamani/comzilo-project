@@ -7,7 +7,8 @@ import { InvoiceService } from '../services/invoice.service';
 import { PaymentService } from '../services/payment.service';
 import { NotificationService } from '../services/notification.service';
 import { AuthService } from '../services/auth.service';
-import { Customer, CustomerAddress, Product } from '../database/models';
+import { Customer, CustomerAddress, Product, User } from '../database/models';
+import { v4 as uuidv4 } from 'uuid';
 import { success, created } from '../shared/responses';
 import { ValidationError, NotFoundError, UnauthorizedError } from '../shared/errors/AppError';
 import { sequelize } from '../config/database';
@@ -24,10 +25,36 @@ export class CustomerPortalController {
   private authService = new AuthService();
 
   private async getCustomerFromUser(tenantId: number, userId: number): Promise<Customer> {
-    const customer = await Customer.findOne({
-      where: { tenantId, userId },
+    let customer = await Customer.findOne({
+      where: { userId },
       include: ['preference', 'addresses'],
     });
+
+    if (!customer) {
+      customer = await Customer.findOne({
+        where: { tenantId, userId },
+        include: ['preference', 'addresses'],
+      });
+    }
+
+    if (!customer) {
+      const user = await User.findByPk(userId);
+      if (user) {
+        customer = await Customer.create({
+          tenantId: user.tenantId || tenantId || 1,
+          storeId: (user as any).storeId || 1,
+          uuid: uuidv4(),
+          customerCode: `CUST-${Date.now().toString().slice(-6)}`,
+          userId: user.id,
+          email: user.email,
+          firstName: user.firstName || 'Valued',
+          lastName: user.lastName || 'Customer',
+          fullName: `${user.firstName || 'Valued'} ${user.lastName || 'Customer'}`,
+          phone: (user as any).mobile || '+915221187774',
+          status: 'active',
+        } as any);
+      }
+    }
 
     if (!customer) {
       throw new NotFoundError('Customer account profile not found');
@@ -456,7 +483,7 @@ export class CustomerPortalController {
           const qty = Number(cartItem.quantity || 1);
 
           const product = await Product.findOne({
-            where: { id: productId, tenantId },
+            where: { id: productId },
             transaction: t,
           });
 
@@ -520,7 +547,7 @@ export class CustomerPortalController {
             paymentMethod,
             notes,
             status: 'confirmed',
-            paymentStatus: paymentMethod === 'cod' ? 'pending' : 'paid',
+            paymentStatus: paymentMethod === 'cod' ? 'unpaid' : 'paid',
           },
           req.ip,
           req.headers['user-agent']

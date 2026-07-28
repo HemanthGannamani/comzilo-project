@@ -6,6 +6,7 @@ export interface StockTransferItemAttributes {
   tenantId: number;
   storeId: number;
   stockTransferId: number;
+  transferId?: number;
   productId: number;
   sourceLocationId: number;
   destinationLocationId: number;

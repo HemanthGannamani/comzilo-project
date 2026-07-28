@@ -83,7 +83,6 @@ export const AdminLayout: React.FC = () => {
     { label: 'Tenant Management', path: '/tenants', icon: <Building2 size={20} /> },
     { label: 'Seller Applications', path: '/seller-applications', icon: <Building2 size={20} /> },
     { label: 'Sellers', path: '/sellers', icon: <Users size={20} /> },
-    { label: 'Customers', path: '/customers', icon: <Users size={20} /> },
     { label: 'Store Management', path: '/stores', icon: <Store size={20} /> },
     { label: 'Subscription Plans', path: '/subscriptions', icon: <CreditCard size={20} /> },
     { label: 'Platform Users', path: '/users', icon: <Users size={20} /> },
@@ -91,14 +90,9 @@ export const AdminLayout: React.FC = () => {
 
     { isHeader: true, label: 'Inventory Management' },
     { label: 'Inventory Analytics', path: '/inventory-management', icon: <Boxes size={20} /> },
-    { label: 'Warehouse Analytics', path: '/inventory/warehouses', icon: <WarehouseIcon size={20} />, badge: 'Coming Soon', disabled: true },
-    { label: 'Inventory Reports', path: '/inventory/reports', icon: <BarChart3 size={20} />, badge: 'Coming Soon', disabled: true },
-    { label: 'Low Stock Monitoring', path: '/inventory/low-stock', icon: <AlertTriangle size={20} />, badge: 'Coming Soon', disabled: true },
 
     { isHeader: true, label: 'Shipping Management' },
     { label: 'Shipping Providers', path: '/shipping-providers', icon: <Truck size={20} /> },
-    { label: 'Shipping Analytics', path: '/shipping-analytics', icon: <BarChart3 size={20} />, badge: 'Coming Soon', disabled: true },
-    { label: 'Shipment Logs', path: '/shipment-logs', icon: <FileText size={20} />, badge: 'Coming Soon', disabled: true },
 
     { isHeader: true, label: 'System & Platform' },
     { label: 'Platform Reports', path: '/reports', icon: <BarChart3 size={20} /> },

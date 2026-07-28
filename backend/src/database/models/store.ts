@@ -4,6 +4,7 @@ import { sequelize } from '../../config/database';
 
 export class Store extends Model<any, any> {
   declare id: number;
+  declare uuid: string;
   declare tenantId: number;
   declare name: string;
   declare slug: string;

@@ -18,6 +18,9 @@ export interface StockTransferAttributes {
     | 'rejected'
     | 'cancelled';
   referenceNumber: string | null;
+  transferNumber?: string | null;
+  requestedAt?: Date | null;
+  completedAt?: Date | null;
   notes: string | null;
   requestedBy: number | null;
   approvedBy: number | null;

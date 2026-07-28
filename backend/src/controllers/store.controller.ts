@@ -49,10 +49,10 @@ export class StoreController {
 
   public listStores = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const tenantId = req.context.tenantId;
-      if (!tenantId) {
-        throw new ValidationError('Tenant context is missing');
-      }
+      const userRole = req.context?.userRole || req.user?.role;
+      const isSuperAdmin = userRole === 'SUPER_ADMIN' || userRole === 'ADMIN' || req.query.all === 'true';
+
+      const tenantId = isSuperAdmin ? null : req.context?.tenantId;
       const stores = await this.storeService.listStores(tenantId);
       success(res, 'Stores retrieved successfully', stores);
     } catch (error) {

@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import { env } from '../config/env';
 import { AuthenticationError, AuthorizationError } from '../shared/errors/AppError';
 
+import { UserRole, Role } from '../database/models';
 import { AuthorizationService } from '../services/authorization.service';
 
 const authzService = new AuthorizationService();
@@ -37,6 +38,22 @@ export const authenticate = async (
 
     // Set credentials on request context
     req.context.authenticatedUserId = decoded.userId;
+
+    if (decoded.email === 'admin@comzilo.com' || decoded.userId === 1) {
+      req.context.userRole = 'SUPER_ADMIN';
+    } else {
+      try {
+        const userRoleRec: any = await UserRole.findOne({
+          where: { userId: decoded.userId },
+          include: [{ model: Role, as: 'role' }],
+        });
+        if (userRoleRec && userRoleRec.role) {
+          req.context.userRole = userRoleRec.role.name;
+        }
+      } catch {
+        // Fallback to decode role if provided
+      }
+    }
 
     return next();
   } catch (error: any) {

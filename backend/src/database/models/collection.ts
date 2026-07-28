@@ -10,6 +10,10 @@ export interface CollectionAttributes {
   slug: string;
   description: string | null;
   imageMediaId: number | null;
+  type?: string | null;
+  bannerUrl?: string | null;
+  isFeatured?: boolean;
+  rulesJson?: string | null;
   status: 'draft' | 'active' | 'inactive' | 'archived';
   visibility: 'public' | 'private' | 'hidden';
   sortOrder: number | null;

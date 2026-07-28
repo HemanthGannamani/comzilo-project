@@ -3,6 +3,7 @@ import { sequelize } from '../../config/database';
 
 export interface ProductMediaAttributes {
   id: number;
+  tenantId?: number;
   productId: number;
   mediaId: number;
   isPrimary: boolean;

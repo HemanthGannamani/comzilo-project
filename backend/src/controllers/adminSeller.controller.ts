@@ -10,6 +10,7 @@ import { createAuditLog } from '../utils/auditHelper';
 import { Op } from 'sequelize';
 import Joi from 'joi';
 import bcrypt from 'bcrypt';
+import { sendSellerOnboardingEmail, generateSecureTempPassword } from '../utils/emailHelper';
 
 const sellerService = new AdminSellerService();
 
@@ -583,41 +584,40 @@ export class AdminSellerController {
         throw new NotFoundError('Seller not found');
       }
 
-      const tempPassword =
-        'Sel' + Math.floor(100 + Math.random() * 900) + 'Pass!' + Math.floor(100 + Math.random() * 900);
+      // 1. Generate secure random temporary password
+      const tempPassword = generateSecureTempPassword();
+
+      // 2. Hash password with bcrypt
       user.passwordHash = await bcrypt.hash(tempPassword, 10);
       user.mustChangePassword = true;
       await user.save();
 
-      if (process.env.NODE_ENV === 'development') {
-        // eslint-disable-next-line no-console
-        console.log(
-          `[DEV MODE] Resent Seller Credentials: Email: ${user.email} | Temp Password: ${tempPassword}`
-        );
-      }
+      // 3. Find store name for email
+      const store = await Store.findOne({ where: { tenantId: user.tenantId } });
+      const storeName = store?.name || (user as any).tenant?.name || 'Comzilo Store';
+
+      // 4. Send Real SMTP Email
+      const emailRes = await sendSellerOnboardingEmail({
+        tenantId: user.tenantId,
+        recipientEmail: user.email,
+        ownerName: `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Valued Seller',
+        storeName,
+        tempPassword,
+      });
 
       await createAuditLog(
         {
           action: 'seller.credentials_resent',
           entityType: 'user',
           entityId: String(user.id),
+          newValues: { messageId: emailRes.messageId, recipient: user.email },
         },
         req.context
       );
 
-      // Send Email Notification
-      const notificationService = new NotificationService();
-      await notificationService.sendNotification(user.tenantId, null, {
-        userId: user.id,
-        recipient: user.email,
-        channel: 'email',
-        title: 'Comzilo Account Login Credentials',
-        content: `Dear ${user.firstName}, here are your platform login credentials:\n\nEmail: ${user.email}\nTemporary Password: ${tempPassword}\n\nPlease change your temporary password upon login.`,
-      });
-
-      success(res, 'Credentials resent successfully', {
+      success(res, 'Credentials email sent successfully via SMTP', {
         email: user.email,
-        temporaryPassword: tempPassword,
+        messageId: emailRes.messageId,
       });
     } catch (error) {
       next(error);

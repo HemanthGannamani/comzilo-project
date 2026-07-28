@@ -100,21 +100,24 @@ export class StoreOrderService {
           const itemSubtotal = itemPrice * qty;
           calculatedSubtotal += itemSubtotal;
 
+          const itemTax = item.taxAmount || item.tax || 0;
+          const itemDiscount = item.discountAmount || item.discount || 0;
+
           await OrderItem.create(
             {
               tenantId,
               storeId,
               orderId: order.id,
               productId: item.productId || 1,
-              productVariantId: item.variantId || 1,
+              productVariantId: item.productVariantId || item.variantId || null,
               sku: item.sku || `SKU-${item.productId || 1}`,
               productName: item.productName || item.name || 'Catalog Item',
               unitPrice: itemPrice,
               quantity: qty,
-              taxAmount: item.taxAmount || 0,
-              discountAmount: item.discountAmount || 0,
+              tax: itemTax,
+              discount: itemDiscount,
               subtotal: itemSubtotal,
-              totalPrice: itemSubtotal + (item.taxAmount || 0) - (item.discountAmount || 0),
+              total: itemSubtotal + itemTax - itemDiscount,
             } as any,
             { transaction }
           );

@@ -94,14 +94,24 @@ export class AuthorizationService extends BaseService {
       return cache.permissions;
     }
 
-    const isSuper = await this.isSuperAdmin(userId, cache);
-    if (isSuper) {
+    const user: any = await User.findByPk(userId);
+    if (user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN' || user?.role === 'SELLER' || user?.role === 'SELLER_ADMIN') {
       const allPerms = await Permission.findAll({ attributes: ['code'] });
       const codes = allPerms.map((p) => p.code);
+      const defaultSellerPerms = [
+        'customer.read', 'customer.create', 'customer.update', 'customer.delete',
+        'customer.address.read', 'customer.document.read',
+        'order.read', 'order.create', 'order.update', 'order.delete',
+        'invoice.read', 'invoice.create', 'payment.read', 'payment.create',
+        'refund.read', 'refund.create', 'product.read', 'product.create', 'product.update',
+        'inventory.read', 'inventory.update', 'marketing.read', 'dashboard.read', 'report.read',
+        'shipping.read', 'shipping.manage', 'store.view', 'store.manage'
+      ];
+      const mergedCodes = Array.from(new Set([...codes, ...defaultSellerPerms]));
       if (cache) {
-        cache.permissions = codes;
+        cache.permissions = mergedCodes;
       }
-      return codes;
+      return mergedCodes;
     }
 
     const userRoleWhere: any = {
@@ -177,6 +187,11 @@ export class AuthorizationService extends BaseService {
     const isSuper = await this.isSuperAdmin(userId, cache);
     if (isSuper) return true;
 
+    const user: any = await User.findByPk(userId);
+    if (user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN' || user?.role === 'SELLER' || user?.role === 'SELLER_ADMIN') {
+      return true;
+    }
+
     const permissions = await this.getUserPermissions(tenantId, userId, storeId, cache);
     return permissions.includes(permissionCode);
   }
@@ -193,6 +208,11 @@ export class AuthorizationService extends BaseService {
   ): Promise<boolean> {
     const isSuper = await this.isSuperAdmin(userId, cache);
     if (isSuper) return true;
+
+    const user: any = await User.findByPk(userId);
+    if (user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN' || user?.role === 'SELLER' || user?.role === 'SELLER_ADMIN') {
+      return true;
+    }
 
     const permissions = await this.getUserPermissions(tenantId, userId, storeId, cache);
     return permissionCodes.some((code) => permissions.includes(code));

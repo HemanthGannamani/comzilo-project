@@ -8,7 +8,9 @@ export class PurchaseOrderItem extends Model<any, any> {
   declare productId: number;
   declare variantId: number | null;
   declare quantityOrdered: number;
+  declare orderedQuantity: number;
   declare unitCost: number;
+  declare unitPrice: number;
   declare subtotal: number;
   declare readonly createdAt: Date;
   declare readonly updatedAt: Date;

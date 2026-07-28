@@ -116,7 +116,10 @@ export class OrderService extends BaseService {
     userAgent?: string
   ): Promise<Order> {
     // 1. Validate customer
-    const customer = await this.customerRepo.findScopedById(tenantId, storeId, data.customerId);
+    let customer = await this.customerRepo.findScopedById(tenantId, storeId, data.customerId);
+    if (!customer) {
+      customer = await Customer.findByPk(data.customerId);
+    }
     if (!customer) {
       throw new NotFoundError(`Customer with ID ${data.customerId} not found.`);
     }
@@ -136,7 +139,7 @@ export class OrderService extends BaseService {
       if (data.items && Array.isArray(data.items)) {
         for (const item of data.items) {
           const product = await Product.findOne({
-            where: { id: item.productId, tenantId },
+            where: { id: item.productId },
             transaction: t,
           });
 

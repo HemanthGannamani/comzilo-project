@@ -3,7 +3,7 @@ import { ProductService } from '../services/product.service';
 import { createAuditLog } from '../utils/auditHelper';
 import { RESPONSE_MESSAGES } from '../shared/constants';
 import { success, created } from '../shared/responses';
-import { ValidationError } from '../shared/errors/AppError';
+import { ValidationError, NotFoundError } from '../shared/errors/AppError';
 import { sequelize } from '../config/database';
 import { QueryTypes } from 'sequelize';
 

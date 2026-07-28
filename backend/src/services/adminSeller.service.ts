@@ -6,12 +6,17 @@ import {
   Store,
   Role,
   SellerApplication,
+  StoreSettings,
+  Warehouse,
+  WarehouseLocation,
+  TenantShippingProviderConfig,
 } from '../database/models';
 import { sequelize } from '../config/database';
 import { ValidationError, ConflictError } from '../shared/errors/AppError';
 import { createAuditLog } from '../utils/auditHelper';
 import bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
+import { sendSellerOnboardingEmail, generateSecureTempPassword } from '../utils/emailHelper';
 
 export interface CreateSellerInput {
   sellerApplicationId?: number;
@@ -97,9 +102,13 @@ export class AdminSellerService {
 
     // Hash Password
     let passwordHash = input.passwordHash;
+    let rawTempPassword = input.password;
+
     if (!passwordHash) {
-      const password = input.password || 'TemporarySecurePassword2026!';
-      passwordHash = await bcrypt.hash(password, 10);
+      if (!rawTempPassword) {
+        rawTempPassword = generateSecureTempPassword();
+      }
+      passwordHash = await bcrypt.hash(rawTempPassword, 10);
     }
 
     const t = await sequelize.transaction();
@@ -157,6 +166,69 @@ export class AdminSellerService {
           { transaction: t }
         );
         storeId = newStore.id;
+
+        // Automatic Creation of Store Settings
+        try {
+          await StoreSettings.create(
+            {
+              tenantId,
+              storeId: newStore.id,
+              storeName: newStore.name,
+              currency: 'USD',
+              timezone: 'UTC',
+            } as any,
+            { transaction: t }
+          );
+        } catch {
+          // Ignore if exists or optional
+        }
+
+        // Automatic Creation of Default Warehouse & Location
+        try {
+          const defaultWh = await Warehouse.create(
+            {
+              tenantId,
+              storeId: newStore.id,
+              code: `WH-${newStore.id}`,
+              name: `${newStore.name} Main Warehouse`,
+              status: 'active',
+              isDefault: true,
+            } as any,
+            { transaction: t }
+          );
+
+          if (defaultWh) {
+            await WarehouseLocation.create(
+              {
+                tenantId,
+                storeId: newStore.id,
+                warehouseId: defaultWh.id,
+                code: `LOC-${newStore.id}-A1`,
+                name: 'Default Receiving Location',
+                isDefault: true,
+              } as any,
+              { transaction: t }
+            );
+          }
+        } catch {
+          // Ignore if exists or optional
+        }
+
+        // Automatic Creation of Default Shipping Configuration
+        try {
+          await TenantShippingProviderConfig.create(
+            {
+              tenantId,
+              storeId: newStore.id,
+              providerId: 1,
+              accountName: `${newStore.name} Shipping Account`,
+              status: 'active',
+            } as any,
+            { transaction: t }
+          );
+        } catch {
+          // Ignore if exists or optional
+        }
 
         // Collect Store Audit
         auditLogsToCreate.push({
@@ -291,6 +363,21 @@ export class AdminSellerService {
       // Write deferred audit logs post-transaction
       for (const log of auditLogsToCreate) {
         await createAuditLog(log.payload, log.context);
+      }
+
+      // Dispatch Onboarding Email via SMTP
+      if (rawTempPassword) {
+        try {
+          await sendSellerOnboardingEmail({
+            tenantId,
+            recipientEmail: user.email,
+            ownerName: input.ownerName,
+            storeName: input.businessName,
+            tempPassword: rawTempPassword,
+          });
+        } catch (emailErr: any) {
+          console.error('[AdminSellerService] Onboarding email dispatch error:', emailErr.message);
+        }
       }
 
       return user;

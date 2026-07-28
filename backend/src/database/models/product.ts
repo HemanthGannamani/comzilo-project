@@ -7,6 +7,7 @@ export interface ProductAttributes {
   tenantId: number;
   storeId: number;
   productTypeId?: number | null;
+  productType?: string | null;
   name: string;
   slug: string;
   sku: string;
@@ -20,6 +21,8 @@ export interface ProductAttributes {
   price: number;
   comparePrice: number | null;
   cost: number | null;
+  costPrice?: number | null;
+  stockQuantity?: number;
   weight: number | null;
   dimensions: string | null;
   barcode: string | null;
@@ -95,6 +98,7 @@ export class Product
   declare updatedBy: number | null;
 
   declare productType?: any;
+  declare stockQuantity: number;
   declare categories?: any[];
   declare brandRecord?: any;
   declare collections?: any[];

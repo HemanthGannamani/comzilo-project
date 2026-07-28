@@ -11,6 +11,7 @@ router.use(tenantResolver);
 router.use(authenticate);
 router.use(authorize);
 
+router.get('/', requirePermission('tenant.read'), controller.getDashboardMetrics);
 router.get('/dashboard', requirePermission('tenant.read'), controller.getDashboardMetrics);
 router.get('/reports/sellers', requirePermission('tenant.read'), controller.getSellersReport);
 router.get(

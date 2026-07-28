@@ -10,6 +10,11 @@ export interface BrandAttributes {
   slug: string;
   description: string | null;
   logoMediaId: number | null;
+  logoUrl?: string | null;
+  bannerUrl?: string | null;
+  isFeatured?: boolean;
+  metaTitle?: string | null;
+  metaDescription?: string | null;
   status: 'draft' | 'active' | 'inactive' | 'archived';
   visibility: 'public' | 'private' | 'hidden';
   seoTitle: string | null;

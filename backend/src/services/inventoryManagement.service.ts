@@ -151,7 +151,7 @@ export class InventoryManagementService {
           productId: params.productId,
           warehouseId: params.warehouseId,
           warehouseLocationId: 1,
-          movementType: params.movementType,
+          movementType: params.movementType as any,
           direction: changeQty >= 0 ? 'in' : 'out',
           quantity: Math.abs(changeQty),
           quantityBefore: prevQty,
@@ -193,7 +193,7 @@ export class InventoryManagementService {
           transferNumber,
           sourceWarehouseId: data.sourceWarehouseId,
           destinationWarehouseId: data.destinationWarehouseId,
-          status: 'completed',
+          status: 'approved' as any,
           requestedAt: new Date(),
           completedAt: new Date(),
         },
@@ -280,7 +280,7 @@ export class InventoryManagementService {
           quantity: qtyChange,
           reason: data.reason || 'Manual Inventory Count Correction',
           status: 'approved',
-        },
+        } as any,
         { transaction: t }
       );
 

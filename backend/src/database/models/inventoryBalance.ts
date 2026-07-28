@@ -9,6 +9,8 @@ export interface InventoryBalanceAttributes {
   warehouseLocationId: number;
   productId: number;
   quantityOnHand: number;
+  onHandQuantity?: number;
+  averageCost?: number;
   quantityReserved: number;
   quantityAvailable: number;
   reorderPoint: number;
@@ -42,6 +44,8 @@ export class InventoryBalance
   declare warehouseLocationId: number;
   declare productId: number;
   declare quantityOnHand: number;
+  declare onHandQuantity: number;
+  declare averageCost: number;
   declare quantityReserved: number;
   declare quantityAvailable: number;
   declare reorderPoint: number;

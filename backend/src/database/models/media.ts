@@ -5,6 +5,7 @@ export interface MediaAttributes {
   id: number;
   tenantId: number;
   filename: string;
+  originalName?: string | null;
   mimeType: string;
   size: number;
   url: string;

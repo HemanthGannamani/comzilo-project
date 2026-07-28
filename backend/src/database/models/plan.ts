@@ -11,6 +11,11 @@ export class Plan extends Model<any, any> {
   declare priceYearly: number;
   declare currency: string;
   declare trialDays: number;
+  declare storeLimit: number;
+  declare userLimit: number;
+  declare warehouseLimit: number;
+  declare features: any;
+  declare sortOrder: number;
   declare isActive: boolean;
   declare readonly createdAt: Date;
   declare readonly updatedAt: Date;
@@ -58,6 +63,34 @@ Plan.init(
       allowNull: false,
       defaultValue: 0,
       field: 'trial_days',
+    },
+    storeLimit: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 1,
+      field: 'store_limit',
+    },
+    userLimit: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 5,
+      field: 'user_limit',
+    },
+    warehouseLimit: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 1,
+      field: 'warehouse_limit',
+    },
+    features: {
+      type: DataTypes.JSON,
+      allowNull: true,
+    },
+    sortOrder: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 0,
+      field: 'sort_order',
     },
     isActive: {
       type: DataTypes.BOOLEAN,

@@ -236,6 +236,10 @@ import storeShippingProviderRoutes from './routes/storeShippingProvider.routes';
 import adminInventoryRoutes from './routes/adminInventory.routes';
 import storeInventoryManagementRoutes from './routes/storeInventoryManagement.routes';
 
+import planRoutes from './routes/plan.routes';
+
+app.use('/api/v1/subscription-plans', planRoutes);
+app.use('/api/v1/plans', planRoutes);
 app.use('/api/v1/webhooks', webhookRoutes);
 app.use('/api/v1/integrations', integrationRoutes);
 app.use('/api/v1/seller-applications', sellerApplicationRoutes);

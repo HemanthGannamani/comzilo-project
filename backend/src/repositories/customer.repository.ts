@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { BaseRepository } from '../core/BaseRepository';
 import { Customer } from '../database/models/customer';
+import { Op } from 'sequelize';
 
 export class CustomerRepository extends BaseRepository<Customer> {
   constructor() {
@@ -10,8 +11,12 @@ export class CustomerRepository extends BaseRepository<Customer> {
   private applyStoreScope(tenantId?: number | null, storeId?: number | null, options: any = {}): any {
     const opts = { ...options };
     const whereScope: any = { ...opts.where };
-    if (tenantId) whereScope.tenantId = tenantId;
-    if (storeId) whereScope.storeId = storeId;
+    if (tenantId) {
+      whereScope.tenantId = tenantId;
+    }
+    if (storeId) {
+      whereScope.storeId = storeId;
+    }
     opts.where = whereScope;
     return opts;
   }

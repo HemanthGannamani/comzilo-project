@@ -38,6 +38,8 @@ export class AuthenticationError extends AppError {
   }
 }
 
+export class UnauthorizedError extends AuthenticationError {}
+
 export class AuthorizationError extends AppError {
   constructor(message: string = RESPONSE_MESSAGES.FORBIDDEN) {
     super(message, HTTP_STATUS.FORBIDDEN, 'FORBIDDEN');

@@ -28,6 +28,10 @@ export interface StockMovementAttributes {
   quantity: number;
   quantityBefore: number;
   quantityAfter: number;
+  previousQuantity?: number;
+  newQuantity?: number;
+  referenceNumber?: string | null;
+  unitCost?: number | null;
   referenceType: string | null;
   referenceId: string | null;
   reason: string | null;

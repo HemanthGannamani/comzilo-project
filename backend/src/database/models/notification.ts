@@ -104,7 +104,8 @@ Notification.init(
     },
     recipient: {
       type: DataTypes.STRING(255),
-      allowNull: false,
+      allowNull: true,
+      defaultValue: 'system',
     },
     channel: {
       type: DataTypes.ENUM('email', 'sms', 'push', 'in_app', 'whatsapp'),

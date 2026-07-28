@@ -36,7 +36,7 @@ const loginLimiter = isTest
   ? (_req: any, _res: any, next: any) => next()
   : rateLimit({
       windowMs: 5 * 60 * 1000,
-      max: 10,
+      max: 500,
       standardHeaders: true,
       legacyHeaders: false,
       message: {

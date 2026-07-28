@@ -11,6 +11,8 @@ export interface RequestContext {
   userAgent: string;
   requestStartTime: number;
   storeId?: number | null;
+  storeSlug?: string | null;
+  userRole?: string | null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   rbacCache?: any;
 }

@@ -10,6 +10,7 @@ export interface StockAdjustmentAttributes {
   warehouseLocationId: number;
   productId: number;
   adjustmentType: 'increase' | 'decrease' | 'set_absolute';
+  adjustmentNumber?: string | null;
   quantity: number;
   reasonCode: string;
   reason: string | null;

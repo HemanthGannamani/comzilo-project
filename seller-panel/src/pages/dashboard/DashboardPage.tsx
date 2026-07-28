@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Grid, Card, CardContent, Typography, Box, Paper, Stack } from '@mui/material';
+import { Grid, Card, CardContent, Typography, Box, Paper, Stack, CircularProgress } from '@mui/material';
 import { PageContainer } from '../../components/layout/PageContainer';
 import { DollarSign, ShoppingBag, Users, TrendingUp } from 'lucide-react';
 import { formatCurrency } from '../../utils/formatters';
@@ -7,12 +7,8 @@ import { axiosInstance } from '../../api/axiosInstance';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 
 export const DashboardPage: React.FC = () => {
-  const [stats, setStats] = useState<any>({
-    totalSales: 128500.75,
-    totalOrders: 1420,
-    totalCustomers: 385,
-    growthRate: 14.2,
-  });
+  const [stats, setStats] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -22,115 +18,126 @@ export const DashboardPage: React.FC = () => {
           setStats(res.data.data);
         }
       } catch {
-        // Fallback default metrics
+        // Handle error gracefully without fake data
+      } finally {
+        setLoading(false);
       }
     };
     fetchStats();
   }, []);
 
-  const chartData = [
-    { month: 'Jan', sales: 12000 },
-    { month: 'Feb', sales: 19000 },
-    { month: 'Mar', sales: 15000 },
-    { month: 'Apr', sales: 24000 },
-    { month: 'May', sales: 28000 },
-    { month: 'Jun', sales: 32000 },
-    { month: 'Jul', sales: 41000 },
+  const totalSales = Number(stats?.totalSales ?? stats?.totalRevenue ?? 0);
+  const totalOrders = Number(stats?.totalOrders ?? 0);
+  const totalCustomers = Number(stats?.totalCustomers ?? 0);
+  const growthRate = Number(stats?.growthRate ?? 0);
+
+  const chartData = stats?.chartData || [
+    { month: 'Jan', sales: 0 },
+    { month: 'Feb', sales: 0 },
+    { month: 'Mar', sales: 0 },
   ];
 
   return (
     <PageContainer title="Executive Dashboard" subtitle="Overview of real-time sales performance and business metrics">
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
-                <Box>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-                    TOTAL REVENUE
-                  </Typography>
-                  <Typography variant="h5" sx={{ fontWeight: 800, mt: 0.5 }}>
-                    {formatCurrency(stats.totalSales || 128500.75)}
-                  </Typography>
-                </Box>
-                <AvatarBox icon={<DollarSign size={24} color="#2563EB" />} bgcolor="#EFF6FF" />
-              </Stack>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
-                <Box>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-                    TOTAL ORDERS
-                  </Typography>
-                  <Typography variant="h5" sx={{ fontWeight: 800, mt: 0.5 }}>
-                    {stats.totalOrders || 1420}
-                  </Typography>
-                </Box>
-                <AvatarBox icon={<ShoppingBag size={24} color="#10B981" />} bgcolor="#ECFDF5" />
-              </Stack>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
-                <Box>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-                    TOTAL CUSTOMERS
-                  </Typography>
-                  <Typography variant="h5" sx={{ fontWeight: 800, mt: 0.5 }}>
-                    {stats.totalCustomers || 385}
-                  </Typography>
-                </Box>
-                <AvatarBox icon={<Users size={24} color="#8B5CF6" />} bgcolor="#F5F3FF" />
-              </Stack>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
-                <Box>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-                    GROWTH RATE
-                  </Typography>
-                  <Typography variant="h5" sx={{ fontWeight: 800, mt: 0.5 }}>
-                    +{stats.growthRate || 14.2}%
-                  </Typography>
-                </Box>
-                <AvatarBox icon={<TrendingUp size={24} color="#F59E0B" />} bgcolor="#FFFBEB" />
-              </Stack>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-
-      {/* Analytics Chart */}
-      <Paper sx={{ p: 3, borderRadius: 3, mb: 3 }}>
-        <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>
-          Revenue Trend Analysis
-        </Typography>
-        <Box sx={{ height: 320, width: '100%' }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="month" />
-              <YAxis />
-              <Tooltip />
-              <Area type="monotone" dataKey="sales" stroke="#2563EB" fill="#DBEAFE" strokeWidth={3} />
-            </AreaChart>
-          </ResponsiveContainer>
+      {loading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+          <CircularProgress />
         </Box>
-      </Paper>
+      ) : (
+        <>
+          <Grid container spacing={3} sx={{ mb: 3 }}>
+            <Grid item xs={12} sm={6} md={3}>
+              <Card>
+                <CardContent>
+                  <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Box>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                        TOTAL REVENUE
+                      </Typography>
+                      <Typography variant="h5" sx={{ fontWeight: 800, mt: 0.5 }}>
+                        {formatCurrency(totalSales)}
+                      </Typography>
+                    </Box>
+                    <AvatarBox icon={<DollarSign size={24} color="#2563EB" />} bgcolor="#EFF6FF" />
+                  </Stack>
+                </CardContent>
+              </Card>
+            </Grid>
+
+            <Grid item xs={12} sm={6} md={3}>
+              <Card>
+                <CardContent>
+                  <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Box>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                        TOTAL ORDERS
+                      </Typography>
+                      <Typography variant="h5" sx={{ fontWeight: 800, mt: 0.5 }}>
+                        {totalOrders}
+                      </Typography>
+                    </Box>
+                    <AvatarBox icon={<ShoppingBag size={24} color="#10B981" />} bgcolor="#ECFDF5" />
+                  </Stack>
+                </CardContent>
+              </Card>
+            </Grid>
+
+            <Grid item xs={12} sm={6} md={3}>
+              <Card>
+                <CardContent>
+                  <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Box>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                        TOTAL CUSTOMERS
+                      </Typography>
+                      <Typography variant="h5" sx={{ fontWeight: 800, mt: 0.5 }}>
+                        {totalCustomers}
+                      </Typography>
+                    </Box>
+                    <AvatarBox icon={<Users size={24} color="#8B5CF6" />} bgcolor="#F5F3FF" />
+                  </Stack>
+                </CardContent>
+              </Card>
+            </Grid>
+
+            <Grid item xs={12} sm={6} md={3}>
+              <Card>
+                <CardContent>
+                  <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Box>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                        GROWTH RATE
+                      </Typography>
+                      <Typography variant="h5" sx={{ fontWeight: 800, mt: 0.5 }}>
+                        +{growthRate}%
+                      </Typography>
+                    </Box>
+                    <AvatarBox icon={<TrendingUp size={24} color="#F59E0B" />} bgcolor="#FFFBEB" />
+                  </Stack>
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
+
+          {/* Analytics Chart */}
+          <Paper sx={{ p: 3, borderRadius: 3, mb: 3 }}>
+            <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>
+              Revenue Trend Analysis
+            </Typography>
+            <Box sx={{ height: 320, width: '100%' }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="month" />
+                  <YAxis />
+                  <Tooltip />
+                  <Area type="monotone" dataKey="sales" stroke="#2563EB" fill="#DBEAFE" strokeWidth={3} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </Box>
+          </Paper>
+        </>
+      )}
     </PageContainer>
   );
 };

@@ -1,3 +1,4 @@
+import { sequelize } from '../config/database';
 import {
   ShippingProvider,
   TenantShippingProviderConfig,
@@ -24,8 +25,8 @@ export class ShippingProviderService {
   public async updateGlobalProviderStatus(providerId: number, isActive: boolean) {
     const provider = await ShippingProvider.findByPk(providerId);
     if (!provider) throw new NotFoundError('Shipping provider not found');
-    provider.isActive = isActive;
-    await provider.save();
+    await provider.update({ isActive: Boolean(isActive) });
+    await provider.reload();
     return provider;
   }
 
@@ -36,15 +37,49 @@ export class ShippingProviderService {
     const rto = await Shipment.count({ where: { status: 'returned' } });
     const codOrders = await Shipment.count({ where: { isCod: true } });
 
+    let mostUsedProvider = 'N/A';
+    try {
+      const topCarrier = await Shipment.findOne({
+        attributes: ['providerId', [sequelize.fn('COUNT', sequelize.col('id')), 'shipmentCount']],
+        group: ['providerId'],
+        order: [[sequelize.literal('shipmentCount'), 'DESC']],
+        limit: 1,
+      });
+
+      if (topCarrier && (topCarrier as any).providerId) {
+        const prov = await ShippingProvider.findByPk((topCarrier as any).providerId);
+        if (prov) mostUsedProvider = prov.name;
+      }
+    } catch {
+      mostUsedProvider = 'N/A';
+    }
+
+    let averageDeliveryTimeDays = '0.0 Days';
+    if (delivered > 0) {
+      try {
+        const avgResult = await Shipment.findAll({
+          where: { status: 'delivered' },
+          attributes: [
+            [sequelize.fn('AVG', sequelize.literal('TIMESTAMPDIFF(HOUR, created_at, updated_at)')), 'avgHours'],
+          ],
+          raw: true,
+        });
+        const avgHours = Number((avgResult[0] as any)?.avgHours || 0);
+        averageDeliveryTimeDays = (avgHours / 24).toFixed(1) + ' Days';
+      } catch {
+        averageDeliveryTimeDays = '0.0 Days';
+      }
+    }
+
     return {
       totalShipments,
       delivered,
       cancelled,
       rto,
       codOrders,
-      deliverySuccessRate: totalShipments > 0 ? ((delivered / totalShipments) * 100).toFixed(1) + '%' : '100%',
-      averageDeliveryTimeDays: '2.4 Days',
-      mostUsedProvider: 'Shiprocket',
+      deliverySuccessRate: totalShipments > 0 ? ((delivered / totalShipments) * 100).toFixed(1) + '%' : '0.0%',
+      averageDeliveryTimeDays,
+      mostUsedProvider,
     };
   }
 

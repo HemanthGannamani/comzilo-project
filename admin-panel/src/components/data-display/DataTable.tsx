@@ -10,6 +10,7 @@ interface DataTableProps {
   page?: number;
   onPageChange?: (page: number) => void;
   pageSize?: number;
+  onPageSizeChange?: (pageSize: number) => void;
 }
 
 export const DataTable: React.FC<DataTableProps> = ({
@@ -20,6 +21,7 @@ export const DataTable: React.FC<DataTableProps> = ({
   page = 0,
   onPageChange,
   pageSize = 10,
+  onPageSizeChange,
 }) => {
   return (
     <Paper sx={{ width: '100%', borderRadius: 3, overflow: 'hidden', border: '1px solid #E2E8F0', boxShadow: 'none' }}>
@@ -30,7 +32,10 @@ export const DataTable: React.FC<DataTableProps> = ({
         paginationMode={rowCount !== undefined ? 'server' : 'client'}
         rowCount={rowCount}
         paginationModel={{ page, pageSize }}
-        onPaginationModelChange={(model) => onPageChange && onPageChange(model.page)}
+        onPaginationModelChange={(model) => {
+          if (onPageChange && model.page !== page) onPageChange(model.page);
+          if (onPageSizeChange && model.pageSize !== pageSize) onPageSizeChange(model.pageSize);
+        }}
         pageSizeOptions={[10, 25, 50]}
         disableRowSelectionOnClick
         autoHeight

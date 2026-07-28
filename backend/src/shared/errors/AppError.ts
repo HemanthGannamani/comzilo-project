@@ -47,6 +47,8 @@ export class AuthorizationError extends AppError {
   }
 }
 
+export class ForbiddenError extends AuthorizationError {}
+
 export class TenantNotFoundError extends AppError {
   constructor(message: string = RESPONSE_MESSAGES.TENANT_NOT_FOUND) {
     super(message, HTTP_STATUS.NOT_FOUND, 'TENANT_NOT_FOUND');

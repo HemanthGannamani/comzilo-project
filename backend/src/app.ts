@@ -250,6 +250,13 @@ app.use('/api/v1/admin/sellers', adminSellerRoutes);
 app.use('/api/v1/admin/shipping-providers', adminShippingProviderRoutes);
 app.use('/api/v1/admin/inventory', adminInventoryRoutes);
 app.use('/api/v1/admin/dashboard', adminDashboardRoutes);
+import adminPlatformUserRoutes from './routes/adminPlatformUser.routes';
+import adminRoleRoutes from './routes/adminRole.routes';
+
+app.use('/api/v1/admin/platform-users', adminPlatformUserRoutes);
+app.use('/api/v1/admin/users', adminPlatformUserRoutes);
+app.use('/api/v1/admin/roles', adminRoleRoutes);
+app.use('/api/v1/admin/permissions', adminRoleRoutes);
 app.use('/api/v1/admin/system', adminSystemRoutes);
 app.use('/api/v1/store/products', storeProductRoutes);
 app.use('/api/v1/store/inventory-management', storeInventoryManagementRoutes);
@@ -261,6 +268,9 @@ app.use('/api/v1/store/payments', storePaymentRoutes);
 app.use('/api/v1/store/crm', storeCrmRoutes);
 app.use('/api/v1/store/marketing', storeMarketingRoutes);
 app.use('/api/v1/store/cms', storeCmsRoutes);
+
+import supportCenterRoutes from './routes/supportCenter.routes';
+app.use('/api/v1/support', supportCenterRoutes);
 app.use('/api/v1/store/pos', storePosRoutes);
 app.use('/api/v1/store/purchasing', storePurchasingRoutes);
 app.use('/api/v1/store/finance', storeFinanceRoutes);

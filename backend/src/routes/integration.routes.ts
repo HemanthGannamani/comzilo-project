@@ -14,6 +14,8 @@ router.use(requireAuth);
 router.use(authorize);
 
 router.get('/marketplace', requirePermission('marketplace.read'), controller.getMarketplaceApps);
+router.post('/test-credentials', controller.testCredentials);
+router.post('/:provider/test-credentials', controller.testCredentials);
 
 router.post(
   '/',

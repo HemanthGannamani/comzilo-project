@@ -125,6 +125,9 @@ export const CustomerHeader: React.FC = () => {
                   <MenuItem component={Link} to="/account/orders" onClick={() => setAnchorEl(null)}>
                     My Orders
                   </MenuItem>
+                  <MenuItem component={Link} to="/account/support" onClick={() => setAnchorEl(null)}>
+                    Support Center
+                  </MenuItem>
                   <MenuItem onClick={handleLogout} sx={{ color: 'error.main' }}>
                     <LogOut size={16} style={{ marginRight: 8 }} /> Logout
                   </MenuItem>

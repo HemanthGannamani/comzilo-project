@@ -218,24 +218,24 @@ export const adminApi = baseApi.injectEndpoints({
       }),
     }),
     getSystemSettings: builder.query<any, void>({
-      query: () => '/admin/settings',
+      query: () => '/admin/system/settings',
       providesTags: ['Setting' as any],
     }),
     saveSystemSettings: builder.mutation<any, any[]>({
       query: (settings) => ({
-        url: '/admin/settings',
+        url: '/admin/system/settings',
         method: 'POST',
         body: settings,
       }),
       invalidatesTags: ['Setting' as any],
     }),
     getEmailTemplates: builder.query<any, void>({
-      query: () => '/admin/email-templates',
+      query: () => '/admin/system/email-templates',
       providesTags: ['EmailTemplate' as any],
     }),
     saveEmailTemplate: builder.mutation<any, any>({
       query: (template) => ({
-        url: '/admin/email-templates',
+        url: '/admin/system/email-templates',
         method: 'POST',
         body: template,
       }),
@@ -269,6 +269,90 @@ export const adminApi = baseApi.injectEndpoints({
         method: 'DELETE',
       }),
       invalidatesTags: ['Plan' as any],
+    }),
+
+    // PLATFORM USERS
+    getPlatformUsers: builder.query<any, any>({
+      query: (params) => ({
+        url: '/admin/platform-users',
+        params,
+      }),
+      providesTags: ['PlatformUser' as any],
+    }),
+    createPlatformUser: builder.mutation<any, any>({
+      query: (body) => ({
+        url: '/admin/platform-users',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['PlatformUser' as any],
+    }),
+    updatePlatformUser: builder.mutation<any, { id: number | string; [key: string]: any }>({
+      query: ({ id, ...body }) => ({
+        url: `/admin/platform-users/${id}`,
+        method: 'PUT',
+        body,
+      }),
+      invalidatesTags: ['PlatformUser' as any],
+    }),
+    deletePlatformUser: builder.mutation<any, number | string>({
+      query: (id) => ({
+        url: `/admin/platform-users/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['PlatformUser' as any],
+    }),
+    resetPlatformUserPassword: builder.mutation<any, number | string>({
+      query: (id) => ({
+        url: `/admin/platform-users/${id}/reset-password`,
+        method: 'POST',
+      }),
+      invalidatesTags: ['PlatformUser' as any],
+    }),
+
+    // ROLES & PERMISSIONS
+    getRoles: builder.query<any, void>({
+      query: () => '/admin/roles',
+      providesTags: ['Role' as any],
+    }),
+    getRoleById: builder.query<any, number | string>({
+      query: (id) => `/admin/roles/${id}`,
+      providesTags: ['Role' as any],
+    }),
+    getPermissionsMatrix: builder.query<any, void>({
+      query: () => '/admin/roles/permissions',
+      providesTags: ['Permission' as any],
+    }),
+    createRole: builder.mutation<any, any>({
+      query: (body) => ({
+        url: '/admin/roles',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['Role' as any],
+    }),
+    updateRole: builder.mutation<any, { id: number | string; [key: string]: any }>({
+      query: ({ id, ...body }) => ({
+        url: `/admin/roles/${id}`,
+        method: 'PUT',
+        body,
+      }),
+      invalidatesTags: ['Role' as any],
+    }),
+    deleteRole: builder.mutation<any, number | string>({
+      query: (id) => ({
+        url: `/admin/roles/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['Role' as any],
+    }),
+    assignUserRole: builder.mutation<any, { userId: number | string; roleCode: string }>({
+      query: (body) => ({
+        url: '/admin/roles/assign-user',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['Role' as any, 'PlatformUser' as any],
     }),
     getNotifications: builder.query<any, any>({
       query: (params) => ({
@@ -375,6 +459,18 @@ export const {
   useUpdateSubscriptionPlanMutation,
   useCreateSubscriptionPlanMutation,
   useDeleteSubscriptionPlanMutation,
+  useGetPlatformUsersQuery,
+  useCreatePlatformUserMutation,
+  useUpdatePlatformUserMutation,
+  useDeletePlatformUserMutation,
+  useResetPlatformUserPasswordMutation,
+  useGetRolesQuery,
+  useGetRoleByIdQuery,
+  useGetPermissionsMatrixQuery,
+  useCreateRoleMutation,
+  useUpdateRoleMutation,
+  useDeleteRoleMutation,
+  useAssignUserRoleMutation,
   useGetNotificationsQuery,
   useMarkNotificationReadMutation,
   useMarkNotificationUnreadMutation,

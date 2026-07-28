@@ -23,6 +23,7 @@ import { CustomerPrivacyPage } from '../pages/account/CustomerPrivacyPage';
 
 import { PageLoader } from '../components/common/PageLoader';
 import { BecomeSellerPage } from '../pages/public/BecomeSellerPage';
+import { SupportCenterPage } from '../pages/SupportCenterPage';
 
 export const AppRoutes: React.FC = () => {
   return (
@@ -54,7 +55,8 @@ export const AppRoutes: React.FC = () => {
           <Route path="/account/notifications" element={<CustomerNotificationsPage />} />
           <Route path="/account/invoices" element={<CustomerInvoicesPage />} />
           <Route path="/account/change-password" element={<CustomerChangePasswordPage />} />
-          <Route path="/account/privacy" element={<CustomerPrivacyPage />} />
+          <Route path="/support" element={<SupportCenterPage />} />
+          <Route path="/account/support" element={<SupportCenterPage />} />
         </Route>
 
         {/* Fallback Catch-All */}

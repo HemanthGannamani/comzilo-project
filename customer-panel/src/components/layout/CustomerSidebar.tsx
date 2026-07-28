@@ -22,6 +22,7 @@ import {
   Download,
   KeyRound,
   ShieldCheck,
+  HelpCircle,
   LogOut,
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -57,6 +58,7 @@ export const CustomerSidebar: React.FC = () => {
     { label: 'My Orders', path: '/account/orders', icon: <Package size={20} /> },
     { label: 'Saved Addresses', path: '/account/addresses', icon: <MapPin size={20} /> },
     { label: 'Wishlist', path: '/account/wishlist', icon: <Heart size={20} />, badge: wishlistItems.length },
+    { label: 'Support Center', path: '/account/support', icon: <HelpCircle size={20} /> },
     { label: 'Notifications', path: '/account/notifications', icon: <Bell size={20} /> },
     { label: 'Download Invoices', path: '/account/invoices', icon: <Download size={20} /> },
     { label: 'Change Password', path: '/account/change-password', icon: <KeyRound size={20} /> },

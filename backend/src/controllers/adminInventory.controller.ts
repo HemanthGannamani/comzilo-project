@@ -1,24 +1,23 @@
 import { Request, Response, NextFunction } from 'express';
 import { InventoryManagementService } from '../services/inventoryManagement.service';
+import { Warehouse } from '../database/models';
 import { success } from '../shared/responses';
 
 const inventoryService = new InventoryManagementService();
 
 export class AdminInventoryController {
-  public getAnalytics = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  public getAnalytics = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const tenantId = req.query.tenantId ? Number(req.query.tenantId) : 1;
-      const stats = await inventoryService.getDashboardStats(tenantId);
+      const stats = await inventoryService.getGlobalDashboardStats();
       success(res, 'Global inventory analytics retrieved successfully', stats);
     } catch (error) {
       next(error);
     }
   };
 
-  public getWarehouseMonitoring = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  public getWarehouseMonitoring = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const tenantId = req.query.tenantId ? Number(req.query.tenantId) : 1;
-      const warehouses = await inventoryService.getWarehouses(tenantId);
+      const warehouses = await Warehouse.findAll({ order: [['id', 'ASC']] });
       success(res, 'Warehouse monitoring data retrieved successfully', warehouses);
     } catch (error) {
       next(error);

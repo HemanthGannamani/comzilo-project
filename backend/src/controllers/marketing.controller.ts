@@ -276,7 +276,7 @@ export class MarketingController {
       const tenantId = req.context?.tenantId || 1;
       const { recipientPhone, config } = req.body;
       const result = await this.service.sendWhatsAppTestMessage(tenantId, recipientPhone, config);
-      success(res, 'WhatsApp test message sent successfully', result);
+      success(res, 'WhatsApp test message processed successfully', result);
     } catch (err) {
       next(err);
     }

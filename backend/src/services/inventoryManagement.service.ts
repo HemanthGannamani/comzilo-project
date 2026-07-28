@@ -21,6 +21,42 @@ import { NotFoundError, ValidationError } from '../shared/errors/AppError';
 
 export class InventoryManagementService {
   // --- DASHBOARD & ANALYTICS ---
+  public async getGlobalDashboardStats() {
+    const totalWarehouses = await Warehouse.count();
+    const totalProducts = await Product.count();
+    const inventoryBalances = await InventoryBalance.findAll();
+
+    let totalStockValue = 0;
+    let lowStockCount = 0;
+    let outOfStockCount = 0;
+
+    for (const item of inventoryBalances) {
+      const current = Number(item.onHandQuantity || 0);
+      const unitCost = Number(item.averageCost || 50.0);
+      totalStockValue += current * unitCost;
+
+      if (current === 0) outOfStockCount++;
+      else if (current <= Number(item.reorderPoint || 10)) lowStockCount++;
+    }
+
+    const pendingPOs = await PurchaseOrder.count({ where: { status: ['pending', 'approved'] } });
+    const recentMovements = await StockMovement.findAll({
+      order: [['id', 'DESC']],
+      limit: 10,
+    });
+
+    return {
+      totalWarehouses,
+      totalProducts,
+      totalInventoryValue: Number(totalStockValue.toFixed(2)),
+      lowStockItems: lowStockCount,
+      outOfStockItems: outOfStockCount,
+      pendingPurchaseOrders: pendingPOs,
+      todaysStockMovement: recentMovements.length,
+      recentMovements,
+    };
+  }
+
   public async getDashboardStats(tenantId: number) {
     const totalWarehouses = await Warehouse.count({ where: { tenantId } });
     const totalProducts = await Product.count({ where: { tenantId } });

@@ -4,8 +4,37 @@ import { success, created } from '../shared/responses';
 import { createAuditLog } from '../utils/auditHelper';
 import { createActivityLog } from '../utils/activityHelper';
 
+import { IntegrationTesterService } from '../services/integrationTester.service';
+
 export class IntegrationController {
   private integrationService = new IntegrationService();
+  private testerService = new IntegrationTesterService();
+
+  public testCredentials = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const provider = (req.params.provider || req.body.provider || 'stripe').toLowerCase();
+      const apiKey = req.body.apiKey;
+
+      let result;
+      if (provider.includes('stripe')) {
+        result = await this.testerService.testStripe(apiKey);
+      } else if (provider.includes('aws') || provider.includes('s3') || provider.includes('storage')) {
+        result = await this.testerService.testAwsS3();
+      } else if (provider.includes('openai') || provider.includes('ai')) {
+        result = await this.testerService.testOpenAI(apiKey);
+      } else {
+        result = await this.testerService.testStripe(apiKey);
+      }
+
+      success(res, `Integration credentials test completed for ${result.name}`, result);
+    } catch (error) {
+      next(error);
+    }
+  };
 
   public getMarketplaceApps = async (
     _req: Request,

@@ -6,7 +6,6 @@ import {
   Server,
   FileText,
   Send,
-  MessageSquare,
   Ticket,
   ShoppingCart,
   Users,
@@ -24,13 +23,12 @@ export const MarketingLayout: React.FC = () => {
     if (path.includes('/marketing/email-providers')) return 1;
     if (path.includes('/marketing/email-templates')) return 2;
     if (path.includes('/marketing/campaigns')) return 3;
-    if (path.includes('/marketing/whatsapp')) return 4;
-    if (path.includes('/marketing/coupons')) return 5;
-    if (path.includes('/marketing/abandoned-cart') || path.includes('/marketing/abandoned-carts')) return 6;
-    if (path.includes('/marketing/customer-segments') || path.includes('/marketing/segments')) return 7;
-    if (path.includes('/marketing/automation-rules')) return 8;
-    if (path.includes('/marketing/analytics')) return 9;
-    if (path.includes('/marketing/email-logs')) return 10;
+    if (path.includes('/marketing/coupons')) return 4;
+    if (path.includes('/marketing/abandoned-cart') || path.includes('/marketing/abandoned-carts')) return 5;
+    if (path.includes('/marketing/customer-segments') || path.includes('/marketing/segments')) return 6;
+    if (path.includes('/marketing/automation-rules')) return 7;
+    if (path.includes('/marketing/analytics')) return 8;
+    if (path.includes('/marketing/email-logs')) return 9;
     return 0; // Default: Dashboard
   };
 
@@ -49,24 +47,21 @@ export const MarketingLayout: React.FC = () => {
         navigate('/marketing/campaigns');
         break;
       case 4:
-        navigate('/marketing/whatsapp');
-        break;
-      case 5:
         navigate('/marketing/coupons');
         break;
-      case 6:
+      case 5:
         navigate('/marketing/abandoned-carts');
         break;
-      case 7:
+      case 6:
         navigate('/marketing/segments');
         break;
-      case 8:
+      case 7:
         navigate('/marketing/automation-rules');
         break;
-      case 9:
+      case 8:
         navigate('/marketing/analytics');
         break;
-      case 10:
+      case 9:
         navigate('/marketing/email-logs');
         break;
     }
@@ -80,7 +75,6 @@ export const MarketingLayout: React.FC = () => {
           <Tab icon={<Server size={18} />} iconPosition="start" label="Email Providers" sx={{ fontWeight: 700 }} />
           <Tab icon={<FileText size={18} />} iconPosition="start" label="Email Templates" sx={{ fontWeight: 700 }} />
           <Tab icon={<Send size={18} />} iconPosition="start" label="Campaigns" sx={{ fontWeight: 700 }} />
-          <Tab icon={<MessageSquare size={18} />} iconPosition="start" label="WhatsApp" sx={{ fontWeight: 700 }} />
           <Tab icon={<Ticket size={18} />} iconPosition="start" label="Coupons" sx={{ fontWeight: 700 }} />
           <Tab icon={<ShoppingCart size={18} />} iconPosition="start" label="Abandoned Carts" sx={{ fontWeight: 700 }} />
           <Tab icon={<Users size={18} />} iconPosition="start" label="Segments" sx={{ fontWeight: 700 }} />

@@ -53,7 +53,6 @@ router.get('/analytics', authenticate, controller.getMarketingAnalytics);
 router.get('/whatsapp-settings', authenticate, controller.getWhatsAppSettings);
 router.post('/whatsapp-settings', authenticate, controller.saveWhatsAppSettings);
 router.post('/whatsapp/test-connection', authenticate, controller.testWhatsAppConnection);
-router.post('/whatsapp/send-test-message', authenticate, controller.sendWhatsAppTestMessage);
 router.get('/whatsapp-templates', authenticate, controller.getWhatsAppTemplates);
 router.post('/whatsapp-templates', authenticate, controller.createWhatsAppTemplate);
 

@@ -28,7 +28,6 @@ import { MarketingDashboardPage } from '../features/marketing/pages/MarketingDas
 import { EmailProvidersPage } from '../features/marketing/pages/EmailProvidersPage';
 import { EmailTemplatesPage } from '../features/marketing/pages/EmailTemplatesPage';
 import { CampaignsPage } from '../features/marketing/pages/CampaignsPage';
-import { WhatsappMarketingPage } from '../features/marketing/pages/WhatsappMarketingPage';
 import { CouponsPage } from '../features/marketing/pages/CouponsPage';
 import { AbandonedCartPage } from '../features/marketing/pages/AbandonedCartPage';
 import { CustomerSegmentsPage } from '../features/marketing/pages/CustomerSegmentsPage';
@@ -59,13 +58,19 @@ import { NotificationsPage } from '../features/notifications/pages/Notifications
 import { SettingsPage } from '../features/settings/pages/SettingsPage';
 import { ShippingProvidersPage } from '../pages/settings/ShippingProvidersPage';
 import { InventoryManagementPage } from '../pages/inventory/InventoryManagementPage';
+import { FinancePaymentsPage, FinanceRefundsPage, TaxesPage, ExpensesPage, ProfitLossPage } from '../pages/finance/FinancePages';
+import { ReviewsPage, SupportTicketsPage, StaffManagementPage, LoyaltyProgramPage } from '../pages/store/StorePages';
+import { SellerCustomerSupportPage } from '../pages/support/SellerCustomerSupportPage';
 import { IntegrationsPage } from '../features/integrations/pages/IntegrationsPage';
+
+import { PublicOrderTrackingPage } from '../pages/public/PublicOrderTrackingPage';
 
 export const AppRoutes: React.FC = () => {
   return (
     <Suspense fallback={<PageLoader />}>
       <Routes>
-        {/* Public Auth Routes */}
+        {/* Public Auth & Tracking Routes */}
+        <Route path="/track/:orderNumber" element={<PublicOrderTrackingPage />} />
         <Route element={<AuthLayout />}>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/seller/register" element={<SellerRegisterPage />} />
@@ -104,7 +109,6 @@ export const AppRoutes: React.FC = () => {
               <Route path="email-providers" element={<EmailProvidersPage />} />
               <Route path="email-templates" element={<EmailTemplatesPage />} />
               <Route path="campaigns" element={<CampaignsPage />} />
-              <Route path="whatsapp" element={<WhatsappMarketingPage />} />
               <Route path="coupons" element={<CouponsPage />} />
               <Route path="abandoned-carts" element={<AbandonedCartPage />} />
               <Route path="abandoned-cart" element={<AbandonedCartPage />} />
@@ -132,6 +136,19 @@ export const AppRoutes: React.FC = () => {
             <Route path="/invoices" element={<PermissionGuard permission="invoice.read"><InvoicesPage /></PermissionGuard>} />
             <Route path="/payments" element={<PermissionGuard permission="payment.read"><PaymentsPage /></PermissionGuard>} />
             <Route path="/refunds" element={<PermissionGuard permission="refund.read"><RefundsPage /></PermissionGuard>} />
+            <Route path="/returns" element={<PermissionGuard permission="refund.read"><RefundsPage /></PermissionGuard>} />
+            <Route path="/finance/payments" element={<FinancePaymentsPage />} />
+            <Route path="/finance/refunds" element={<FinanceRefundsPage />} />
+            <Route path="/finance/taxes" element={<TaxesPage />} />
+            <Route path="/finance/expenses" element={<ExpensesPage />} />
+            <Route path="/finance/pnl" element={<ProfitLossPage />} />
+
+            {/* Store & Marketing Extended Routes */}
+            <Route path="/store/reviews" element={<ReviewsPage />} />
+            <Route path="/store/support-tickets" element={<SellerCustomerSupportPage />} />
+            <Route path="/support/tickets" element={<SellerCustomerSupportPage />} />
+            <Route path="/store/staff" element={<StaffManagementPage />} />
+            <Route path="/marketing/loyalty" element={<LoyaltyProgramPage />} />
 
             {/* Platform Extensions & Reports */}
             <Route path="/receipts" element={<PermissionGuard permission="receipt.read"><ReceiptsPage /></PermissionGuard>} />

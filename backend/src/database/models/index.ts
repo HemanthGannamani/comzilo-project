@@ -184,6 +184,12 @@ import { WebhookLog } from './webhookLog';
 import { Integration } from './integration';
 import { IntegrationSyncLog } from './integrationSyncLog';
 import { SellerApplication } from './sellerApplication';
+import { TicketMessage } from './ticketMessage';
+import { TicketAttachment } from './ticketAttachment';
+import { TicketInternalNote } from './ticketInternalNote';
+import { SupportCannedResponse } from './supportCannedResponse';
+import { SupportKnowledgeBase } from './supportKnowledgeBase';
+import { SupportAuditLog } from './supportAuditLog';
 
 // Establish Associations
 // Tenant <-> User
@@ -901,6 +907,12 @@ export {
   ShippingRateRule,
   GoodsIssue,
   ProductImage,
+  TicketMessage,
+  TicketAttachment,
+  TicketInternalNote,
+  SupportCannedResponse,
+  SupportKnowledgeBase,
+  SupportAuditLog,
 };
 
 // Shipping Associations

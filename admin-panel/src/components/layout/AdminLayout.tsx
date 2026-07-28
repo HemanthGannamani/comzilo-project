@@ -104,6 +104,25 @@ export const AdminLayout: React.FC = () => {
     { label: 'Notification Center', path: '/notifications', icon: <Bell size={20} /> },
   ];
 
+  const userRole = (user?.role || 'SUPER_ADMIN').toUpperCase();
+
+  const restrictedPathsForStoreManager = [
+    '/tenants',
+    '/seller-applications',
+    '/subscriptions',
+    '/users',
+    '/roles',
+    '/reports',
+    '/feature-flags',
+    '/settings',
+  ];
+
+  const filteredNavItems = navItems.filter((item) => {
+    if (userRole === 'SUPER_ADMIN' || userRole === 'PLATFORM_ADMIN') return true;
+    if (item.path && restrictedPathsForStoreManager.includes(item.path)) return false;
+    return true;
+  });
+
   const drawerContent = (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', bgcolor: '#0F172A', color: '#F8FAFC' }}>
       <Box sx={{ p: 2.5, display: 'flex', alignItems: 'center', gap: 1.5 }}>
@@ -121,7 +140,7 @@ export const AdminLayout: React.FC = () => {
       <Divider sx={{ borderColor: '#1E293B' }} />
 
       <List sx={{ flexGrow: 1, px: 1.5, py: 1, overflowY: 'auto' }}>
-        {navItems.map((item, index) => {
+        {filteredNavItems.map((item, index) => {
           if (item.isHeader) {
             return (
               <Typography

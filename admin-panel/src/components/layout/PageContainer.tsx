@@ -7,6 +7,7 @@ interface PageContainerProps {
   actionText?: string;
   actionIcon?: React.ReactNode;
   onAction?: () => void;
+  action?: React.ReactNode;
   children: React.ReactNode;
 }
 
@@ -16,6 +17,7 @@ export const PageContainer: React.FC<PageContainerProps> = ({
   actionText,
   actionIcon,
   onAction,
+  action,
   children,
 }) => {
   return (
@@ -31,16 +33,20 @@ export const PageContainer: React.FC<PageContainerProps> = ({
             </Typography>
           )}
         </Box>
-        {actionText && onAction && (
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={actionIcon}
-            onClick={onAction}
-            sx={{ fontWeight: 700, borderRadius: 2, px: 2.5, py: 1 }}
-          >
-            {actionText}
-          </Button>
+        {action ? (
+          action
+        ) : (
+          actionText && onAction && (
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={actionIcon}
+              onClick={onAction}
+              sx={{ fontWeight: 700, borderRadius: 2, px: 2.5, py: 1 }}
+            >
+              {actionText}
+            </Button>
+          )
         )}
       </Box>
       {children}

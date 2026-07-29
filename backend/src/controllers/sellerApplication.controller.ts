@@ -104,9 +104,8 @@ export class SellerApplicationController {
         identityProofPath = this.saveBase64File(identityProof, 'id_proof');
       }
 
-      // Generate application number
-      const count = await SellerApplication.count();
-      const applicationNumber = `APP-2026-${String(count + 1).padStart(6, '0')}`;
+      // Generate unique application number
+      const applicationNumber = `APP-2026-${Date.now().toString().slice(-6)}-${Math.floor(100 + Math.random() * 900)}`;
 
       // Create record in Database
       const application = await SellerApplication.create({
@@ -165,6 +164,7 @@ export class SellerApplicationController {
       });
 
       created(res, 'Seller Application Submitted Successfully', {
+        id: application.id,
         applicationNumber: application.applicationNumber,
         status: application.status,
       });

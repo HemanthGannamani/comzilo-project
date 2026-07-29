@@ -7,6 +7,10 @@ const router = Router();
 const controller = new CustomerPortalController();
 
 router.use(tenantResolver);
+
+// Public Webhook Endpoint (No JWT Auth Required)
+router.post('/webhooks/razorpay', controller.handleRazorpayWebhook);
+
 router.use(requireAuth);
 
 // Customer Account Portal APIs
@@ -32,5 +36,9 @@ router.post('/change-password', controller.changePassword);
 
 router.post('/validate-coupon', controller.validateCoupon);
 router.post('/place-order', controller.placeOrder);
+
+// Razorpay Payment Integration Endpoints
+router.post('/create-razorpay-order', controller.createRazorpayOrder);
+router.post('/verify-razorpay-payment', controller.verifyRazorpayPayment);
 
 export default router;

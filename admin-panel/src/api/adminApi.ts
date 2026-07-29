@@ -247,6 +247,10 @@ export const adminApi = baseApi.injectEndpoints({
       query: () => '/subscription-plans',
       providesTags: ['Plan' as any],
     }),
+    getSaaSReports: builder.query<any, void>({
+      query: () => '/seller/subscription/saas-reports',
+      providesTags: ['Plan' as any],
+    }),
     updateSubscriptionPlan: builder.mutation<any, { id: number | string; [key: string]: any }>({
       query: ({ id, ...body }) => ({
         url: `/subscription-plans/${id}`,
@@ -456,6 +460,7 @@ export const {
   useGetEmailTemplatesQuery,
   useSaveEmailTemplateMutation,
   useGetSubscriptionPlansQuery,
+  useGetSaaSReportsQuery,
   useUpdateSubscriptionPlanMutation,
   useCreateSubscriptionPlanMutation,
   useDeleteSubscriptionPlanMutation,

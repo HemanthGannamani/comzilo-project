@@ -93,9 +93,9 @@ export const customerPortalApi = baseApi.injectEndpoints({
       providesTags: ['Order'],
     }),
 
-    createRazorpayOrder: builder.mutation<any, { orderId: number | string; amount: number; currency?: string }>({
+    createRazorpayOrder: builder.mutation<any, any>({
       query: (data) => ({
-        url: '/payments/create-order',
+        url: '/customer-portal/create-razorpay-order',
         method: 'POST',
         body: data,
       }),
@@ -103,11 +103,11 @@ export const customerPortalApi = baseApi.injectEndpoints({
 
     verifyRazorpayPayment: builder.mutation<any, any>({
       query: (data) => ({
-        url: '/payments/verify',
+        url: '/customer-portal/verify-razorpay-payment',
         method: 'POST',
         body: data,
       }),
-      invalidatesTags: ['Order'],
+      invalidatesTags: ['Order', 'Customer'],
     }),
 
     changeMyPassword: builder.mutation<any, any>({

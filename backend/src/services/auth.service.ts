@@ -85,28 +85,6 @@ export class AuthService extends BaseService {
     const passwordHash = await bcrypt.hash(data.password, env.BCRYPT_ROUNDS);
 
     return withTransaction(async (t) => {
-      const user = await User.create(
-        {
-          tenantId,
-          uuid: uuidv4(),
-          email: data.email.toLowerCase(),
-          passwordHash,
-          firstName: data.firstName,
-          lastName: data.lastName,
-          mobile: data.mobile || null,
-          status: 'active',
-        },
-        { transaction: t }
-      );
-
-      await UserProfile.create(
-        {
-          tenantId,
-          userId: user.id,
-        },
-        { transaction: t }
-      );
-
       let targetTenantId = tenantId;
       let targetStoreId = data.storeId || context?.storeId;
 
@@ -164,6 +142,28 @@ export class AuthService extends BaseService {
         }
       }
 
+      const user = await User.create(
+        {
+          tenantId: targetTenantId,
+          uuid: uuidv4(),
+          email: data.email.toLowerCase(),
+          passwordHash,
+          firstName: data.firstName,
+          lastName: data.lastName,
+          mobile: data.mobile || null,
+          status: 'active',
+        },
+        { transaction: t }
+      );
+
+      await UserProfile.create(
+        {
+          tenantId: targetTenantId,
+          userId: user.id,
+        },
+        { transaction: t }
+      );
+
       // Create Customer Record
       await Customer.create(
         {
@@ -187,7 +187,7 @@ export class AuthService extends BaseService {
       if (customerRole) {
         await UserRole.create(
           {
-            tenantId,
+            tenantId: targetTenantId,
             userId: user.id,
             roleId: customerRole.id,
           },

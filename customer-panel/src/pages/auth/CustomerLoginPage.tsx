@@ -78,6 +78,7 @@ export const CustomerLoginPage: React.FC = () => {
         <form onSubmit={handleLogin}>
           <TextField
             label="Email Address"
+            type="email"
             fullWidth
             value={email}
             onChange={(e) => setEmail(e.target.value)}

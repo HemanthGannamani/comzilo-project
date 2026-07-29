@@ -12,6 +12,7 @@ import { StockReservationService } from './stockReservation.service';
 import { StockReservationRepository } from '../repositories/stockReservation.repository';
 import { WarehouseRepository } from '../repositories/warehouse.repository';
 import { WarehouseLocationRepository } from '../repositories/warehouseLocation.repository';
+import { SellerWalletService } from './sellerWallet.service';
 import { Op } from 'sequelize';
 
 export class OrderService extends BaseService {
@@ -668,6 +669,14 @@ export class OrderService extends BaseService {
       },
       { ipAddress: ip } as any
     );
+
+    // Release Escrow Funds: Pending Balance -> Available Balance (minus commission)
+    try {
+      const walletService = new SellerWalletService();
+      await walletService.onOrderDelivered(tenantId, storeId, Number(id), Number(updated.totalAmount || 0));
+    } catch (e: any) {
+      // log and continue
+    }
 
     return updated;
   }

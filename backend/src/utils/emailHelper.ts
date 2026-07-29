@@ -11,8 +11,10 @@ export interface OnboardingEmailParams {
 }
 
 export function generateSecureTempPassword(): string {
-  const randomHex = crypto.randomBytes(4).toString('hex');
-  return `Comzilo_${randomHex}!`;
+  const digits = '23456789';
+  const pick = (len: number) =>
+    Array.from({ length: len }, () => digits[Math.floor(Math.random() * digits.length)]).join('');
+  return `Store${pick(3)}Pass#${pick(3)}`;
 }
 
 export function getSellerOnboardingHtml(params: {

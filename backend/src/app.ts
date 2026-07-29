@@ -237,9 +237,20 @@ import adminInventoryRoutes from './routes/adminInventory.routes';
 import storeInventoryManagementRoutes from './routes/storeInventoryManagement.routes';
 
 import planRoutes from './routes/plan.routes';
+import sellerSubscriptionRoutes from './routes/sellerSubscription.routes';
+import sellerWalletRoutes from './routes/sellerWallet.routes';
+import commissionEngineRoutes from './routes/commissionEngine.routes';
+import automaticSettlementRoutes from './routes/automaticSettlement.routes';
 
 app.use('/api/v1/subscription-plans', planRoutes);
 app.use('/api/v1/plans', planRoutes);
+app.use('/api/v1/seller/subscription', sellerSubscriptionRoutes);
+app.use('/api/v1/seller/wallet', sellerWalletRoutes);
+app.use('/api/v1/admin/withdrawals', sellerWalletRoutes);
+app.use('/api/v1/commission', commissionEngineRoutes);
+app.use('/api/v1/admin/commission', commissionEngineRoutes);
+app.use('/api/v1/settlements', automaticSettlementRoutes);
+app.use('/api/v1/admin/settlements', automaticSettlementRoutes);
 app.use('/api/v1/webhooks', webhookRoutes);
 app.use('/api/v1/integrations', integrationRoutes);
 app.use('/api/v1/seller-applications', sellerApplicationRoutes);

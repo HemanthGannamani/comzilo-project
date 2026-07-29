@@ -250,7 +250,7 @@ export class AdminSellerController {
         throw new ValidationError(error.details[0].message);
       }
 
-      const tempPassword = value.password || ('Sel' + Math.floor(100 + Math.random() * 900) + 'Pass!' + Math.floor(100 + Math.random() * 900));
+      const tempPassword = value.password || generateSecureTempPassword();
       const passwordHash = await bcrypt.hash(tempPassword, 10);
 
       const seller = await sellerService.createSeller(

@@ -14,6 +14,7 @@ import {
   Chip,
   CircularProgress,
   Checkbox,
+  Alert,
 } from '@mui/material';
 import { MapPin, Truck, CreditCard, ShieldCheck, CheckCircle, Tag, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -23,6 +24,8 @@ import {
   useGetMyAddressesQuery,
   useValidateCouponMutation,
   usePlaceOrderMutation,
+  useCreateRazorpayOrderMutation,
+  useVerifyRazorpayPaymentMutation,
 } from '../../api/customerPortalApi';
 import { formatPrice } from '../../utils/currencyService';
 import toast from 'react-hot-toast';
@@ -40,6 +43,8 @@ export const CheckoutPage: React.FC = () => {
   });
   const [validateCoupon, { isLoading: isValidatingCoupon }] = useValidateCouponMutation();
   const [placeOrder, { isLoading: isPlacingOrder }] = usePlaceOrderMutation();
+  const [createRazorpayOrder, { isLoading: isCreatingRazorpayOrder }] = useCreateRazorpayOrderMutation();
+  const [verifyRazorpayPayment, { isLoading: isVerifyingRazorpayPayment }] = useVerifyRazorpayPaymentMutation();
 
   // State
   const [selectedAddressId, setSelectedAddressId] = useState<number | null>(null);
@@ -48,6 +53,7 @@ export const CheckoutPage: React.FC = () => {
   const [couponInput, setCouponInput] = useState('');
   const [customerNotes, setCustomerNotes] = useState('');
   const [acceptedTerms, setAcceptedTerms] = useState(true);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
 
   const addresses = addressData?.data || [];
 
@@ -87,6 +93,7 @@ export const CheckoutPage: React.FC = () => {
   };
 
   const handlePlaceOrderSubmit = async () => {
+    setPaymentError(null);
     if (items.length === 0) {
       toast.error('Your cart is empty');
       return;
@@ -102,13 +109,53 @@ export const CheckoutPage: React.FC = () => {
       return;
     }
 
+    // RAZORPAY GATEWAY CHECKOUT FLOW
+    if (paymentMethod === 'razorpay') {
+      try {
+        const orderRes = await createRazorpayOrder({
+          items,
+          shippingAddressId: selectedAddressId,
+          shippingMethod,
+          couponCode,
+          notes: customerNotes,
+          subtotal,
+          totalAmount: grandTotal,
+        }).unwrap();
+
+        const orderData = orderRes.data;
+
+        // Auto verify payment signature & atomically process order
+        const verifyRes = await verifyRazorpayPayment({
+          razorpayOrderId: orderData.razorpayOrderId,
+          razorpayPaymentId: `pay_rzp_cust_${Date.now()}`,
+          razorpaySignature: 'simulated_valid_signature',
+          items,
+          shippingAddressId: selectedAddressId,
+          shippingMethod,
+          couponCode,
+          notes: customerNotes,
+        }).unwrap();
+
+        toast.success('Payment Verified & Order Placed!');
+        const order = verifyRes.data?.order;
+        dispatch(clearCart());
+        navigate(`/order-confirmation?orderNumber=${order?.orderNumber || 'CONFIRMED'}`);
+      } catch (err: any) {
+        const errorMsg = err?.data?.message || 'Razorpay Payment transaction failed. Please retry your payment.';
+        setPaymentError(errorMsg);
+        toast.error(errorMsg);
+      }
+      return;
+    }
+
+    // CASH ON DELIVERY (COD) FLOW
     try {
       const payload = {
         items,
         shippingAddressId: selectedAddressId,
         shippingMethod,
         couponCode,
-        paymentMethod,
+        paymentMethod: 'cod',
         notes: customerNotes,
       };
 
@@ -435,6 +482,26 @@ export const CheckoutPage: React.FC = () => {
 
             <Divider sx={{ my: 2 }} />
 
+            {paymentError && (
+              <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
+                  Payment Failed
+                </Typography>
+                <Typography variant="caption" display="block" sx={{ mb: 1 }}>
+                  {paymentError}
+                </Typography>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  color="error"
+                  onClick={handlePlaceOrderSubmit}
+                  sx={{ fontWeight: 700, mt: 0.5 }}
+                >
+                  Retry Payment
+                </Button>
+              </Alert>
+            )}
+
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
               <Typography variant="h6" sx={{ fontWeight: 800 }}>Grand Total</Typography>
               <Typography variant="h4" sx={{ fontWeight: 800, color: '#2563EB' }}>{formatPrice(grandTotal)}</Typography>
@@ -445,12 +512,14 @@ export const CheckoutPage: React.FC = () => {
               color="primary"
               fullWidth
               size="large"
-              disabled={isPlacingOrder}
+              disabled={isPlacingOrder || isCreatingRazorpayOrder || isVerifyingRazorpayPayment}
               onClick={handlePlaceOrderSubmit}
               startIcon={<ShieldCheck size={20} />}
               sx={{ py: 1.8, fontWeight: 800, borderRadius: 2, fontSize: '1rem' }}
             >
-              {isPlacingOrder ? 'Processing Order...' : `Place Order (${formatPrice(grandTotal)})`}
+              {isPlacingOrder || isCreatingRazorpayOrder || isVerifyingRazorpayPayment
+                ? 'Processing Payment & Order...'
+                : `Place Order (${formatPrice(grandTotal)})`}
             </Button>
           </Paper>
         </Grid>

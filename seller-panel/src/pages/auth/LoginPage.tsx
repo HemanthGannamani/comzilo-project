@@ -7,6 +7,7 @@ import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import { axiosInstance } from '../../api/axiosInstance';
 import { useAppDispatch } from '../../store/hooks';
 import { setCredentials } from '../../store/slices/authSlice';
+import { storage } from '../../utils/storage';
 import toast from 'react-hot-toast';
 
 const loginSchema = z.object({
@@ -34,6 +35,7 @@ export const LoginPage: React.FC = () => {
   const onSubmit = async (data: LoginFormValues) => {
     setIsLoading(true);
     setErrorMsg(null);
+    storage.clearAuth();
     try {
       const res = await axiosInstance.post('/auth/login', data);
       const authData = res.data.data;

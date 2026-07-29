@@ -52,6 +52,7 @@ export const ChangePasswordPage: React.FC = () => {
             ...authState,
             user: {
               ...authState.user,
+              mustChangePassword: false,
             } as any,
           })
         );

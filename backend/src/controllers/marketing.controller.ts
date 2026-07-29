@@ -80,7 +80,8 @@ export class MarketingController {
 
   public getEmailQueue = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const tenantId = req.headers.authorization ? req.context?.tenantId || 1 : null;
+      const isSuperAdmin = req.context?.userRole?.toUpperCase() === 'SUPER_ADMIN';
+      const tenantId = isSuperAdmin ? null : (req.context?.tenantId || 1);
       const queue = await this.service.getEmailQueue(tenantId);
       success(res, 'Email queue retrieved successfully', queue);
     } catch (err) {

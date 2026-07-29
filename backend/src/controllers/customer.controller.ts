@@ -73,15 +73,8 @@ export class CustomerController {
       const qStoreId = req.query.storeId ? Number(req.query.storeId) : null;
 
       const tenantId = qTenantId || req.context?.tenantId || null;
-      let storeId = qStoreId;
-
-      if (!storeId && tenantId) {
-        try {
-          storeId = await this.getStoreIdAsync(req, tenantId);
-        } catch {
-          storeId = null;
-        }
-      }
+      // Only filter by specific storeId if explicitly requested in query
+      const storeId = qStoreId;
 
       const result = await this.customerService.listCustomers(tenantId as any, storeId as any, req.query);
       success(res, 'Customers listed successfully', result);

@@ -73,6 +73,7 @@ import {
   UserCheck,
   Gift,
   Store,
+  Wallet,
 } from 'lucide-react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
@@ -197,6 +198,7 @@ export const MainLayout: React.FC = () => {
       label: 'Finance',
       icon: <DollarSign size={19} />,
       items: [
+        { label: 'Seller Wallet & Payouts', path: '/finance/wallet', icon: <Wallet size={17} /> },
         { label: 'Payments', path: '/finance/payments', icon: <CreditCard size={17} /> },
         { label: 'Refunds', path: '/finance/refunds', icon: <TrendingDown size={17} /> },
         { label: 'Taxes', path: '/finance/taxes', icon: <Receipt size={17} /> },
@@ -217,6 +219,7 @@ export const MainLayout: React.FC = () => {
         { label: 'Reports', path: '/reports', icon: <BarChart3 size={17} />, permission: 'report.read' },
         { label: 'Integrations', path: '/integrations', icon: <Webhook size={17} />, permission: 'integration.read' },
         { label: 'Store Settings', path: '/settings', icon: <SettingsIcon size={17} />, permission: 'settings.read' },
+        { label: 'Subscription & Billing', path: '/settings/subscription', icon: <CreditCard size={17} /> },
       ],
     },
   ];

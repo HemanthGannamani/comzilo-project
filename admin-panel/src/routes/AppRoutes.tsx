@@ -14,6 +14,9 @@ import { RolesPermissionsPage } from '../pages/roles/RolesPermissionsPage';
 import { ReportsPage } from '../pages/reports/ReportsPage';
 import { FeatureFlagsPage } from '../pages/flags/FeatureFlagsPage';
 import { SystemSettingsPage } from '../pages/settings/SystemSettingsPage';
+import { CommissionSettingsPage } from '../pages/settings/CommissionSettingsPage';
+import { SettlementReportsPage } from '../pages/settlements/SettlementReportsPage';
+import { AdminWithdrawalsPage } from '../pages/finance/AdminWithdrawalsPage';
 import { AdminIntegrationsPage } from '../pages/integrations/AdminIntegrationsPage';
 import { AuditLogsPage } from '../pages/logs/AuditLogsPage';
 import { SystemHealthPage } from '../pages/health/SystemHealthPage';
@@ -50,6 +53,12 @@ export const AppRoutes: React.FC = () => {
             <Route path="/reports" element={<ReportsPage />} />
             <Route path="/feature-flags" element={<FeatureFlagsPage />} />
             <Route path="/settings" element={<SystemSettingsPage />} />
+            <Route path="/commission-settings" element={<CommissionSettingsPage />} />
+            <Route path="/settings/commission" element={<CommissionSettingsPage />} />
+            <Route path="/settlements" element={<SettlementReportsPage />} />
+            <Route path="/settlement-reports" element={<SettlementReportsPage />} />
+            <Route path="/withdrawals" element={<AdminWithdrawalsPage />} />
+            <Route path="/finance/withdrawals" element={<AdminWithdrawalsPage />} />
             <Route path="/integrations" element={<AdminIntegrationsPage />} />
             <Route path="/logs" element={<AuditLogsPage />} />
             <Route path="/health" element={<SystemHealthPage />} />

@@ -11,21 +11,24 @@ export const axiosInstance = axios.create({
 });
 
 axiosInstance.interceptors.request.use((config) => {
+  const isLoginRoute = config.url?.includes('/auth/login');
   const token = storage.getAccessToken();
   const tenant = storage.getTenant();
   const activeStoreId = storage.getActiveStoreId();
 
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  if (tenant?.uuid) {
-    config.headers['X-Tenant-UUID'] = tenant.uuid;
-  }
-  if (tenant?.id) {
-    config.headers['X-Tenant-ID'] = tenant.id.toString();
-  }
-  if (activeStoreId) {
-    config.headers['X-Store-ID'] = activeStoreId.toString();
+  if (!isLoginRoute) {
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    if (tenant?.uuid) {
+      config.headers['X-Tenant-UUID'] = tenant.uuid;
+    }
+    if (tenant?.id) {
+      config.headers['X-Tenant-ID'] = tenant.id.toString();
+    }
+    if (activeStoreId) {
+      config.headers['X-Store-ID'] = activeStoreId.toString();
+    }
   }
 
   return config;

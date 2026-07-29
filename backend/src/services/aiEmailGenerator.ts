@@ -151,7 +151,7 @@ export class AiEmailGenerator {
             </tr>
             <tr>
               <td style="padding: 6px 0; font-weight: 600;">Temporary Password:</td>
-              <td style="padding: 6px 0;"><code style="background: #FEF3C7; color: #92400E; padding: 4px 10px; border-radius: 4px; font-weight: 700; font-family: monospace; font-size: 15px;">{{temporary_password}}</code></td>
+              <td style="padding: 6px 0;"><code style="background: #FEF3C7; color: #92400E; padding: 6px 14px; border-radius: 6px; font-weight: 800; font-family: Consolas, 'Courier New', monospace; font-size: 16px; letter-spacing: 2px; border: 1px solid #FCD34D;">{{temporary_password}}</code></td>
             </tr>
           </table>
         </div>

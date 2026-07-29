@@ -9,6 +9,8 @@ import { EmailQueueManager } from '../services/emailQueueManager';
 import { Op } from 'sequelize';
 import bcrypt from 'bcrypt';
 
+import { generateSecureTempPassword } from '../utils/emailHelper';
+
 const sellerService = new AdminSellerService();
 
 const slugify = (text: string): string => {
@@ -143,8 +145,7 @@ export class AdminSellerApplicationController {
       }
 
       // Generate strong temporary password adhering to enterprise password complexity
-      const temporaryPassword =
-        'Sel' + Math.floor(100 + Math.random() * 900) + 'Pass!' + Math.floor(100 + Math.random() * 900);
+      const temporaryPassword = generateSecureTempPassword();
       const passwordHash = await bcrypt.hash(temporaryPassword, 10);
 
       // Reuse the existing onboarding service logic

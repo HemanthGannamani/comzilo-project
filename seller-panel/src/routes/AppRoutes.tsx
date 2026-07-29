@@ -14,6 +14,8 @@ import { ResetPasswordPage } from '../pages/auth/ResetPasswordPage';
 import { ProfilePage } from '../pages/auth/ProfilePage';
 import { ChangePasswordPage } from '../pages/auth/ChangePasswordPage';
 import { DashboardPage } from '../pages/dashboard/DashboardPage';
+import { SubscriptionPage } from '../pages/settings/SubscriptionPage';
+import { WalletPage } from '../pages/finance/WalletPage';
 
 import { ProductsPage } from '../features/products/pages/ProductsPage';
 import { CatalogLayout } from '../features/catalog/components/CatalogLayout';
@@ -154,6 +156,10 @@ export const AppRoutes: React.FC = () => {
             <Route path="/receipts" element={<PermissionGuard permission="receipt.read"><ReceiptsPage /></PermissionGuard>} />
             <Route path="/reports" element={<PermissionGuard permission="report.read"><ReportsPage /></PermissionGuard>} />
             <Route path="/notifications" element={<PermissionGuard permission="notification.read"><NotificationsPage /></PermissionGuard>} />
+            <Route path="/subscription" element={<SubscriptionPage />} />
+            <Route path="/settings/subscription" element={<SubscriptionPage />} />
+            <Route path="/wallet" element={<WalletPage />} />
+            <Route path="/finance/wallet" element={<WalletPage />} />
             <Route path="/settings" element={<PermissionGuard permission="settings.read"><SettingsPage /></PermissionGuard>} />
 
             {/* Inventory Routes */}

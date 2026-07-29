@@ -37,11 +37,13 @@ import {
   useUpdateSubscriptionPlanMutation,
   useCreateSubscriptionPlanMutation,
   useDeleteSubscriptionPlanMutation,
+  useGetSaaSReportsQuery,
 } from '../../api/adminApi';
 import toast from 'react-hot-toast';
 
 export const SubscriptionPlansPage: React.FC = () => {
   const { data: plansResponse, isLoading, isError } = useGetSubscriptionPlansQuery();
+  const { data: saasReportData } = useGetSaaSReportsQuery();
   const [updatePlan, { isLoading: isSaving }] = useUpdateSubscriptionPlanMutation();
   const [createPlan, { isLoading: isCreating }] = useCreateSubscriptionPlanMutation();
   const [deletePlan] = useDeleteSubscriptionPlanMutation();
@@ -50,6 +52,11 @@ export const SubscriptionPlansPage: React.FC = () => {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<any>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
+
+  const saas = saasReportData?.data || { mrr: 0, arr: 0, statusCounts: [], planPopularity: [] };
+  const activeCount = saas.statusCounts?.find((s: any) => s.status === 'active')?.count || 0;
+  const trialingCount = saas.statusCounts?.find((s: any) => s.status === 'trialing')?.count || 0;
+  const expiredCount = saas.statusCounts?.find((s: any) => s.status === 'expired')?.count || 0;
 
   // Form State
   const [formData, setFormData] = useState({
@@ -98,7 +105,7 @@ export const SubscriptionPlansPage: React.FC = () => {
       storeLimit: plan.storeLimit !== undefined ? String(plan.storeLimit) : '1',
       userLimit: plan.userLimit !== undefined ? String(plan.userLimit) : '5',
       warehouseLimit: plan.warehouseLimit !== undefined ? String(plan.warehouseLimit) : '1',
-      trialDays: plan.trialDays !== undefined ? String(plan.trialDays) : '0',
+      trialDays: plan.trialDays !== undefined ? String(plan.trialDays) : '14',
       isActive: plan.isActive !== undefined ? Boolean(plan.isActive) : true,
       features: Array.isArray(plan.features) ? [...plan.features] : [],
     });
@@ -193,8 +200,8 @@ export const SubscriptionPlansPage: React.FC = () => {
 
   return (
     <PageContainer
-      title="SaaS Subscription Plans"
-      subtitle="Manage pricing tiers, feature limits, and subscription entitlements"
+      title="SaaS Subscription Plans & Revenue Analytics"
+      subtitle="Manage pricing tiers, feature limits, active subscriptions, and platform revenue metrics"
       action={
         <Button
           variant="contained"
@@ -206,6 +213,65 @@ export const SubscriptionPlansPage: React.FC = () => {
         </Button>
       }
     >
+      {/* SAAS METRICS OVERVIEW */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid item xs={12} sm={6} md={3}>
+          <Paper sx={{ p: 2.5, borderRadius: 3, border: '1px solid #E2E8F0', boxShadow: 'none' }}>
+            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>
+              Monthly Recurring Revenue (MRR)
+            </Typography>
+            <Typography variant="h4" sx={{ fontWeight: 800, color: '#10B981', mt: 0.5 }}>
+              INR {saas.mrr.toLocaleString()}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              ARR: INR {saas.arr.toLocaleString()}
+            </Typography>
+          </Paper>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={3}>
+          <Paper sx={{ p: 2.5, borderRadius: 3, border: '1px solid #E2E8F0', boxShadow: 'none' }}>
+            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>
+              Active Subscriptions
+            </Typography>
+            <Typography variant="h4" sx={{ fontWeight: 800, color: '#2563EB', mt: 0.5 }}>
+              {activeCount}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              Active Paid Sellers
+            </Typography>
+          </Paper>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={3}>
+          <Paper sx={{ p: 2.5, borderRadius: 3, border: '1px solid #E2E8F0', boxShadow: 'none' }}>
+            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>
+              Trialing Accounts
+            </Typography>
+            <Typography variant="h4" sx={{ fontWeight: 800, color: '#F59E0B', mt: 0.5 }}>
+              {trialingCount}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              14-Day Free Trials
+            </Typography>
+          </Paper>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={3}>
+          <Paper sx={{ p: 2.5, borderRadius: 3, border: '1px solid #E2E8F0', boxShadow: 'none' }}>
+            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>
+              Expired / Cancelled
+            </Typography>
+            <Typography variant="h4" sx={{ fontWeight: 800, color: '#EF4444', mt: 0.5 }}>
+              {expiredCount}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              Requires Renewal
+            </Typography>
+          </Paper>
+        </Grid>
+      </Grid>
+
       {/* BILLING CYCLE TOGGLE */}
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mb: 4, gap: 1.5 }}>
         <Typography

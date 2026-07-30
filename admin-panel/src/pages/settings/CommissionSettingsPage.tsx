@@ -223,53 +223,49 @@ export const CommissionSettingsPage: React.FC = () => {
           </Paper>
         </Grid>
 
-        {/* Right Side: Calculation Formula Preview */}
+        {/* CALCULATION SIMULATOR */}
         <Grid item xs={12} md={5}>
-          <Paper sx={{ p: 4, borderRadius: 3, border: '1px solid #E2E8F0', boxShadow: 'none', background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)', color: '#FFF' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
-              <Calculator size={24} color="#38BDF8" />
-              <Typography variant="h6" sx={{ fontWeight: 800 }}>
-                Live Calculation Preview
-              </Typography>
-            </Box>
-
-            <Typography variant="caption" sx={{ color: '#94A3B8', display: 'block', mb: 2 }}>
-              Sample calculation for an <strong>INR 100.00 Order</strong> based on your current configured rules:
+          <Paper sx={{ p: 4, borderRadius: 3, bgcolor: '#0F172A', color: 'white' }}>
+            <Typography variant="h6" sx={{ fontWeight: 800, mb: 1, color: '#38BDF8' }}>
+              Payout Simulation (₹100 Order)
+            </Typography>
+            <Typography variant="body2" sx={{ color: '#94A3B8', mb: 3 }}>
+              Live net seller payout calculation breakdown
             </Typography>
 
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1.5 }}>
               <Typography variant="body2" sx={{ color: '#94A3B8' }}>Gross Order Total</Typography>
-              <Typography variant="body2" sx={{ fontWeight: 800 }}>INR 100.00</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 800 }}>₹100.00</Typography>
             </Box>
 
             <Divider sx={{ borderColor: '#334155', my: 1.5 }} />
 
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
               <Typography variant="body2" sx={{ color: '#F87171' }}>- Platform Commission ({config.commissionRate}%)</Typography>
-              <Typography variant="body2" sx={{ fontWeight: 700, color: '#F87171' }}>-INR {commAmount.toFixed(2)}</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 700, color: '#F87171' }}>-₹{commAmount.toFixed(2)}</Typography>
             </Box>
 
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-              <Typography variant="body2" sx={{ color: '#F87171' }}>- Gateway Fee ({config.gatewayRate}% + ${config.gatewayFixed})</Typography>
-              <Typography variant="body2" sx={{ fontWeight: 700, color: '#F87171' }}>-INR {gwAmount.toFixed(2)}</Typography>
+              <Typography variant="body2" sx={{ color: '#F87171' }}>- Gateway Fee ({config.gatewayRate}% + ₹{config.gatewayFixed})</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 700, color: '#F87171' }}>-₹{gwAmount.toFixed(2)}</Typography>
             </Box>
 
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
               <Typography variant="body2" sx={{ color: '#F87171' }}>- Shipping Fee</Typography>
-              <Typography variant="body2" sx={{ fontWeight: 700, color: '#F87171' }}>-INR {shipAmount.toFixed(2)}</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 700, color: '#F87171' }}>-₹{shipAmount.toFixed(2)}</Typography>
             </Box>
 
             {procAmount > 0 && (
               <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                 <Typography variant="body2" sx={{ color: '#F87171' }}>- Processing Fee</Typography>
-                <Typography variant="body2" sx={{ fontWeight: 700, color: '#F87171' }}>-INR {procAmount.toFixed(2)}</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 700, color: '#F87171' }}>-₹{procAmount.toFixed(2)}</Typography>
               </Box>
             )}
 
             {taxAmount > 0 && (
               <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                 <Typography variant="body2" sx={{ color: '#F87171' }}>- Tax ({config.taxRate}%)</Typography>
-                <Typography variant="body2" sx={{ fontWeight: 700, color: '#F87171' }}>-INR {taxAmount.toFixed(2)}</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 700, color: '#F87171' }}>-₹{taxAmount.toFixed(2)}</Typography>
               </Box>
             )}
 
@@ -278,13 +274,13 @@ export const CommissionSettingsPage: React.FC = () => {
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
               <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>Net Seller Receives</Typography>
               <Typography variant="h4" sx={{ fontWeight: 800, color: '#34D399' }}>
-                INR {netSellerReceives.toFixed(2)}
+                ₹{netSellerReceives.toFixed(2)}
               </Typography>
             </Box>
 
             <Alert severity="success" sx={{ bgcolor: 'rgba(16, 185, 129, 0.1)', color: '#34D399', border: '1px solid #10B981', mt: 3, borderRadius: 2 }}>
               <Typography variant="caption" sx={{ fontWeight: 700 }}>
-                Verification Match: $100 Order - $10 Commission - $3 Gateway - $5 Shipping = <strong>$82 Seller Payout</strong>
+                Verification Match: ₹100 Order - ₹10 Commission - ₹3 Gateway - ₹5 Shipping = <strong>₹82 Seller Payout</strong>
               </Typography>
             </Alert>
           </Paper>

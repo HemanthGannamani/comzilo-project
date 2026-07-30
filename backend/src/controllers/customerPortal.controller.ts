@@ -11,6 +11,7 @@ import { CommissionEngineService } from '../services/commissionEngine.service';
 import { AuthService } from '../services/auth.service';
 import { Customer, CustomerAddress, Product, User, Order } from '../database/models';
 import { v4 as uuidv4 } from 'uuid';
+import { RazorpayPaymentProvider } from '../services/payment/razorpay.provider';
 import { success, created } from '../shared/responses';
 import { ValidationError, NotFoundError, UnauthorizedError } from '../shared/errors/AppError';
 import { sequelize } from '../config/database';
@@ -137,17 +138,26 @@ export class CustomerPortalController {
       if (!userId) throw new UnauthorizedError('Customer credentials missing');
 
       const customer = await this.getCustomerFromUser(tenantId, userId);
-      const storeId = customer.storeId || 1;
+      const effectiveTenantId = customer.tenantId || tenantId;
+      const effectiveStoreId = customer.storeId || 1;
 
       const updated = await this.customerService.updateCustomer(
-        tenantId,
-        storeId,
+        effectiveTenantId,
+        effectiveStoreId,
         customer.id,
         userId,
         req.body,
         req.ip,
         req.headers['user-agent']
       );
+
+      // Keep user model in sync with updated profile details
+      const user = await User.findByPk(userId);
+      if (user) {
+        if (req.body.firstName) user.firstName = req.body.firstName;
+        if (req.body.lastName) user.lastName = req.body.lastName;
+        await user.save();
+      }
 
       success(res, 'Profile updated successfully', updated);
     } catch (err) {
@@ -632,13 +642,17 @@ export class CustomerPortalController {
 
       const receiptId = `REC-ORD-${Date.now().toString().slice(-6)}`;
       const amountPaise = Math.round(grandTotal * 100);
-      const razorpayOrderId = `rzp_order_cust_${Date.now()}_${Math.floor(1000 + Math.random() * 9000)}`;
+
+      const razorpayProvider = new RazorpayPaymentProvider();
+      const rzpOrder = await razorpayProvider.createRazorpayOrder(grandTotal, 'INR', receiptId);
+
+      const razorpayOrderId = rzpOrder.id || `order_${Date.now().toString(36)}${Math.random().toString(36).substring(2, 7)}`;
 
       success(res, 'Razorpay checkout order created successfully', {
         razorpayOrderId,
         amount: grandTotal,
-        amountPaise,
-        currency: 'INR',
+        amountPaise: rzpOrder.amount || amountPaise,
+        currency: rzpOrder.currency || 'INR',
         keyId: process.env.RAZORPAY_KEY_ID || 'rzp_test_TJJVtgjbTyd06P',
         receiptId,
       });
@@ -683,10 +697,7 @@ export class CustomerPortalController {
       const payloadString = `${razorpayOrderId || ''}|${razorpayPaymentId}`;
       const expectedSignature = crypto.createHmac('sha256', secret).update(payloadString).digest('hex');
 
-      const isValidSignature =
-        razorpaySignature === 'simulated_valid_signature' ||
-        razorpaySignature === expectedSignature ||
-        !razorpaySignature;
+      const isValidSignature = razorpaySignature === expectedSignature;
 
       if (!isValidSignature) {
         throw new ValidationError('Invalid Razorpay payment signature verification failed.');

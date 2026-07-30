@@ -44,6 +44,12 @@ import {
 import { axiosInstance } from '../../api/axiosInstance';
 import toast from 'react-hot-toast';
 
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
+}
+
 export const SubscriptionPage: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [subData, setSubData] = useState<any>(null);
@@ -51,6 +57,8 @@ export const SubscriptionPage: React.FC = () => {
   const [invoices, setInvoices] = useState<any[]>([]);
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
   const [checkoutLoading, setCheckoutLoading] = useState<number | null>(null);
+  const [paymentSuccessData, setPaymentSuccessData] = useState<any | null>(null);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
 
   const fetchSubscriptionData = async () => {
     setLoading(true);
@@ -76,29 +84,85 @@ export const SubscriptionPage: React.FC = () => {
 
   const handleSubscribe = async (plan: any) => {
     setCheckoutLoading(plan.id);
+    setPaymentError(null);
+    setPaymentSuccessData(null);
+
     try {
-      const res = await axiosInstance.post('/seller/subscription/checkout', {
+      // 1. Call backend POST /create-order
+      const res = await axiosInstance.post('/seller/subscription/create-order', {
         planId: plan.id,
         billingCycle,
       });
 
       const orderData = res.data.data;
+      const orderId = orderData.order_id || orderData.razorpayOrderId;
+      const keyId = orderData.key_id || orderData.keyId;
+      const amountPaise = orderData.amountPaise || Math.round((orderData.amount || 0) * 100);
 
-      // Simulate Razorpay Payment Verification Flow
-      const verifyRes = await axiosInstance.post('/seller/subscription/verify', {
-        planId: plan.id,
-        billingCycle,
-        razorpayOrderId: orderData.razorpayOrderId,
-        razorpayPaymentId: `rzp_pay_${Date.now()}`,
-        razorpaySignature: 'simulated_valid_signature',
-      });
+      // Check if Razorpay JS SDK is loaded
+      if (typeof window.Razorpay !== 'function') {
+        toast.error('Razorpay SDK failed to load. Please check your network connection.');
+        setPaymentError('Razorpay Checkout SDK not loaded');
+        setCheckoutLoading(null);
+        return;
+      }
 
-      toast.success(`Successfully subscribed to ${plan.name}!`);
-      setSubData(verifyRes.data.data);
-      fetchSubscriptionData();
+      // 2. Open official Razorpay Checkout Modal
+      const options: any = {
+        key: keyId,
+        amount: amountPaise,
+        currency: orderData.currency || 'INR',
+        name: 'Comzilo Enterprise SaaS',
+        description: `Subscription Upgrade to ${plan.name} (${billingCycle})`,
+        order_id: orderId,
+        handler: async function (response: any) {
+          setCheckoutLoading(plan.id);
+          try {
+            // 3. Verify Payment with HMAC SHA256 on Backend
+            const verifyRes = await axiosInstance.post('/seller/subscription/verify-payment', {
+              planId: plan.id,
+              billingCycle,
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+            });
+
+            toast.success(`✔ Payment Successful! Subscribed to ${plan.name}`);
+            setPaymentSuccessData({
+              planName: plan.name,
+              transactionId: response.razorpay_payment_id,
+              paymentDate: new Date().toLocaleDateString(),
+              nextBillingDate: verifyRes.data.data?.nextBillingDate
+                ? new Date(verifyRes.data.data.nextBillingDate).toLocaleDateString()
+                : 'N/A',
+              invoiceNumber: verifyRes.data.data?.invoiceNumber || 'INV-SUB',
+            });
+            fetchSubscriptionData();
+          } catch (verifyErr: any) {
+            const errMsg = verifyErr.response?.data?.message || 'Payment Verification Failed';
+            toast.error(errMsg);
+            setPaymentError(`Payment Verification Failed: ${errMsg}`);
+          } finally {
+            setCheckoutLoading(null);
+          }
+        },
+        modal: {
+          ondismiss: function () {
+            toast.error('Payment cancelled or closed');
+            setPaymentError('Payment Failed / Cancelled. Status remains PENDING_PAYMENT. You may retry payment anytime.');
+            setCheckoutLoading(null);
+          },
+        },
+        theme: {
+          color: '#3b82f6',
+        },
+      };
+
+      const razorpayInstance = new window.Razorpay(options);
+      razorpayInstance.open();
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Payment initiation failed');
-    } finally {
+      setPaymentError('Payment Failed during order creation.');
       setCheckoutLoading(null);
     }
   };
@@ -129,8 +193,59 @@ export const SubscriptionPage: React.FC = () => {
         </Typography>
       </Box>
 
+      {/* Payment Success Card Banner */}
+      {paymentSuccessData && (
+        <Alert
+          severity="success"
+          icon={<CheckCircle2 size={28} color="#22c55e" />}
+          sx={{ mb: 4, borderRadius: 3, p: 2, border: '1px solid #22c55e' }}
+        >
+          <Typography variant="h6" fontWeight="bold" color="success.main" gutterBottom>
+            ✔ Payment Successful
+          </Typography>
+          <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
+            Current Plan Updated: {paymentSuccessData.planName}
+          </Typography>
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid item xs={12} sm={3}>
+              <Typography variant="caption" color="text.secondary" display="block">Transaction ID</Typography>
+              <Typography variant="body2" fontWeight="bold">{paymentSuccessData.transactionId}</Typography>
+            </Grid>
+            <Grid item xs={12} sm={3}>
+              <Typography variant="caption" color="text.secondary" display="block">Payment Date</Typography>
+              <Typography variant="body2" fontWeight="bold">{paymentSuccessData.paymentDate}</Typography>
+            </Grid>
+            <Grid item xs={12} sm={3}>
+              <Typography variant="caption" color="text.secondary" display="block">Next Billing Date</Typography>
+              <Typography variant="body2" fontWeight="bold">{paymentSuccessData.nextBillingDate}</Typography>
+            </Grid>
+            <Grid item xs={12} sm={3} display="flex" alignItems="center">
+              <Button
+                variant="outlined"
+                color="success"
+                size="small"
+                startIcon={<ArrowUpRight size={14} />}
+                onClick={() => toast.success(`Downloading Invoice ${paymentSuccessData.invoiceNumber}...`)}
+              >
+                Download Invoice
+              </Button>
+            </Grid>
+          </Grid>
+        </Alert>
+      )}
+
+      {/* Payment Error / Failed Alert */}
+      {paymentError && (
+        <Alert severity="error" icon={<AlertTriangle size={24} />} sx={{ mb: 4, borderRadius: 2 }}>
+          <Typography variant="subtitle1" fontWeight="bold">
+            Payment Failed
+          </Typography>
+          {paymentError}
+        </Alert>
+      )}
+
       {/* Trial / Expired Alerts */}
-      {isExpired && (
+      {isExpired && !paymentSuccessData && (
         <Alert severity="error" icon={<AlertTriangle size={24} />} sx={{ mb: 4, borderRadius: 2 }}>
           <Typography variant="subtitle1" fontWeight="bold">
             Subscription Expired
@@ -139,7 +254,7 @@ export const SubscriptionPage: React.FC = () => {
         </Alert>
       )}
 
-      {currentSub.status === 'trialing' && !isExpired && (
+      {currentSub.status === 'trialing' && !isExpired && !paymentSuccessData && (
         <Alert severity="info" icon={<Sparkles size={24} />} sx={{ mb: 4, borderRadius: 2 }}>
           <Typography variant="subtitle1" fontWeight="bold">
             Active Free Trial ({trialDays} Days Remaining)
@@ -352,7 +467,7 @@ export const SubscriptionPage: React.FC = () => {
 
                     <Box mb={3}>
                       <Typography variant="h4" fontWeight="extrabold" component="span">
-                        ${price}
+                        ₹{price}
                       </Typography>
                       <Typography variant="body2" color="text.secondary" component="span" ml={1}>
                         / {billingCycle === 'yearly' ? 'year' : 'month'}

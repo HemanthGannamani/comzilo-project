@@ -17,6 +17,9 @@ import { SystemSettingsPage } from '../pages/settings/SystemSettingsPage';
 import { CommissionSettingsPage } from '../pages/settings/CommissionSettingsPage';
 import { SettlementReportsPage } from '../pages/settlements/SettlementReportsPage';
 import { AdminWithdrawalsPage } from '../pages/finance/AdminWithdrawalsPage';
+import { AdminSellerBankAccountsPage } from '../pages/finance/AdminSellerBankAccountsPage';
+import { RazorpayPayoutsPage } from '../pages/finance/RazorpayPayoutsPage';
+import { FinancialDashboardPage } from '../pages/finance/FinancialDashboardPage';
 import { AdminIntegrationsPage } from '../pages/integrations/AdminIntegrationsPage';
 import { AuditLogsPage } from '../pages/logs/AuditLogsPage';
 import { SystemHealthPage } from '../pages/health/SystemHealthPage';
@@ -57,8 +60,15 @@ export const AppRoutes: React.FC = () => {
             <Route path="/settings/commission" element={<CommissionSettingsPage />} />
             <Route path="/settlements" element={<SettlementReportsPage />} />
             <Route path="/settlement-reports" element={<SettlementReportsPage />} />
+            <Route path="/seller-bank-accounts" element={<AdminSellerBankAccountsPage />} />
+            <Route path="/finance/bank-accounts" element={<AdminSellerBankAccountsPage />} />
             <Route path="/withdrawals" element={<AdminWithdrawalsPage />} />
             <Route path="/finance/withdrawals" element={<AdminWithdrawalsPage />} />
+            <Route path="/payouts" element={<RazorpayPayoutsPage />} />
+            <Route path="/finance/payouts" element={<RazorpayPayoutsPage />} />
+            <Route path="/finance" element={<FinancialDashboardPage />} />
+            <Route path="/finance/dashboard" element={<FinancialDashboardPage />} />
+            <Route path="/financial-dashboard" element={<FinancialDashboardPage />} />
             <Route path="/integrations" element={<AdminIntegrationsPage />} />
             <Route path="/logs" element={<AuditLogsPage />} />
             <Route path="/health" element={<SystemHealthPage />} />

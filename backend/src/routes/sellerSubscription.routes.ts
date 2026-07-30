@@ -11,7 +11,9 @@ router.use(authenticate);
 
 router.get('/', controller.getCurrentSubscription);
 router.post('/checkout', controller.createCheckoutSession);
+router.post('/create-order', controller.createCheckoutSession);
 router.post('/verify', controller.verifyAndActivateSubscription);
+router.post('/verify-payment', controller.verifyAndActivateSubscription);
 router.get('/invoices', controller.getInvoices);
 router.get('/saas-reports', controller.getSaaSReports);
 

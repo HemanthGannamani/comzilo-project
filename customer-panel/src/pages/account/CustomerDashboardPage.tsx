@@ -18,6 +18,7 @@ import { Package, Clock, CheckCircle2, Heart, MapPin, ArrowRight, Eye, RefreshCw
 import { Link, useNavigate } from 'react-router-dom';
 import { CustomerAccountLayout } from '../../components/layout/CustomerAccountLayout';
 import { useGetCustomerDashboardQuery } from '../../api/customerPortalApi';
+import { formatPrice } from '../../utils/currencyService';
 import { useAppSelector } from '../../store/hooks';
 
 export const CustomerDashboardPage: React.FC = () => {
@@ -54,6 +55,7 @@ export const CustomerDashboardPage: React.FC = () => {
           <Grid item xs={12} sm={8}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
               <Avatar
+                src={customer?.avatarUrl || customer?.profileImage || user?.avatarUrl || user?.profileImage || undefined}
                 sx={{
                   width: 60,
                   height: 60,
@@ -63,7 +65,7 @@ export const CustomerDashboardPage: React.FC = () => {
                   border: '3px solid #38BDF8',
                 }}
               >
-                {customer?.firstName?.[0] || 'C'}
+                {!(customer?.avatarUrl || customer?.profileImage || user?.avatarUrl || user?.profileImage) && (customer?.firstName?.[0] || 'C')}
               </Avatar>
               <Box>
                 <Typography variant="h5" sx={{ fontWeight: 800, color: '#FFFFFF' }}>
@@ -198,7 +200,7 @@ export const CustomerDashboardPage: React.FC = () => {
                   </Box>
                   <ListItemText
                     primary={<Typography variant="subtitle2" sx={{ fontWeight: 800 }}>Order #{ord.orderNumber}</Typography>}
-                    secondary={`Placed on ${new Date(ord.createdAt).toLocaleDateString()} • Total: $${ord.totalAmount}`}
+                    secondary={`Placed on ${new Date(ord.createdAt).toLocaleDateString()} • Total: ${formatPrice(ord.totalAmount)}`}
                   />
                   <Chip
                     label={ord.status.toUpperCase()}

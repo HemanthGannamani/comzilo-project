@@ -149,8 +149,8 @@ export class ProductController {
       const queryStoreId = req.query.store_id ? Number(req.query.store_id) : undefined;
       const queryStoreSlug = req.query.store || req.query.tenant;
 
-      let tenantId: number | null = queryTenantId || req.context?.tenantId || 1;
-      let storeId = queryStoreId || 1;
+      let tenantId: number | null = queryTenantId || req.context?.tenantId || null;
+      let storeId = queryStoreId;
 
       // If store slug is provided, resolve tenant & store from MySQL
       if (queryStoreSlug && typeof queryStoreSlug === 'string') {
@@ -167,16 +167,26 @@ export class ProductController {
         }
       }
 
-      // If unauthenticated guest request without explicit tenant/store filter -> query published products across stores
-      const isPublicGuestQuery = !req.headers.authorization && !queryTenantId && !queryStoreId && !queryStoreSlug;
-      const isMarketplaceRequest = req.query.marketplace === 'true' || isPublicGuestQuery;
+      // If authenticated seller request without explicit store query, resolve seller storeId
+      if (!storeId && req.headers.authorization && req.context?.tenantId) {
+        try {
+          storeId = await this.getStoreId(req);
+          tenantId = req.context.tenantId;
+        } catch {
+          // fallback
+        }
+      }
+
+      // Public customer storefront queries without explicit store filters should query across all stores
+      const isExplicitStoreQuery = Boolean(queryTenantId || queryStoreId || queryStoreSlug);
+      const isMarketplaceRequest = req.query.marketplace === 'true' || !isExplicitStoreQuery;
 
       const filters: any = {
         ...req.query,
         allStores: isMarketplaceRequest,
       };
 
-      const products = await this.productService.listProducts(tenantId, storeId, filters);
+      const products = await this.productService.listProducts(tenantId, storeId || 1, filters);
 
       success(res, RESPONSE_MESSAGES.SUCCESS, products.rows, {
         total: products.count,

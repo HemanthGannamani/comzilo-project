@@ -18,6 +18,7 @@ import {
 import { Download, Printer, CreditCard, RefreshCw } from 'lucide-react';
 import { CustomerAccountLayout } from '../../components/layout/CustomerAccountLayout';
 import { useGetMyInvoicesQuery, useGetMyPaymentsQuery } from '../../api/customerPortalApi';
+import { formatPrice } from '../../utils/currencyService';
 
 export const CustomerInvoicesPage: React.FC = () => {
   const [tab, setTab] = useState(0);
@@ -32,37 +33,40 @@ export const CustomerInvoicesPage: React.FC = () => {
     if (!printWindow) return;
 
     let html = `<html><head><title>Invoice ${inv.invoiceNumber}</title><style>
-      body { font-family: sans-serif; padding: 40px; color: #0F172A; }
+      body { font-family: Arial, sans-serif; padding: 40px; color: #0F172A; }
       .header { display: flex; justify-content: space-between; border-bottom: 2px solid #E2E8F0; padding-bottom: 20px; }
       .title { font-size: 24px; font-weight: bold; color: #2563EB; }
-      table { width: 100%; border-collapse: collapse; margin-top: 30px; }
-      th, td { border: 1px solid #E2E8F0; padding: 12px; text-align: left; }
-      th { background-color: #F8FAFC; }
-      .total-row { font-weight: bold; font-size: 18px; }
-    </style></head><body>`;
-
-    html += `<div class="header">
-      <div>
-        <div class="title">Comzilo Store Official Invoice</div>
-        <div>Invoice #: ${inv.invoiceNumber}</div>
-        <div>Date: ${new Date(inv.createdAt).toLocaleDateString()}</div>
+      .details { margin-top: 30px; line-height: 1.6; }
+      .table { width: 100%; margin-top: 30px; border-collapse: collapse; }
+      .table th, .table td { border: 1px solid #CBD5E1; padding: 12px; text-align: left; }
+      .table th { background: #F8FAFC; }
+      .total-row { font-weight: bold; background: #EFF6FF; }
+    </style></head><body>
+      <div class="header">
+        <div>
+          <div class="title">COMZILO ENTERPRISE INVOICE</div>
+          <div>Comzilo Global SaaS E-Commerce Platform</div>
+        </div>
+        <div style="text-align: right;">
+          <div>Invoice #: ${inv.invoiceNumber}</div>
+          <div>Date: ${new Date(inv.createdAt).toLocaleDateString()}</div>
+        </div>
       </div>
-      <div>
+      <div class="details">
         <div>Status: <strong>${inv.invoiceStatus?.toUpperCase() || 'PAID'}</strong></div>
         <div>Order #: ${inv.orderId}</div>
       </div>
-    </div>`;
-
-    html += `<table>
-      <thead>
-        <tr><th>Description</th><th>Amount</th></tr>
-      </thead>
-      <tbody>
-        <tr><td>Order #${inv.orderId} Products Subtotal</td><td>$${inv.subtotal || inv.total}</td></tr>
-        <tr><td>Tax Amount</td><td>$${inv.taxTotal || 0}</td></tr>
-        <tr class="total-row"><td>Grand Total</td><td>$${inv.total}</td></tr>
-      </tbody>
-    </table></body></html>`;
+      <table class="table">
+        <thead>
+          <tr><th>Description</th><th>Amount</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Order #${inv.orderId} Products Subtotal</td><td>${formatPrice(inv.subtotal || inv.total)}</td></tr>
+          <tr><td>Tax Amount</td><td>${formatPrice(inv.taxTotal || 0)}</td></tr>
+          <tr class="total-row"><td>Grand Total</td><td>${formatPrice(inv.total)}</td></tr>
+        </tbody>
+      </table>
+    </body></html>`;
 
     printWindow.document.write(html);
     printWindow.document.close();
@@ -112,7 +116,7 @@ export const CustomerInvoicesPage: React.FC = () => {
                     <TableRow key={inv.id} hover>
                       <TableCell sx={{ fontWeight: 700 }}>{inv.invoiceNumber}</TableCell>
                       <TableCell>{new Date(inv.createdAt).toLocaleDateString()}</TableCell>
-                      <TableCell sx={{ fontWeight: 800, color: '#2563EB' }}>${inv.total}</TableCell>
+                      <TableCell sx={{ fontWeight: 800, color: '#2563EB' }}>{formatPrice(inv.total)}</TableCell>
                       <TableCell>
                         <Chip label={inv.invoiceStatus?.toUpperCase() || 'PAID'} color="success" size="small" sx={{ fontWeight: 700 }} />
                       </TableCell>
@@ -162,7 +166,7 @@ export const CustomerInvoicesPage: React.FC = () => {
                       <TableCell sx={{ fontWeight: 700 }}>{p.paymentNumber}</TableCell>
                       <TableCell>{new Date(p.createdAt).toLocaleDateString()}</TableCell>
                       <TableCell sx={{ textTransform: 'uppercase', fontWeight: 600 }}>{p.paymentMethod || p.gateway}</TableCell>
-                      <TableCell sx={{ fontWeight: 800, color: '#2563EB' }}>${p.amount}</TableCell>
+                      <TableCell sx={{ fontWeight: 800, color: '#2563EB' }}>{formatPrice(p.amount)}</TableCell>
                       <TableCell>
                         <Chip
                           label={p.paymentStatus?.toUpperCase()}

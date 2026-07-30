@@ -91,6 +91,14 @@ export const AdminLayout: React.FC = () => {
     { isHeader: true, label: 'Inventory Management' },
     { label: 'Inventory Analytics', path: '/inventory-management', icon: <Boxes size={20} /> },
 
+    { isHeader: true, label: 'Financial Management' },
+    { label: 'Financial Dashboard', path: '/finance', icon: <BarChart3 size={20} /> },
+    { label: 'Seller Bank Accounts', path: '/seller-bank-accounts', icon: <ShieldCheck size={20} /> },
+    { label: 'Razorpay Payouts', path: '/payouts', icon: <CreditCard size={20} /> },
+    { label: 'Withdrawal Requests', path: '/withdrawals', icon: <CreditCard size={20} /> },
+    { label: 'Settlement Reports', path: '/settlements', icon: <FileText size={20} /> },
+    { label: 'Commission Settings', path: '/commission-settings', icon: <Settings size={20} /> },
+
     { isHeader: true, label: 'Shipping Management' },
     { label: 'Shipping Providers', path: '/shipping-providers', icon: <Truck size={20} /> },
 

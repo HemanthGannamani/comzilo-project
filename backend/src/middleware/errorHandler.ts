@@ -17,12 +17,12 @@ export const errorHandler = (
   let message: string = RESPONSE_MESSAGES.INTERNAL_ERROR;
   let errors: unknown[] = [];
 
-  if (err instanceof AppError || err?.isOperational) {
-    statusCode = err.statusCode;
-    code = err.code;
-    message = err.message;
-    errors = err.errors;
-  } else if (err.isJoi) {
+  if (err instanceof AppError || err?.isOperational || err?.statusCode || err?.name === 'ValidationError') {
+    statusCode = err.statusCode || HTTP_STATUS.BAD_REQUEST;
+    code = err.code || 'VALIDATION_ERROR';
+    message = err.message || RESPONSE_MESSAGES.VALIDATION_ERROR;
+    errors = err.errors || [];
+  } else if (err?.isJoi) {
     statusCode = HTTP_STATUS.BAD_REQUEST;
     code = 'VALIDATION_ERROR';
     message = RESPONSE_MESSAGES.VALIDATION_ERROR;

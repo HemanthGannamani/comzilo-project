@@ -37,10 +37,17 @@ import {
 } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import { useAppSelector } from '../store/hooks';
 
 const API_BASE = 'http://localhost:5000/api/v1/support';
 
 export const SupportCenterPage: React.FC = () => {
+  const { accessToken } = useAppSelector((state) => state.auth);
+  const authHeaders = {
+    headers: {
+      Authorization: accessToken ? `Bearer ${accessToken}` : '',
+    },
+  };
   const [tabIndex, setTabIndex] = useState(0);
   const [loading, setLoading] = useState(false);
 
@@ -78,7 +85,7 @@ export const SupportCenterPage: React.FC = () => {
   const fetchTickets = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`${API_BASE}/customer/tickets?customerId=1`);
+      const res = await axios.get(`${API_BASE}/customer/tickets`, authHeaders);
       setTickets(res.data?.data || []);
     } catch {
       setTickets([]);
@@ -105,8 +112,7 @@ export const SupportCenterPage: React.FC = () => {
     try {
       const res = await axios.post(`${API_BASE}/customer/ai-chat`, {
         message: userMsg,
-        customerId: 1,
-      });
+      }, authHeaders);
 
       const data = res.data?.data;
       setChatHistory((prev) => [
@@ -141,7 +147,7 @@ export const SupportCenterPage: React.FC = () => {
   const handleOpenTicketDetails = async (t: any) => {
     setSelectedTicket(t);
     try {
-      const res = await axios.get(`${API_BASE}/customer/tickets/${t.id}?customerId=1`);
+      const res = await axios.get(`${API_BASE}/customer/tickets/${t.id}`, authHeaders);
       setTicketDetails(res.data?.data);
     } catch {
       setTicketDetails(null);
@@ -153,9 +159,8 @@ export const SupportCenterPage: React.FC = () => {
     setReplying(true);
     try {
       await axios.post(`${API_BASE}/customer/tickets/${selectedTicket.id}/reply`, {
-        customerId: 1,
         message: replyText,
-      });
+      }, authHeaders);
       toast.success('Reply sent!');
       setReplyText('');
       handleOpenTicketDetails(selectedTicket);
@@ -171,14 +176,13 @@ export const SupportCenterPage: React.FC = () => {
     setSubmittingTicket(true);
     try {
       await axios.post(`${API_BASE}/customer/tickets`, {
-        customerId: 1,
         subject,
         category,
         priority,
         message,
         orderId: orderId ? Number(orderId) : null,
         attachments: uploadUrl ? [{ fileName: 'document.pdf', fileUrl: uploadUrl, fileType: 'application/pdf' }] : [],
-      });
+      }, authHeaders);
       toast.success('Support Ticket created successfully!');
       setSubject('');
       setMessage('');
@@ -196,10 +200,9 @@ export const SupportCenterPage: React.FC = () => {
     if (!selectedTicket) return;
     try {
       await axios.post(`${API_BASE}/customer/tickets/${selectedTicket.id}/rate`, {
-        customerId: 1,
         score: csatScore || 5,
         feedback: csatFeedback,
-      });
+      }, authHeaders);
       toast.success('Thank you for rating our support team!');
       setCsatFeedback('');
       handleOpenTicketDetails(selectedTicket);

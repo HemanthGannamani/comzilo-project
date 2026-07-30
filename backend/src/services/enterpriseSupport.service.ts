@@ -10,7 +10,7 @@ export class EnterpriseSupportService {
    */
   static async getCustomerTickets(tenantId: number, storeId: number, customerId: number) {
     const tickets = await SupportTicket.findAll({
-      where: { tenantId, storeId, customerId },
+      where: { customerId },
       order: [['createdAt', 'DESC']],
     });
     return tickets;
@@ -21,7 +21,7 @@ export class EnterpriseSupportService {
    */
   static async getCustomerTicketDetails(tenantId: number, storeId: number, customerId: number, ticketId: number) {
     const ticket = await SupportTicket.findOne({
-      where: { id: ticketId, tenantId, storeId, customerId },
+      where: { id: ticketId, customerId },
     });
 
     if (!ticket) {

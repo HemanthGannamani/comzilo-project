@@ -16,6 +16,9 @@ import { ChangePasswordPage } from '../pages/auth/ChangePasswordPage';
 import { DashboardPage } from '../pages/dashboard/DashboardPage';
 import { SubscriptionPage } from '../pages/settings/SubscriptionPage';
 import { WalletPage } from '../pages/finance/WalletPage';
+import { SellerFinancialDashboardPage } from '../pages/finance/SellerFinancialDashboardPage';
+import { SellerBankAccountPage } from '../pages/finance/SellerBankAccountPage';
+import { CustomerPaymentCenterPage } from '../pages/customer/CustomerPaymentCenterPage';
 
 import { ProductsPage } from '../features/products/pages/ProductsPage';
 import { CatalogLayout } from '../features/catalog/components/CatalogLayout';
@@ -160,6 +163,15 @@ export const AppRoutes: React.FC = () => {
             <Route path="/settings/subscription" element={<SubscriptionPage />} />
             <Route path="/wallet" element={<WalletPage />} />
             <Route path="/finance/wallet" element={<WalletPage />} />
+            <Route path="/finance/bank-account" element={<SellerBankAccountPage />} />
+            <Route path="/bank-account" element={<SellerBankAccountPage />} />
+            <Route path="/withdrawals" element={<WalletPage />} />
+            <Route path="/finance/withdrawals" element={<WalletPage />} />
+            <Route path="/finance/dashboard" element={<SellerFinancialDashboardPage />} />
+            <Route path="/finance" element={<SellerFinancialDashboardPage />} />
+            <Route path="/customer/payments" element={<CustomerPaymentCenterPage />} />
+            <Route path="/customer/invoices" element={<CustomerPaymentCenterPage />} />
+            <Route path="/payments/center" element={<CustomerPaymentCenterPage />} />
             <Route path="/settings" element={<PermissionGuard permission="settings.read"><SettingsPage /></PermissionGuard>} />
 
             {/* Inventory Routes */}
@@ -191,6 +203,12 @@ export const AppRoutes: React.FC = () => {
             <Route path="/settings/shipping/logs" element={<ShippingProvidersPage defaultTab={6} />} />
 
             <Route path="/integrations" element={<PermissionGuard permission="marketplace.read"><IntegrationsPage /></PermissionGuard>} />
+            <Route path="/finance" element={<SellerFinancialDashboardPage />} />
+            <Route path="/finance/dashboard" element={<SellerFinancialDashboardPage />} />
+            <Route path="/financial-dashboard" element={<SellerFinancialDashboardPage />} />
+            <Route path="/customer/payments" element={<CustomerPaymentCenterPage />} />
+            <Route path="/customer/invoices" element={<CustomerPaymentCenterPage />} />
+            <Route path="/payments/center" element={<CustomerPaymentCenterPage />} />
           </Route>
 
           <Route element={<PosLayout />}>

@@ -25,6 +25,7 @@ import { OrderNavigationMap } from '../../components/common/OrderNavigationMap';
 import { useGetMyOrdersQuery, useGetMyOrderDetailsQuery, useCancelMyOrderMutation } from '../../api/customerPortalApi';
 import toast from 'react-hot-toast';
 import { useSearchParams } from 'react-router-dom';
+import { formatPrice } from '../../utils/currencyService';
 
 const CANCELLATION_REASONS = [
   'Ordered by mistake',
@@ -136,7 +137,7 @@ export const CustomerOrdersPage: React.FC = () => {
                     secondary={`Placed on ${new Date(ord.createdAt).toLocaleDateString()} • Items: ${ord.items?.length || 1}`}
                   />
                   <Typography variant="h6" sx={{ fontWeight: 800, color: ord.status === 'cancelled' ? '#DC2626' : '#2563EB' }}>
-                    ${ord.totalAmount}
+                    {formatPrice(ord.totalAmount)}
                   </Typography>
                   <Chip
                     label={ord.status.toUpperCase()}
@@ -303,10 +304,10 @@ export const CustomerOrdersPage: React.FC = () => {
                   <ListItem key={item.id} sx={{ px: 0, py: 1, borderBottom: '1px solid #F1F5F9' }}>
                     <ListItemText
                       primary={<Typography variant="subtitle2" sx={{ fontWeight: 700 }}>{item.productName || item.sku}</Typography>}
-                      secondary={`Qty: ${item.quantity} • Unit Price: $${item.unitPrice}`}
+                      secondary={`Qty: ${item.quantity} • Unit Price: ${formatPrice(item.unitPrice)}`}
                     />
                     <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
-                      ${item.total}
+                      {formatPrice(item.total)}
                     </Typography>
                   </ListItem>
                 ))}
@@ -316,21 +317,21 @@ export const CustomerOrdersPage: React.FC = () => {
               <Box sx={{ alignSelf: 'flex-end', width: { xs: '100%', sm: 300 }, py: 2 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                   <Typography variant="body2" color="text.secondary">Subtotal</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 700 }}>${selectedOrder.subtotal}</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 700 }}>{formatPrice(selectedOrder.subtotal)}</Typography>
                 </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                   <Typography variant="body2" color="text.secondary">Tax</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 700 }}>${selectedOrder.taxAmount}</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 700 }}>{formatPrice(selectedOrder.taxAmount)}</Typography>
                 </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                   <Typography variant="body2" color="text.secondary">Shipping Fee</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 700 }}>${selectedOrder.shippingFee || 0}</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 700 }}>{formatPrice(selectedOrder.shippingFee || 0)}</Typography>
                 </Box>
                 <Divider sx={{ my: 1 }} />
                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                   <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>Total Paid</Typography>
                   <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#2563EB' }}>
-                    ${selectedOrder.totalAmount}
+                    {formatPrice(selectedOrder.totalAmount)}
                   </Typography>
                 </Box>
               </Box>

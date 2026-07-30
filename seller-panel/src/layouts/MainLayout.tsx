@@ -74,6 +74,7 @@ import {
   Gift,
   Store,
   Wallet,
+  ShieldCheck,
 } from 'lucide-react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
@@ -198,12 +199,14 @@ export const MainLayout: React.FC = () => {
       label: 'Finance',
       icon: <DollarSign size={19} />,
       items: [
-        { label: 'Seller Wallet & Payouts', path: '/finance/wallet', icon: <Wallet size={17} /> },
-        { label: 'Payments', path: '/finance/payments', icon: <CreditCard size={17} /> },
-        { label: 'Refunds', path: '/finance/refunds', icon: <TrendingDown size={17} /> },
-        { label: 'Taxes', path: '/finance/taxes', icon: <Receipt size={17} /> },
-        { label: 'Expenses', path: '/finance/expenses', icon: <DollarSign size={17} /> },
-        { label: 'Profit & Loss', path: '/finance/pnl', icon: <Percent size={17} /> },
+        { label: 'Financial Dashboard', path: '/finance/dashboard', icon: <BarChart3 size={17} /> },
+        { label: 'Customer Payments', path: '/customer/payments', icon: <Receipt size={17} /> },
+        { label: 'Wallet', path: '/wallet', icon: <Wallet size={17} /> },
+        { label: 'Bank Account', path: '/finance/bank-account', icon: <ShieldCheck size={17} /> },
+        { label: 'Settlement Requests', path: '/withdrawals', icon: <DollarSign size={17} /> },
+        { label: 'Payout History', path: '/finance/payments', icon: <CreditCard size={17} /> },
+        { label: 'Transactions', path: '/finance/payments', icon: <CreditCard size={17} /> },
+        { label: 'Subscription & Billing', path: '/settings/subscription', icon: <CreditCard size={17} /> },
       ],
     },
     {

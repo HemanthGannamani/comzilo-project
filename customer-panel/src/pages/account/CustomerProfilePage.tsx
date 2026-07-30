@@ -12,13 +12,19 @@ import {
   CircularProgress,
 } from '@mui/material';
 import { User, Save, Upload, CheckCircle2 } from 'lucide-react';
+import { useAppDispatch } from '../../store/hooks';
+import { updateUser } from '../../store/authSlice';
 import { CustomerAccountLayout } from '../../components/layout/CustomerAccountLayout';
 import { useGetCustomerProfileQuery, useUpdateCustomerProfileMutation } from '../../api/customerPortalApi';
 import toast from 'react-hot-toast';
 
 export const CustomerProfilePage: React.FC = () => {
+  const dispatch = useAppDispatch();
   const { data: profileData, isLoading } = useGetCustomerProfileQuery();
   const [updateProfile, { isLoading: isUpdating }] = useUpdateCustomerProfileMutation();
+
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     firstName: '',
@@ -40,8 +46,27 @@ export const CustomerProfilePage: React.FC = () => {
         gender: p.gender || '',
         dateOfBirth: p.dateOfBirth ? p.dateOfBirth.split('T')[0] : '',
       });
+      if (p.avatarUrl || p.profileImage) {
+        setAvatarPreview(p.avatarUrl || p.profileImage);
+      }
     }
   }, [profileData]);
+
+  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        toast.error('Image size must be less than 2MB');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAvatarPreview(reader.result as string);
+        toast.success('Photo selected! Click Save Profile Changes to apply.');
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,8 +76,19 @@ export const CustomerProfilePage: React.FC = () => {
     }
 
     try {
-      await updateProfile(formData).unwrap();
-      toast.success('Profile details updated successfully');
+      const payload = {
+        ...formData,
+        avatarUrl: avatarPreview || undefined,
+        profileImage: avatarPreview || undefined,
+      };
+      const res = await updateProfile(payload).unwrap();
+      dispatch(updateUser({
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        avatarUrl: avatarPreview,
+        profileImage: avatarPreview,
+      }));
+      toast.success('Profile details & photo updated successfully!');
     } catch (err: any) {
       toast.error(err?.data?.message || 'Failed to update profile');
     }
@@ -76,7 +112,15 @@ export const CustomerProfilePage: React.FC = () => {
           <Box component="form" onSubmit={handleSubmit}>
             {/* Avatar & Photo Upload Block */}
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, mb: 4, pb: 3, borderBottom: '1px solid #F1F5F9' }}>
+              <input
+                type="file"
+                ref={fileInputRef}
+                style={{ display: 'none' }}
+                accept="image/jpeg,image/png,image/webp"
+                onChange={handlePhotoSelect}
+              />
               <Avatar
+                src={avatarPreview || undefined}
                 sx={{
                   width: 80,
                   height: 80,
@@ -86,7 +130,7 @@ export const CustomerProfilePage: React.FC = () => {
                   border: '3px solid #38BDF8',
                 }}
               >
-                {formData.firstName?.[0] || 'C'}
+                {!avatarPreview && (formData.firstName?.[0] || 'C')}
               </Avatar>
               <Box>
                 <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
@@ -95,7 +139,12 @@ export const CustomerProfilePage: React.FC = () => {
                 <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
                   JPG or PNG max size 2MB.
                 </Typography>
-                <Button variant="outlined" size="small" startIcon={<Upload size={14} />}>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={<Upload size={14} />}
+                  onClick={() => fileInputRef.current?.click()}
+                >
                   Upload New Photo
                 </Button>
               </Box>

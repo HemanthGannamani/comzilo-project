@@ -5,6 +5,7 @@ import { CustomerAccountLayout } from '../../components/layout/CustomerAccountLa
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { addToCart } from '../../store/cartSlice';
 import { toggleWishlist } from '../../store/wishlistSlice';
+import { formatPrice } from '../../utils/currencyService';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
@@ -54,7 +55,7 @@ export const CustomerWishlistPage: React.FC = () => {
                 />
                 <CardContent sx={{ flexGrow: 1 }}>
                   <Typography variant="subtitle1" noWrap sx={{ fontWeight: 700 }}>{prod.name}</Typography>
-                  <Typography variant="h6" sx={{ fontWeight: 800, color: '#2563EB', mt: 1 }}>${prod.price}</Typography>
+                  <Typography variant="h6" sx={{ fontWeight: 800, color: '#2563EB', mt: 1 }}>{formatPrice(prod.price)}</Typography>
                 </CardContent>
                 <CardActions sx={{ p: 2, pt: 0, gap: 1 }}>
                   <Button variant="contained" size="small" fullWidth startIcon={<ShoppingCart size={16} />} onClick={() => handleMoveToCart(prod)}>

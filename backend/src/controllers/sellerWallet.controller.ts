@@ -108,4 +108,42 @@ export class SellerWalletController {
       next(err);
     }
   };
+
+  public getSellerFinancialDashboard = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const tenantId = req.context?.tenantId || 1;
+      const data = await this.service.getSellerFinancialDashboard(tenantId);
+      success(res, 'Seller financial dashboard retrieved successfully', data);
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  public exportFinancialData = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const tenantId = req.context?.tenantId || 1;
+      const format = (req.query.format as string) || 'csv';
+      const data = await this.service.getSellerFinancialDashboard(tenantId);
+
+      if (format === 'csv' || format === 'excel') {
+        const csvRows = [
+          'Metric,Value (INR)',
+          `Today Revenue,${data.todayRevenue}`,
+          `Monthly Revenue,${data.monthlyRevenue}`,
+          `Total Wallet Balance,${data.totalBalance}`,
+          `Pending Escrow Balance,${data.pendingBalance}`,
+          `Available Balance,${data.availableBalance}`,
+        ];
+
+        res.setHeader('Content-Type', format === 'csv' ? 'text/csv' : 'application/vnd.ms-excel');
+        res.setHeader('Content-Disposition', `attachment; filename="seller_financial_report_${Date.now()}.${format === 'csv' ? 'csv' : 'xls'}"`);
+        res.send(csvRows.join('\n'));
+        return;
+      }
+
+      success(res, 'Seller financial export generated successfully', data);
+    } catch (err) {
+      next(err);
+    }
+  };
 }

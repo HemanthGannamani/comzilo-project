@@ -14,12 +14,21 @@ interface CartState {
   discountAmount: number;
 }
 
-const initialItems = localStorage.getItem('customer_cart')
-  ? JSON.parse(localStorage.getItem('customer_cart')!)
-  : [];
+const loadInitialCart = (): CartItem[] => {
+  try {
+    const stored = localStorage.getItem('customer_cart');
+    if (!stored) return [];
+    const parsed = JSON.parse(stored);
+    if (!Array.isArray(parsed)) return [];
+    // Sanitize any stale mock cart items from previous testing sessions
+    return parsed.filter((item: any) => item && item.id && item.sku !== 'PROD-0074' && item.name !== 'QA Verified Physical Product');
+  } catch {
+    return [];
+  }
+};
 
 const initialState: CartState = {
-  items: initialItems,
+  items: loadInitialCart(),
   couponCode: null,
   discountAmount: 0,
 };

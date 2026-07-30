@@ -5,6 +5,8 @@ import { AppRoutes } from './routes/AppRoutes';
 import { Toaster } from 'react-hot-toast';
 import { createTheme, ThemeProvider, CssBaseline } from '@mui/material';
 
+import { ErrorBoundary } from './components/common/ErrorBoundary';
+
 const darkTheme = createTheme({
   palette: {
     mode: 'light',
@@ -24,7 +26,9 @@ export default function App() {
       <ThemeProvider theme={darkTheme}>
         <CssBaseline />
         <Toaster position="top-right" />
-        <AppRoutes />
+        <ErrorBoundary>
+          <AppRoutes />
+        </ErrorBoundary>
       </ThemeProvider>
     </Provider>
   );

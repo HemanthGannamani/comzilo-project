@@ -60,17 +60,21 @@ export const WalletPage: React.FC = () => {
     accountHolderName: '',
   });
 
+  const [bankAccount, setBankAccount] = useState<any>(null);
+
   const fetchWalletData = async () => {
     setLoading(true);
     try {
-      const [walletRes, txRes, wthRes] = await Promise.all([
+      const [walletRes, txRes, wthRes, bankRes] = await Promise.all([
         axiosInstance.get('/seller/wallet'),
         axiosInstance.get('/seller/wallet/transactions'),
         axiosInstance.get('/seller/wallet/withdrawals'),
+        axiosInstance.get('/seller/bank-account').catch(() => ({ data: { data: null } })),
       ]);
       setWallet(walletRes.data.data);
       setTransactions(txRes.data.data || []);
       setWithdrawals(wthRes.data.data || []);
+      setBankAccount(bankRes.data?.data || null);
       if (walletRes.data.data?.bankDetails) {
         setBankData(walletRes.data.data.bankDetails);
       }
@@ -86,6 +90,11 @@ export const WalletPage: React.FC = () => {
   }, []);
 
   const handleWithdrawSubmit = async () => {
+    if (!bankAccount || bankAccount.status !== 'VERIFIED') {
+      toast.error('Your bank account must be verified before requesting settlements.');
+      return;
+    }
+
     const amt = parseFloat(withdrawAmount);
     if (isNaN(amt) || amt <= 0) {
       toast.error('Enter a valid positive withdrawal amount');
@@ -164,6 +173,7 @@ export const WalletPage: React.FC = () => {
           <Button
             variant="contained"
             color="primary"
+            disabled={!bankAccount || bankAccount.status !== 'VERIFIED'}
             startIcon={<Send size={18} />}
             onClick={() => setWithdrawModalOpen(true)}
             sx={{ fontWeight: 800, px: 3 }}
@@ -172,6 +182,22 @@ export const WalletPage: React.FC = () => {
           </Button>
         </Box>
       </Box>
+
+      {/* BANK VERIFICATION GUARD ALERT */}
+      {(!bankAccount || bankAccount.status !== 'VERIFIED') && (
+        <Alert
+          severity="warning"
+          icon={<ShieldCheck size={24} />}
+          action={
+            <Button color="inherit" size="small" href="/finance/bank-account" sx={{ fontWeight: 800 }}>
+              Verify Bank Account
+            </Button>
+          }
+          sx={{ mb: 4, borderRadius: 3, fontWeight: 600 }}
+        >
+          Your bank account must be verified before requesting settlements.
+        </Alert>
+      )}
 
       {/* 4 STAT CARDS */}
       <Grid container spacing={3} sx={{ mb: 4 }}>

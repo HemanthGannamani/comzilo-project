@@ -70,6 +70,7 @@ export const CustomerSidebar: React.FC = () => {
       {/* Customer Brief Header */}
       <Box sx={{ p: 3, bgcolor: '#0F172A', color: '#FFFFFF', display: 'flex', alignItems: 'center', gap: 2 }}>
         <Avatar
+          src={user?.avatarUrl || user?.profileImage || undefined}
           sx={{
             width: 52,
             height: 52,
@@ -79,7 +80,7 @@ export const CustomerSidebar: React.FC = () => {
             border: '2px solid #38BDF8',
           }}
         >
-          {user?.firstName?.[0] || 'C'}
+          {!(user?.avatarUrl || user?.profileImage) && (user?.firstName?.[0] || 'C')}
         </Avatar>
         <Box sx={{ overflow: 'hidden' }}>
           <Typography variant="subtitle1" noWrap sx={{ fontWeight: 800, lineHeight: 1.2 }}>

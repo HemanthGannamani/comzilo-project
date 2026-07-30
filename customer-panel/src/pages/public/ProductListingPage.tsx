@@ -76,11 +76,25 @@ const PRODUCT_IMAGE_MAP: Record<string, string> = {
   'RNT-PROJ-HD-002': 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=500',
 };
 
+const API_BASE_URL = 'http://localhost:5000';
+
 const getProductImage = (prod: any): string => {
-  if (prod?.images?.[0]?.imageUrl) return prod.images[0].imageUrl;
-  if (prod?.images?.[0]?.url) return prod.images[0].url;
-  if (prod?.media?.[0]?.url) return prod.media[0].url;
-  if (prod?.image) return prod.image;
+  const images = prod?.images || prod?.media || [];
+  // Find valid uploaded image URL (ignore browser local blob: URLs)
+  const validImg = images.find((img: any) => {
+    const url = img?.imageUrl || img?.url;
+    return url && typeof url === 'string' && !url.startsWith('blob:');
+  });
+
+  let rawUrl = validImg?.imageUrl || validImg?.url || prod?.image;
+
+  if (rawUrl && typeof rawUrl === 'string' && !rawUrl.startsWith('blob:')) {
+    if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) {
+      return rawUrl;
+    }
+    return `${API_BASE_URL}${rawUrl.startsWith('/') ? '' : '/'}${rawUrl}`;
+  }
+
   if (prod?.sku && PRODUCT_IMAGE_MAP[prod.sku]) return PRODUCT_IMAGE_MAP[prod.sku];
   return 'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=500';
 };
@@ -104,6 +118,7 @@ export const ProductListingPage: React.FC = () => {
   const storeSlugParam = searchParams.get('store');
 
   const { data, isLoading } = useGetProductsQuery({
+    limit: 100,
     search,
     types: typesQuery,
     minPrice: minPrice ? Number(minPrice) : undefined,

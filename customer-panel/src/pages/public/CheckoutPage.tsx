@@ -30,6 +30,12 @@ import {
 import { formatPrice } from '../../utils/currencyService';
 import toast from 'react-hot-toast';
 
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
+}
+
 export const CheckoutPage: React.FC = () => {
   const { items, couponCode, discountAmount } = useAppSelector((state) => state.cart);
   const { isAuthenticated } = useAppSelector((state) => state.auth);
@@ -109,7 +115,7 @@ export const CheckoutPage: React.FC = () => {
       return;
     }
 
-    // RAZORPAY GATEWAY CHECKOUT FLOW
+    // OFFICIAL RAZORPAY CHECKOUT MODAL FLOW
     if (paymentMethod === 'razorpay') {
       try {
         const orderRes = await createRazorpayOrder({
@@ -124,24 +130,70 @@ export const CheckoutPage: React.FC = () => {
 
         const orderData = orderRes.data;
 
-        // Auto verify payment signature & atomically process order
-        const verifyRes = await verifyRazorpayPayment({
-          razorpayOrderId: orderData.razorpayOrderId,
-          razorpayPaymentId: `pay_rzp_cust_${Date.now()}`,
-          razorpaySignature: 'simulated_valid_signature',
-          items,
-          shippingAddressId: selectedAddressId,
-          shippingMethod,
-          couponCode,
-          notes: customerNotes,
-        }).unwrap();
+        if (typeof window.Razorpay === 'undefined') {
+          toast.error('Razorpay SDK failed to load. Please refresh the page.');
+          return;
+        }
 
-        toast.success('Payment Verified & Order Placed!');
-        const order = verifyRes.data?.order;
-        dispatch(clearCart());
-        navigate(`/order-confirmation?orderNumber=${order?.orderNumber || 'CONFIRMED'}`);
+        const options = {
+          key: orderData.keyId,
+          amount: orderData.amountPaise,
+          currency: orderData.currency || 'INR',
+          name: 'Comzilo Store',
+          description: `Order Payment (${items.length} items)`,
+          image: 'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=100',
+          order_id: orderData.razorpayOrderId,
+          handler: async (response: any) => {
+            try {
+              toast.loading('Verifying Razorpay payment signature...', { id: 'rzp-verify' });
+              
+              const verifyRes = await verifyRazorpayPayment({
+                razorpayOrderId: response.razorpay_order_id || orderData.razorpayOrderId,
+                razorpayPaymentId: response.razorpay_payment_id,
+                razorpaySignature: response.razorpay_signature,
+                items,
+                shippingAddressId: selectedAddressId,
+                shippingMethod,
+                couponCode,
+                notes: customerNotes,
+              }).unwrap();
+
+              toast.dismiss('rzp-verify');
+              toast.success('Payment Verified & Order Placed Successfully!');
+              const order = verifyRes.data?.order;
+              dispatch(clearCart());
+              navigate(`/order-confirmation?orderNumber=${order?.orderNumber || 'CONFIRMED'}`);
+            } catch (verifyErr: any) {
+              toast.dismiss('rzp-verify');
+              const errorMsg = verifyErr?.data?.message || 'Razorpay payment signature verification failed.';
+              setPaymentError(errorMsg);
+              toast.error(errorMsg);
+            }
+          },
+          modal: {
+            ondismiss: () => {
+              toast.error('Payment cancelled. Order was not created.');
+            },
+          },
+          prefill: {
+            name: addressData?.data?.[0]?.fullName || 'Customer',
+            email: 'customer@comzilo.com',
+            contact: addressData?.data?.[0]?.phone || '9999999999',
+          },
+          theme: {
+            color: '#2563EB',
+          },
+        };
+
+        const rzp = new window.Razorpay(options);
+        rzp.on('payment.failed', function (response: any) {
+          const failureReason = response.error?.description || 'Payment Failed';
+          setPaymentError(`Payment Failed: ${failureReason}`);
+          toast.error(`Payment Failed: ${failureReason}`);
+        });
+        rzp.open();
       } catch (err: any) {
-        const errorMsg = err?.data?.message || 'Razorpay Payment transaction failed. Please retry your payment.';
+        const errorMsg = err?.data?.message || 'Failed to initiate Razorpay Checkout order. Please retry.';
         setPaymentError(errorMsg);
         toast.error(errorMsg);
       }

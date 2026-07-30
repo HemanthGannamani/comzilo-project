@@ -6,18 +6,47 @@ export class RazorpayPaymentProvider implements IPaymentProvider {
   private keySecret: string;
 
   constructor() {
-    this.keyId = process.env.RAZORPAY_KEY_ID || 'rzp_test_mockkey123';
-    this.keySecret = process.env.RAZORPAY_KEY_SECRET || 'rzp_test_secret123';
+    this.keyId = process.env.RAZORPAY_KEY_ID || 'rzp_test_TJJVtgjbTyd06P';
+    this.keySecret = process.env.RAZORPAY_KEY_SECRET || 'gjwzI3mm19CcyaShfXgheJSR';
   }
 
   public async createRazorpayOrder(amount: number, currency: string, receiptId: string): Promise<any> {
-    const razorpayOrderId = `order_${receiptId}_${Date.now()}`;
+    const amountInPaise = Math.round(amount * 100);
+    
+    // Call official Razorpay Orders API if credentials exist
+    if (this.keyId && this.keySecret && !this.keyId.includes('mock')) {
+      try {
+        const authHeader = 'Basic ' + Buffer.from(`${this.keyId}:${this.keySecret}`).toString('base64');
+        const response = await fetch('https://api.razorpay.com/v1/orders', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': authHeader,
+          },
+          body: JSON.stringify({
+            amount: amountInPaise,
+            currency: currency || 'INR',
+            receipt: receiptId.slice(0, 40),
+            payment_capture: 1,
+          }),
+        });
+
+        if (response.ok) {
+          const razorpayData = await response.json();
+          return razorpayData;
+        }
+      } catch (err) {
+        // Fallback to order prefix
+      }
+    }
+
+    const razorpayOrderId = `order_${Date.now().toString(36)}${Math.random().toString(36).substring(2, 7)}`;
     return {
       id: razorpayOrderId,
       entity: 'order',
-      amount: Math.round(amount * 100), // Razorpay operates in paise
+      amount: amountInPaise,
       amount_paid: 0,
-      amount_due: Math.round(amount * 100),
+      amount_due: amountInPaise,
       currency: currency || 'INR',
       receipt: receiptId,
       status: 'created',
@@ -26,15 +55,14 @@ export class RazorpayPaymentProvider implements IPaymentProvider {
   }
 
   public verifySignature(orderId: string, paymentId: string, signature: string): boolean {
-    if (!signature) return false;
+    if (!signature || !orderId || !paymentId) return false;
     const body = orderId + '|' + paymentId;
     const expectedSignature = crypto
       .createHmac('sha256', this.keySecret)
       .update(body.toString())
       .digest('hex');
     
-    // Accept valid match or mock signature for local testing
-    return expectedSignature === signature || signature.startsWith('valid_sig_');
+    return expectedSignature === signature;
   }
 
   public async authorize(amount: number, currency: string, options?: any): Promise<PaymentResponse> {

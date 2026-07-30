@@ -177,6 +177,7 @@ import { NotificationQueue } from './notificationQueue';
 import { TenantSettings } from './tenantSettings';
 import { SystemSettings } from './systemSettings';
 import { SettingsHistory } from './settingsHistory';
+import { SellerBankAccount } from './sellerBankAccount';
 
 // Step 20 Models
 import { WebhookEndpoint } from './webhookEndpoint';
@@ -913,6 +914,7 @@ export {
   SupportCannedResponse,
   SupportKnowledgeBase,
   SupportAuditLog,
+  SellerBankAccount,
 };
 
 // Shipping Associations

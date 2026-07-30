@@ -127,15 +127,18 @@ export class SellerSubscriptionService {
     const price = billingCycle === 'yearly' ? Number(plan.priceYearly) : Number(plan.priceMonthly);
     const receiptId = `sub_${tenantId}_${Date.now()}`;
 
-    // Razorpay operates in INR/paise or currency equivalent
+    // Create Razorpay Order via provider
     const razorpayOrder = await this.razorpayProvider.createRazorpayOrder(price, 'INR', receiptId);
+    const keyId = process.env.RAZORPAY_KEY_ID || 'rzp_test_TJJVtgjbTyd06P';
 
     return {
+      order_id: razorpayOrder.id,
       razorpayOrderId: razorpayOrder.id,
       amount: price,
       amountPaise: Math.round(price * 100),
       currency: 'INR',
-      keyId: process.env.RAZORPAY_KEY_ID || 'rzp_test_mockkey123',
+      key_id: keyId,
+      keyId,
       planId: plan.id,
       planName: plan.name,
       billingCycle,
@@ -146,96 +149,128 @@ export class SellerSubscriptionService {
    * Verify Razorpay Payment & Activate Subscription
    */
   public async verifyAndActivateSubscription(tenantId: number, data: any): Promise<any> {
-    const { planId, billingCycle, razorpayOrderId, razorpayPaymentId, razorpaySignature } = data;
+    const razorpayOrderId = data.razorpay_order_id || data.razorpayOrderId;
+    const razorpayPaymentId = data.razorpay_payment_id || data.razorpayPaymentId;
+    const razorpaySignature = data.razorpay_signature || data.razorpaySignature;
+    const planId = data.planId || data.plan_id;
+    const billingCycle = data.billingCycle || data.billing_cycle || 'monthly';
 
-    const plan: any = await Plan.findByPk(planId);
-    if (!plan) {
-      throw new NotFoundError('Subscription plan not found');
+    if (!razorpayOrderId || !razorpayPaymentId || !razorpaySignature) {
+      throw new ValidationError('Razorpay payment credentials (order_id, payment_id, signature) are required');
     }
 
-    const now = new Date();
-    const periodDays = billingCycle === 'yearly' ? 365 : 30;
-    const currentPeriodEnd = new Date(now.getTime() + periodDays * 24 * 60 * 60 * 1000);
-    const amount = billingCycle === 'yearly' ? Number(plan.priceYearly) : Number(plan.priceMonthly);
+    // Verify HMAC SHA256 Signature
+    const isValidSignature = this.razorpayProvider.verifySignature(razorpayOrderId, razorpayPaymentId, razorpaySignature);
+    if (!isValidSignature) {
+      throw new ValidationError('Invalid Razorpay signature. Subscription activation denied.');
+    }
 
-    // Cancel old subscriptions for tenant
-    await Subscription.update(
-      { status: 'expired', cancelledAt: now },
-      { where: { tenantId, status: { [Op.in]: ['active', 'trialing'] } } }
-    );
-
-    // Create new active subscription
-    const sub = await Subscription.create({
-      tenantId,
-      planId: plan.id,
-      status: 'active',
-      startsAt: now,
-      trialEndsAt: null,
-      currentPeriodStart: now,
-      currentPeriodEnd,
-      endsAt: currentPeriodEnd,
-      billingCycle,
-      amount,
-      currency: 'INR',
-      provider: 'razorpay',
-      providerSubscriptionId: razorpayPaymentId || `pay_${Date.now()}`,
-    });
-
-    // Create payment record
-    const [paymentRes]: any = await sequelize.query(
-      `INSERT INTO payments (uuid, tenant_id, store_id, payment_number, payment_method, payment_status, gateway, gateway_reference, transaction_reference, amount, currency, paid_at, created_at, updated_at)
-       VALUES (:uuid, :tenantId, 1, :payNum, 'razorpay', 'paid', 'razorpay', :gwRef, :txRef, :amount, 'INR', NOW(), NOW(), NOW())`,
-      {
-        replacements: {
-          uuid: crypto.randomUUID(),
-          tenantId,
-          payNum: `PAY-SUB-${Date.now().toString().slice(-6)}`,
-          gwRef: razorpayOrderId || `rzp_ord_${Date.now()}`,
-          txRef: razorpayPaymentId || `rzp_pay_${Date.now()}`,
-          amount,
-        },
-        type: QueryTypes.INSERT,
+    try {
+      const plan: any = await Plan.findByPk(planId);
+      if (!plan) {
+        throw new NotFoundError('Subscription plan not found');
       }
-    );
 
-    // Create invoice record
-    const invoiceNum = `INV-SUB-${Date.now().toString().slice(-6)}`;
-    await sequelize.query(
-      `INSERT INTO invoices (uuid, tenant_id, store_id, invoice_number, invoice_status, subtotal, tax, discount, total, issued_at, due_date, paid_at, created_at, updated_at)
-       VALUES (:uuid, :tenantId, 1, :invNum, 'paid', :subtotal, 0, 0, :total, NOW(), NOW(), NOW(), NOW(), NOW())`,
-      {
-        replacements: {
-          uuid: crypto.randomUUID(),
-          tenantId,
-          invNum: invoiceNum,
-          subtotal: amount,
-          total: amount,
-        },
-        type: QueryTypes.INSERT,
-      }
-    );
+      const now = new Date();
+      const periodDays = billingCycle === 'yearly' ? 365 : 30;
+      const currentPeriodEnd = new Date(now.getTime() + periodDays * 24 * 60 * 60 * 1000);
+      const amount = billingCycle === 'yearly' ? Number(plan.priceYearly) : Number(plan.priceMonthly);
 
-    // Fetch tenant details for notification
-    const tenant: any = await Tenant.findByPk(tenantId);
+      // Cancel old subscriptions for tenant
+      await Subscription.update(
+        { status: 'expired', cancelledAt: now },
+        { where: { tenantId, status: { [Op.in]: ['active', 'trialing'] } } }
+      );
 
-    // Queue confirmation email
-    await this.emailQueueManager.addJob({
-      tenantId,
-      triggerEvent: 'seller_subscription_activated',
-      recipient: tenant?.email || 'seller@comzilo.com',
-      payload: {
-        tenantName: tenant?.name || 'Valued Merchant',
-        planName: plan.name,
+      // Create new active subscription
+      const sub = await Subscription.create({
+        tenantId,
+        planId: plan.id,
+        status: 'active',
+        startsAt: now,
+        trialEndsAt: null,
+        currentPeriodStart: now,
+        currentPeriodEnd,
+        endsAt: currentPeriodEnd,
         billingCycle,
         amount,
+        currency: 'INR',
+        provider: 'razorpay',
+        providerSubscriptionId: razorpayPaymentId,
+      });
+
+      // Create payment record (SaaS subscription payment, order_id is NULL)
+      await sequelize.query(
+        `INSERT INTO payments (uuid, tenant_id, store_id, order_id, payment_number, payment_method, payment_status, gateway, gateway_reference, transaction_reference, amount, currency, paid_at, created_at, updated_at)
+         VALUES (:uuid, :tenantId, 1, NULL, :payNum, 'razorpay', 'paid', 'razorpay', :gwRef, :txRef, :amount, 'INR', NOW(), NOW(), NOW())`,
+        {
+          replacements: {
+            uuid: crypto.randomUUID(),
+            tenantId,
+            payNum: `PAY-SUB-${Date.now().toString().slice(-6)}`,
+            gwRef: razorpayOrderId,
+            txRef: razorpayPaymentId,
+            amount,
+          },
+          type: QueryTypes.INSERT,
+        }
+      );
+
+      // Create invoice record (SaaS subscription invoice, order_id is NULL)
+      const invoiceNum = `INV-SUB-${Date.now().toString().slice(-6)}`;
+      await sequelize.query(
+        `INSERT INTO invoices (uuid, tenant_id, store_id, order_id, invoice_number, invoice_status, subtotal, tax, discount, total, issued_at, due_date, paid_at, created_at, updated_at)
+         VALUES (:uuid, :tenantId, 1, NULL, :invNum, 'paid', :subtotal, 0, 0, :total, NOW(), NOW(), NOW(), NOW(), NOW())`,
+        {
+          replacements: {
+            uuid: crypto.randomUUID(),
+            tenantId,
+            invNum: invoiceNum,
+            subtotal: amount,
+            total: amount,
+          },
+          type: QueryTypes.INSERT,
+        }
+      );
+
+      // Fetch tenant details for notification
+      const tenant: any = await Tenant.findByPk(tenantId);
+
+      // Queue confirmation email
+      await this.emailQueueManager.addJob({
+        tenantId,
+        triggerEvent: 'seller_subscription_activated',
+        recipient: tenant?.email || 'seller@comzilo.com',
+        payload: {
+          tenantName: tenant?.name || 'Valued Merchant',
+          planName: plan.name,
+          billingCycle,
+          amount,
+          invoiceNumber: invoiceNum,
+          periodEnd: currentPeriodEnd.toLocaleDateString(),
+        },
+      }).catch(() => null);
+
+      logger.info(`✅ Subscription Activated for Tenant #${tenantId} | Plan: ${plan.name} (${billingCycle})`);
+
+      const currentSubDetails = await this.getCurrentSubscription(tenantId);
+      return {
+        ...currentSubDetails,
+        transactionId: razorpayPaymentId,
+        paymentDate: now,
+        nextBillingDate: currentPeriodEnd,
         invoiceNumber: invoiceNum,
-        periodEnd: currentPeriodEnd.toLocaleDateString(),
-      },
-    });
-
-    logger.info(`✅ Subscription Activated for Tenant #${tenantId} | Plan: ${plan.name} (${billingCycle})`);
-
-    return this.getCurrentSubscription(tenantId);
+      };
+    } catch (error: any) {
+      logger.error(`[SellerSubscriptionService.verifyAndActivateSubscription Failed] ${error.message}`, {
+        tenantId,
+        sql: error.sql,
+        code: error.original?.code || error.code,
+        name: error.name,
+        stack: error.stack,
+      });
+      throw error;
+    }
   }
 
   /**
@@ -252,20 +287,20 @@ export class SellerSubscriptionService {
    * Calculate SaaS Reports for Super Admin
    */
   public async getSaaSReports(): Promise<any> {
-    const [subCounts]: any = await sequelize.query(
+    const subCounts: any = await sequelize.query(
       `SELECT status, COUNT(*) as count FROM subscriptions GROUP BY status`,
       { type: QueryTypes.SELECT }
     );
 
-    const [revRes]: any = await sequelize.query(
+    const revRes: any = await sequelize.query(
       `SELECT SUM(amount) as total_rev FROM subscriptions WHERE status = 'active'`,
       { type: QueryTypes.SELECT }
     );
 
-    const mrr = Number(revRes[0]?.total_rev || 0);
+    const mrr = Number(revRes?.[0]?.total_rev || 0);
     const arr = mrr * 12;
 
-    const [planPop]: any = await sequelize.query(
+    const planPop: any = await sequelize.query(
       `SELECT p.name, COUNT(s.id) as active_subscribers
        FROM plans p
        LEFT JOIN subscriptions s ON p.id = s.plan_id AND s.status = 'active'
@@ -276,8 +311,8 @@ export class SellerSubscriptionService {
     return {
       mrr,
       arr,
-      statusCounts: subCounts,
-      planPopularity: planPop,
+      statusCounts: Array.isArray(subCounts) ? subCounts : (subCounts ? [subCounts] : []),
+      planPopularity: Array.isArray(planPop) ? planPop : (planPop ? [planPop] : []),
     };
   }
 }

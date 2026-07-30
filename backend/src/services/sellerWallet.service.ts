@@ -543,4 +543,83 @@ export class SellerWalletService {
       rejectedCount: Number(totals?.rejected_count || 0),
     };
   }
+
+  /**
+   * Get Tenant-Scoped Seller Financial Intelligence Dashboard Data
+   */
+  public async getSellerFinancialDashboard(tenantId: number): Promise<any> {
+    await this.ensureWalletTablesExist();
+    const wallet = await this.getWallet(tenantId);
+
+    // 1. Today's Revenue
+    const [todayRes]: any = await sequelize.query(
+      `SELECT SUM(COALESCE(net_seller_payout, order_total * 0.9, 0)) as today_revenue
+       FROM order_commissions 
+       WHERE tenant_id = :tenantId AND DATE(created_at) = CURDATE()`,
+      { replacements: { tenantId }, type: QueryTypes.SELECT }
+    );
+
+    // 2. Monthly Revenue
+    const [monthRes]: any = await sequelize.query(
+      `SELECT SUM(COALESCE(net_seller_payout, order_total * 0.9, 0)) as monthly_revenue
+       FROM order_commissions 
+       WHERE tenant_id = :tenantId AND MONTH(created_at) = MONTH(CURDATE()) AND YEAR(created_at) = YEAR(CURDATE())`,
+      { replacements: { tenantId }, type: QueryTypes.SELECT }
+    );
+
+    // 3. Settlements History
+    const settlements: any = await sequelize.query(
+      `SELECT * FROM seller_wallet_transactions 
+       WHERE tenant_id = :tenantId AND type IN ('credit', 'settlement')
+       ORDER BY id DESC LIMIT 20`,
+      { replacements: { tenantId }, type: QueryTypes.SELECT }
+    );
+
+    // 4. Withdrawal History
+    const withdrawals: any = await sequelize.query(
+      `SELECT * FROM seller_withdrawals 
+       WHERE tenant_id = :tenantId ORDER BY id DESC LIMIT 20`,
+      { replacements: { tenantId }, type: QueryTypes.SELECT }
+    );
+
+    // 5. Invoices
+    const invoices: any = await sequelize.query(
+      `SELECT id, 'INV-' as prefix, amount, currency, status, created_at 
+       FROM subscriptions WHERE tenant_id = :tenantId 
+       ORDER BY id DESC LIMIT 20`,
+      { replacements: { tenantId }, type: QueryTypes.SELECT }
+    );
+
+    // 6. Commission Reports
+    const commissions: any = await sequelize.query(
+      `SELECT * FROM order_commissions 
+       WHERE tenant_id = :tenantId ORDER BY id DESC LIMIT 20`,
+      { replacements: { tenantId }, type: QueryTypes.SELECT }
+    );
+
+    // 7. Revenue Chart (Daily Last 14 Days)
+    const revenueChart: any = await sequelize.query(
+      `SELECT 
+        DATE_FORMAT(created_at, '%Y-%m-%d') as date,
+        SUM(COALESCE(net_seller_payout, order_total * 0.9, 0)) as amount
+       FROM order_commissions 
+       WHERE tenant_id = :tenantId 
+       GROUP BY DATE_FORMAT(created_at, '%Y-%m-%d')
+       ORDER BY date ASC LIMIT 14`,
+      { replacements: { tenantId }, type: QueryTypes.SELECT }
+    );
+
+    return {
+      todayRevenue: Number(todayRes?.today_revenue || 0),
+      monthlyRevenue: Number(monthRes?.monthly_revenue || 0),
+      totalBalance: Number(wallet.total_balance || 0),
+      pendingBalance: Number(wallet.pending_balance || 0),
+      availableBalance: Number(wallet.available_balance || 0),
+      settlementHistory: settlements || [],
+      withdrawalHistory: withdrawals || [],
+      invoices: invoices || [],
+      commissionReports: commissions || [],
+      revenueChart: revenueChart || [],
+    };
+  }
 }

@@ -30,6 +30,9 @@ import {
   Warehouse,
   Clock,
   Sparkles,
+  RefreshCw,
+  AlertTriangle,
+  Package,
 } from 'lucide-react';
 import { PageContainer } from '../../components/layout/PageContainer';
 import {
@@ -42,7 +45,7 @@ import {
 import toast from 'react-hot-toast';
 
 export const SubscriptionPlansPage: React.FC = () => {
-  const { data: plansResponse, isLoading, isError } = useGetSubscriptionPlansQuery();
+  const { data: plansResponse, isLoading, isError, refetch } = useGetSubscriptionPlansQuery();
   const { data: saasReportData } = useGetSaaSReportsQuery();
   const [updatePlan, { isLoading: isSaving }] = useUpdateSubscriptionPlanMutation();
   const [createPlan, { isLoading: isCreating }] = useCreateSubscriptionPlanMutation();
@@ -54,9 +57,14 @@ export const SubscriptionPlansPage: React.FC = () => {
   const [validationError, setValidationError] = useState<string | null>(null);
 
   const saas = saasReportData?.data || { mrr: 0, arr: 0, statusCounts: [], planPopularity: [] };
-  const activeCount = saas.statusCounts?.find((s: any) => s.status === 'active')?.count || 0;
-  const trialingCount = saas.statusCounts?.find((s: any) => s.status === 'trialing')?.count || 0;
-  const expiredCount = saas.statusCounts?.find((s: any) => s.status === 'expired')?.count || 0;
+  const statusCountsList = Array.isArray(saas.statusCounts)
+    ? saas.statusCounts
+    : saas.statusCounts
+    ? [saas.statusCounts]
+    : [];
+  const activeCount = statusCountsList.find((s: any) => s.status === 'active')?.count || 0;
+  const trialingCount = statusCountsList.find((s: any) => s.status === 'trialing')?.count || 0;
+  const expiredCount = statusCountsList.find((s: any) => s.status === 'expired')?.count || 0;
 
   // Form State
   const [formData, setFormData] = useState({
@@ -74,7 +82,9 @@ export const SubscriptionPlansPage: React.FC = () => {
 
   const [newFeatureText, setNewFeatureText] = useState('');
 
-  const plans = plansResponse?.data || [];
+  // Extract plans safely
+  const rawPlans = plansResponse?.data || plansResponse || [];
+  const plans = Array.isArray(rawPlans) ? rawPlans : [];
 
   const handleOpenCreate = () => {
     setSelectedPlan(null);
@@ -89,7 +99,7 @@ export const SubscriptionPlansPage: React.FC = () => {
       warehouseLimit: '1',
       trialDays: '14',
       isActive: true,
-      features: ['Basic Catalog', 'POS Terminal', 'Standard Email Support'],
+      features: ['Basic Catalog Management', 'POS Terminal Access', 'Standard Email Support'],
     });
     setEditModalOpen(true);
   };
@@ -97,6 +107,21 @@ export const SubscriptionPlansPage: React.FC = () => {
   const handleOpenEdit = (plan: any) => {
     setSelectedPlan(plan);
     setValidationError(null);
+
+    let parsedFeatures: string[] = [];
+    if (Array.isArray(plan.features)) {
+      parsedFeatures = plan.features.map((f: any) => (typeof f === 'string' ? f : f?.name || f?.feature || JSON.stringify(f)));
+    } else if (typeof plan.features === 'string') {
+      try {
+        const json = JSON.parse(plan.features);
+        parsedFeatures = Array.isArray(json)
+          ? json.map((f: any) => (typeof f === 'string' ? f : f?.name || f?.feature || JSON.stringify(f)))
+          : [plan.features];
+      } catch {
+        parsedFeatures = [plan.features];
+      }
+    }
+
     setFormData({
       name: plan.name || '',
       priceMonthly: plan.priceMonthly !== undefined ? String(plan.priceMonthly) : '',
@@ -107,7 +132,7 @@ export const SubscriptionPlansPage: React.FC = () => {
       warehouseLimit: plan.warehouseLimit !== undefined ? String(plan.warehouseLimit) : '1',
       trialDays: plan.trialDays !== undefined ? String(plan.trialDays) : '14',
       isActive: plan.isActive !== undefined ? Boolean(plan.isActive) : true,
-      features: Array.isArray(plan.features) ? [...plan.features] : [],
+      features: parsedFeatures,
     });
     setEditModalOpen(true);
   };
@@ -117,6 +142,7 @@ export const SubscriptionPlansPage: React.FC = () => {
     try {
       await deletePlan(id).unwrap();
       toast.success(`Subscription Plan '${planName}' deleted successfully.`);
+      refetch();
     } catch (err: any) {
       toast.error(err?.data?.message || 'Failed to delete subscription plan.');
     }
@@ -142,7 +168,6 @@ export const SubscriptionPlansPage: React.FC = () => {
     e.preventDefault();
     setValidationError(null);
 
-    // Validation Rules
     if (!formData.name.trim()) {
       setValidationError('Plan name is required.');
       return;
@@ -160,7 +185,6 @@ export const SubscriptionPlansPage: React.FC = () => {
       return;
     }
 
-    // Check unique plan name among other plans
     const isDuplicateName = plans.some(
       (p: any) => p.id !== selectedPlan?.id && p.name.trim().toLowerCase() === formData.name.trim().toLowerCase()
     );
@@ -192,6 +216,7 @@ export const SubscriptionPlansPage: React.FC = () => {
         toast.success(`New Subscription Tier '${formData.name.trim()}' created successfully!`);
       }
       setEditModalOpen(false);
+      refetch();
     } catch (err: any) {
       const msg = err?.data?.message || err?.message || 'Failed to save plan changes.';
       setValidationError(msg);
@@ -203,38 +228,48 @@ export const SubscriptionPlansPage: React.FC = () => {
       title="SaaS Subscription Plans & Revenue Analytics"
       subtitle="Manage pricing tiers, feature limits, active subscriptions, and platform revenue metrics"
       action={
-        <Button
-          variant="contained"
-          startIcon={<Plus size={18} />}
-          onClick={handleOpenCreate}
-          sx={{ fontWeight: 700, borderRadius: 2, px: 2.5 }}
-        >
-          Add Subscription Tier
-        </Button>
+        <Box sx={{ display: 'flex', gap: 1.5 }}>
+          <Button
+            variant="outlined"
+            startIcon={<RefreshCw size={18} />}
+            onClick={() => refetch()}
+            sx={{ fontWeight: 700, borderRadius: 2 }}
+          >
+            Refresh
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<Plus size={18} />}
+            onClick={handleOpenCreate}
+            sx={{ fontWeight: 700, borderRadius: 2, px: 2.5 }}
+          >
+            Add Subscription Tier
+          </Button>
+        </Box>
       }
     >
       {/* SAAS METRICS OVERVIEW */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} sm={6} md={3}>
-          <Paper sx={{ p: 2.5, borderRadius: 3, border: '1px solid #E2E8F0', boxShadow: 'none' }}>
-            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>
+          <Paper sx={{ p: 2.5, borderRadius: 3, border: '1px solid #E2E8F0', boxShadow: 'none', bgcolor: '#F0FDF4' }}>
+            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, color: '#166534' }}>
               Monthly Recurring Revenue (MRR)
             </Typography>
-            <Typography variant="h4" sx={{ fontWeight: 800, color: '#10B981', mt: 0.5 }}>
-              INR {saas.mrr.toLocaleString()}
+            <Typography variant="h4" sx={{ fontWeight: 800, color: '#15803D', mt: 0.5 }}>
+              INR {saas.mrr ? saas.mrr.toLocaleString() : '0'}
             </Typography>
             <Typography variant="caption" color="text.secondary">
-              ARR: INR {saas.arr.toLocaleString()}
+              ARR: INR {saas.arr ? saas.arr.toLocaleString() : '0'}
             </Typography>
           </Paper>
         </Grid>
 
         <Grid item xs={12} sm={6} md={3}>
-          <Paper sx={{ p: 2.5, borderRadius: 3, border: '1px solid #E2E8F0', boxShadow: 'none' }}>
-            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>
+          <Paper sx={{ p: 2.5, borderRadius: 3, border: '1px solid #E2E8F0', boxShadow: 'none', bgcolor: '#EFF6FF' }}>
+            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, color: '#1E40AF' }}>
               Active Subscriptions
             </Typography>
-            <Typography variant="h4" sx={{ fontWeight: 800, color: '#2563EB', mt: 0.5 }}>
+            <Typography variant="h4" sx={{ fontWeight: 800, color: '#1D4ED8', mt: 0.5 }}>
               {activeCount}
             </Typography>
             <Typography variant="caption" color="text.secondary">
@@ -244,11 +279,11 @@ export const SubscriptionPlansPage: React.FC = () => {
         </Grid>
 
         <Grid item xs={12} sm={6} md={3}>
-          <Paper sx={{ p: 2.5, borderRadius: 3, border: '1px solid #E2E8F0', boxShadow: 'none' }}>
-            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>
+          <Paper sx={{ p: 2.5, borderRadius: 3, border: '1px solid #E2E8F0', boxShadow: 'none', bgcolor: '#FFFBEB' }}>
+            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, color: '#92400E' }}>
               Trialing Accounts
             </Typography>
-            <Typography variant="h4" sx={{ fontWeight: 800, color: '#F59E0B', mt: 0.5 }}>
+            <Typography variant="h4" sx={{ fontWeight: 800, color: '#B45309', mt: 0.5 }}>
               {trialingCount}
             </Typography>
             <Typography variant="caption" color="text.secondary">
@@ -258,11 +293,11 @@ export const SubscriptionPlansPage: React.FC = () => {
         </Grid>
 
         <Grid item xs={12} sm={6} md={3}>
-          <Paper sx={{ p: 2.5, borderRadius: 3, border: '1px solid #E2E8F0', boxShadow: 'none' }}>
-            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>
+          <Paper sx={{ p: 2.5, borderRadius: 3, border: '1px solid #E2E8F0', boxShadow: 'none', bgcolor: '#FFF1F2' }}>
+            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, color: '#9F1239' }}>
               Expired / Cancelled
             </Typography>
-            <Typography variant="h4" sx={{ fontWeight: 800, color: '#EF4444', mt: 0.5 }}>
+            <Typography variant="h4" sx={{ fontWeight: 800, color: '#BE123C', mt: 0.5 }}>
               {expiredCount}
             </Typography>
             <Typography variant="caption" color="text.secondary">
@@ -300,30 +335,102 @@ export const SubscriptionPlansPage: React.FC = () => {
         />
       </Box>
 
+      {/* 1. LOADING STATE */}
       {isLoading && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-          <CircularProgress />
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 8 }}>
+          <CircularProgress size={44} />
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 2, fontWeight: 600 }}>
+            Fetching subscription plan tiers...
+          </Typography>
         </Box>
       )}
 
+      {/* 2. ERROR STATE */}
       {isError && (
-        <Alert severity="error" sx={{ mb: 3 }}>
-          Failed to load subscription plans from backend. Please refresh.
-        </Alert>
+        <Paper sx={{ p: 4, borderRadius: 3, border: '1px solid #FECACA', bgcolor: '#FEF2F2', textAlign: 'center', mb: 4 }}>
+          <Box sx={{ color: '#DC2626', mb: 1 }}>
+            <AlertTriangle size={40} />
+          </Box>
+          <Typography variant="h6" sx={{ fontWeight: 800, color: '#991B1B', mb: 0.5 }}>
+            Failed to Load Subscription Plans
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5 }}>
+            Unable to connect to the subscription management microservice.
+          </Typography>
+          <Button
+            variant="contained"
+            color="error"
+            startIcon={<RefreshCw size={16} />}
+            onClick={() => refetch()}
+            sx={{ fontWeight: 700, borderRadius: 2 }}
+          >
+            Retry Connection
+          </Button>
+        </Paper>
       )}
 
-      {!isLoading && (
+      {/* 3. EMPTY STATE */}
+      {!isLoading && !isError && plans.length === 0 && (
+        <Paper sx={{ p: 6, borderRadius: 3, border: '1px border #E2E8F0', textAlign: 'center', bgcolor: '#F8FAFC' }}>
+          <Box sx={{ color: '#94A3B8', mb: 2 }}>
+            <Package size={52} />
+          </Box>
+          <Typography variant="h6" sx={{ fontWeight: 800, color: '#1E293B', mb: 1 }}>
+            No Subscription Tiers Found
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3, maxWidth: 450, mx: 'auto' }}>
+            There are currently no active SaaS subscription plans configured in the platform. Create a new plan tier to get started.
+          </Typography>
+          <Button
+            variant="contained"
+            startIcon={<Plus size={18} />}
+            onClick={handleOpenCreate}
+            sx={{ fontWeight: 700, borderRadius: 2, px: 3 }}
+          >
+            Create First Subscription Tier
+          </Button>
+        </Paper>
+      )}
+
+      {/* 4. ACTIVE PLANS GRID */}
+      {!isLoading && !isError && plans.length > 0 && (
         <Grid container spacing={3} alignItems="stretch">
           {plans.map((plan: any, index: number) => {
             const isPopular = index === 1 || plan.code === 'pro' || plan.code === 'professional';
-            const priceVal = isAnnual ? Number(plan.priceYearly || plan.priceMonthly * 10) : Number(plan.priceMonthly || 0);
+            const priceVal = isAnnual
+              ? Number(plan.priceYearly || Number(plan.priceMonthly || 0) * 10)
+              : Number(plan.priceMonthly || 0);
             const cycleSuffix = isAnnual ? '/yr' : '/mo';
-            const formattedPrice = `$${priceVal.toLocaleString()}${cycleSuffix}`;
+            const currencySymbol = '₹';
+            const formattedPrice = `${currencySymbol}${priceVal.toLocaleString()}${cycleSuffix}`;
 
-            const storeLimitText = plan.storeLimit >= 999 ? 'Unlimited Stores' : `${plan.storeLimit} Store Location${plan.storeLimit > 1 ? 's' : ''}`;
-            const userLimitText = plan.userLimit >= 999 ? 'Unlimited Staff' : `Up to ${plan.userLimit} Users`;
-            const warehouseLimitText = plan.warehouseLimit >= 999 ? 'Unlimited Warehouses' : `${plan.warehouseLimit} Warehouse${plan.warehouseLimit > 1 ? 's' : ''}`;
-            const featuresList = Array.isArray(plan.features) ? plan.features : [];
+            const storeLimitText =
+              Number(plan.storeLimit) >= 999
+                ? 'Unlimited Stores'
+                : `${plan.storeLimit || 1} Store Location${Number(plan.storeLimit) > 1 ? 's' : ''}`;
+            const userLimitText =
+              Number(plan.userLimit) >= 999 ? 'Unlimited Staff' : `Up to ${plan.userLimit || 5} Users`;
+            const warehouseLimitText =
+              Number(plan.warehouseLimit) >= 999
+                ? 'Unlimited Warehouses'
+                : `${plan.warehouseLimit || 1} Warehouse${Number(plan.warehouseLimit) > 1 ? 's' : ''}`;
+
+            // Normalize features safely
+            let featuresList: string[] = [];
+            if (Array.isArray(plan.features)) {
+              featuresList = plan.features.map((f: any) =>
+                typeof f === 'string' ? f : f?.name || f?.feature || JSON.stringify(f)
+              );
+            } else if (typeof plan.features === 'string') {
+              try {
+                const parsed = JSON.parse(plan.features);
+                featuresList = Array.isArray(parsed)
+                  ? parsed.map((f: any) => (typeof f === 'string' ? f : f?.name || f?.feature || JSON.stringify(f)))
+                  : [plan.features];
+              } catch {
+                featuresList = [plan.features];
+              }
+            }
 
             return (
               <Grid key={plan.id} item xs={12} md={4} sx={{ display: 'flex' }}>
@@ -390,7 +497,7 @@ export const SubscriptionPlansPage: React.FC = () => {
                         {warehouseLimitText}
                       </Typography>
                     </Box>
-                    {plan.trialDays > 0 && (
+                    {Number(plan.trialDays) > 0 && (
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <Clock size={16} color="#10B981" />
                         <Typography variant="body2" sx={{ fontWeight: 600, color: '#10B981' }}>
@@ -402,11 +509,11 @@ export const SubscriptionPlansPage: React.FC = () => {
 
                   {/* FEATURE LIST */}
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, mb: 4, flexGrow: 1 }}>
-                    {featuresList.map((feat: string, idx: number) => (
+                    {featuresList.map((featName: string, idx: number) => (
                       <Box key={idx} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <Check size={18} color="#10B981" />
                         <Typography variant="body2" sx={{ color: '#475569', fontWeight: 500 }}>
-                          {feat}
+                          {featName}
                         </Typography>
                       </Box>
                     ))}
@@ -473,7 +580,7 @@ export const SubscriptionPlansPage: React.FC = () => {
 
               <Grid item xs={6}>
                 <TextField
-                  label="Monthly Price ($) *"
+                  label="Monthly Price *"
                   type="number"
                   fullWidth
                   required
@@ -485,7 +592,7 @@ export const SubscriptionPlansPage: React.FC = () => {
 
               <Grid item xs={6}>
                 <TextField
-                  label="Annual Price ($)"
+                  label="Annual Price"
                   type="number"
                   fullWidth
                   value={formData.priceYearly}
@@ -620,3 +727,5 @@ export const SubscriptionPlansPage: React.FC = () => {
     </PageContainer>
   );
 };
+
+export default SubscriptionPlansPage;

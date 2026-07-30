@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { AiSupportEngineService } from '../services/aiSupportEngine.service';
 import { EnterpriseSupportService } from '../services/enterpriseSupport.service';
+import { Customer } from '../database/models';
 
 function getTenantAndStore(req: Request) {
   const tenantId = Number(
@@ -23,12 +24,17 @@ function getTenantAndStore(req: Request) {
   return { tenantId, storeId };
 }
 
-function getCustomerId(req: Request) {
+async function getCustomerId(req: Request): Promise<number> {
+  const reqUserId = (req as any).context?.authenticatedUserId || (req as any).user?.id;
+  if (reqUserId) {
+    const cust: any = await Customer.findOne({ where: { userId: reqUserId } }).catch(() => null);
+    if (cust) return cust.id;
+  }
   return Number(
-    (req as any).user?.id ||
     req.query.customerId ||
     req.body.customerId ||
-    8
+    (req as any).user?.id ||
+    13
   );
 }
 
@@ -37,7 +43,7 @@ export class SupportCenterController {
   static async customerAiChat(req: Request, res: Response): Promise<void> {
     try {
       const { tenantId, storeId } = getTenantAndStore(req);
-      const customerId = getCustomerId(req);
+      const customerId = await getCustomerId(req);
       const { message } = req.body;
 
       if (!message) {
@@ -57,7 +63,7 @@ export class SupportCenterController {
   static async getCustomerTickets(req: Request, res: Response): Promise<void> {
     try {
       const { tenantId, storeId } = getTenantAndStore(req);
-      const customerId = getCustomerId(req);
+      const customerId = await getCustomerId(req);
 
       const tickets = await EnterpriseSupportService.getCustomerTickets(tenantId, storeId, customerId);
       res.json({ success: true, data: tickets });
@@ -71,7 +77,7 @@ export class SupportCenterController {
   static async getCustomerTicketDetails(req: Request, res: Response): Promise<void> {
     try {
       const { tenantId, storeId } = getTenantAndStore(req);
-      const customerId = getCustomerId(req);
+      const customerId = await getCustomerId(req);
       const ticketId = Number(req.params.id);
 
       const details = await EnterpriseSupportService.getCustomerTicketDetails(tenantId, storeId, customerId, ticketId);
@@ -85,7 +91,7 @@ export class SupportCenterController {
   static async createCustomerTicket(req: Request, res: Response): Promise<void> {
     try {
       const { tenantId, storeId } = getTenantAndStore(req);
-      const customerId = getCustomerId(req);
+      const customerId = await getCustomerId(req);
 
       const ticket = await EnterpriseSupportService.createCustomerTicket(tenantId, storeId, customerId, req.body);
       res.status(201).json({ success: true, data: ticket });
@@ -99,7 +105,7 @@ export class SupportCenterController {
   static async addCustomerReply(req: Request, res: Response): Promise<void> {
     try {
       const { tenantId, storeId } = getTenantAndStore(req);
-      const customerId = getCustomerId(req);
+      const customerId = await getCustomerId(req);
       const ticketId = Number(req.params.id);
       const { message, attachments } = req.body;
 
@@ -115,7 +121,7 @@ export class SupportCenterController {
   static async rateCustomerTicket(req: Request, res: Response): Promise<void> {
     try {
       const { tenantId, storeId } = getTenantAndStore(req);
-      const customerId = getCustomerId(req);
+      const customerId = await getCustomerId(req);
       const ticketId = Number(req.params.id);
       const { score, feedback } = req.body;
 

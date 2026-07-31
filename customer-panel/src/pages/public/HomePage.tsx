@@ -3,7 +3,7 @@ import { Box, Container, Typography, Button, Grid, Paper, Card, CardMedia, CardC
 import { ArrowRight, ShieldCheck, Truck, RotateCcw, Heart, ShoppingCart } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useGetProductsQuery } from '../../api/catalogApi';
-import { useAppDispatch } from '../../store/hooks';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { addToCart } from '../../store/cartSlice';
 import { toggleWishlist } from '../../store/wishlistSlice';
 import toast from 'react-hot-toast';
@@ -14,17 +14,21 @@ import { formatPrice } from '../../utils/currencyService';
 export const HomePage: React.FC = () => {
   const { data: productData } = useGetProductsQuery({ limit: 8 });
   const dispatch = useAppDispatch();
+  const { items: wishlistItems } = useAppSelector((state) => state.wishlist);
+  const isWishlisted = (id: number | string) => wishlistItems.some((i: any) => String(i.id) === String(id));
 
   const products = productData?.data?.products || (Array.isArray(productData?.data) ? productData.data : []);
 
   const handleAddToCart = (product: any) => {
-    dispatch(addToCart({ id: product.id, name: product.name, price: product.price, image: product.image || '', quantity: 1 }));
+    dispatch(addToCart({ id: product.id, name: product.name, price: product.price, image: getProductImage(product), quantity: 1 }));
     toast.success(`${product.name} added to cart!`);
   };
 
   const handleToggleWishlist = (product: any) => {
-    dispatch(toggleWishlist(product));
-    toast.success('Wishlist updated');
+    const imgUrl = getProductImage(product);
+    const wishlisted = isWishlisted(product.id);
+    dispatch(toggleWishlist({ ...product, image: imgUrl }));
+    toast.success(wishlisted ? 'Removed from wishlist' : 'Added to wishlist');
   };
 
   return (
@@ -120,7 +124,7 @@ export const HomePage: React.FC = () => {
                       onClick={() => handleToggleWishlist(prod)}
                       sx={{ position: 'absolute', top: 8, right: 8, minWidth: 0, p: 1, bgcolor: '#FFFFFF', borderRadius: '50%', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}
                     >
-                      <Heart size={18} color="#DC2626" />
+                      <Heart size={18} color="#DC2626" fill={isWishlisted(prod.id) ? '#DC2626' : 'none'} />
                     </Button>
                   </Box>
                   <CardContent sx={{ flexGrow: 1 }}>

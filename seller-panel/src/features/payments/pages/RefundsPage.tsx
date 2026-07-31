@@ -54,7 +54,7 @@ export const RefundsPage: React.FC = () => {
     },
   ];
 
-  const rows = data?.data?.refunds || data?.data || [];
+  const rows = data?.data?.rows || data?.data?.refunds || (Array.isArray(data?.data) ? data.data : []);
 
   return (
     <PageContainer

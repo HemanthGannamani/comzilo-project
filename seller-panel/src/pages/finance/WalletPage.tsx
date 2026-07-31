@@ -72,8 +72,8 @@ export const WalletPage: React.FC = () => {
         axiosInstance.get('/seller/bank-account').catch(() => ({ data: { data: null } })),
       ]);
       setWallet(walletRes.data.data);
-      setTransactions(txRes.data.data || []);
-      setWithdrawals(wthRes.data.data || []);
+      setTransactions(txRes.data.data?.rows || (Array.isArray(txRes.data.data) ? txRes.data.data : []));
+      setWithdrawals(wthRes.data.data?.rows || (Array.isArray(wthRes.data.data) ? wthRes.data.data : []));
       setBankAccount(bankRes.data?.data || null);
       if (walletRes.data.data?.bankDetails) {
         setBankData(walletRes.data.data.bankDetails);

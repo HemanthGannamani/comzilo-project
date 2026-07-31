@@ -28,49 +28,72 @@ export const CustomerInvoicesPage: React.FC = () => {
   const invoices = invoiceData?.data?.rows || invoiceData?.data || [];
   const payments = paymentData?.data?.rows || paymentData?.data || [];
 
-  const handlePrintDownload = (inv: any) => {
+  const generateInvoiceHtml = (inv: any) => {
+    return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Invoice ${inv.invoiceNumber}</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 40px; color: #0F172A; }
+    .header { display: flex; justify-content: space-between; border-bottom: 2px solid #E2E8F0; padding-bottom: 20px; }
+    .title { font-size: 24px; font-weight: bold; color: #2563EB; }
+    .details { margin-top: 30px; line-height: 1.6; }
+    .table { width: 100%; margin-top: 30px; border-collapse: collapse; }
+    .table th, .table td { border: 1px solid #CBD5E1; padding: 12px; text-align: left; }
+    .table th { background: #F8FAFC; }
+    .total-row { font-weight: bold; background: #EFF6FF; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <div class="title">COMZILO ENTERPRISE INVOICE</div>
+      <div>Comzilo Global SaaS E-Commerce Platform</div>
+    </div>
+    <div style="text-align: right;">
+      <div>Invoice #: ${inv.invoiceNumber}</div>
+      <div>Date: ${new Date(inv.createdAt).toLocaleDateString()}</div>
+    </div>
+  </div>
+  <div class="details">
+    <div>Status: <strong>${inv.invoiceStatus?.toUpperCase() || 'PAID'}</strong></div>
+    <div>Order #: ${inv.orderId}</div>
+  </div>
+  <table class="table">
+    <thead>
+      <tr><th>Description</th><th>Amount</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Order #${inv.orderId} Products Subtotal</td><td>${formatPrice(inv.subtotal || inv.total)}</td></tr>
+      <tr><td>Tax Amount</td><td>${formatPrice(inv.taxTotal || 0)}</td></tr>
+      <tr class="total-row"><td>Grand Total</td><td>${formatPrice(inv.total)}</td></tr>
+    </tbody>
+  </table>
+</body>
+</html>`;
+  };
+
+  const handlePrint = (inv: any) => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
-
-    let html = `<html><head><title>Invoice ${inv.invoiceNumber}</title><style>
-      body { font-family: Arial, sans-serif; padding: 40px; color: #0F172A; }
-      .header { display: flex; justify-content: space-between; border-bottom: 2px solid #E2E8F0; padding-bottom: 20px; }
-      .title { font-size: 24px; font-weight: bold; color: #2563EB; }
-      .details { margin-top: 30px; line-height: 1.6; }
-      .table { width: 100%; margin-top: 30px; border-collapse: collapse; }
-      .table th, .table td { border: 1px solid #CBD5E1; padding: 12px; text-align: left; }
-      .table th { background: #F8FAFC; }
-      .total-row { font-weight: bold; background: #EFF6FF; }
-    </style></head><body>
-      <div class="header">
-        <div>
-          <div class="title">COMZILO ENTERPRISE INVOICE</div>
-          <div>Comzilo Global SaaS E-Commerce Platform</div>
-        </div>
-        <div style="text-align: right;">
-          <div>Invoice #: ${inv.invoiceNumber}</div>
-          <div>Date: ${new Date(inv.createdAt).toLocaleDateString()}</div>
-        </div>
-      </div>
-      <div class="details">
-        <div>Status: <strong>${inv.invoiceStatus?.toUpperCase() || 'PAID'}</strong></div>
-        <div>Order #: ${inv.orderId}</div>
-      </div>
-      <table class="table">
-        <thead>
-          <tr><th>Description</th><th>Amount</th></tr>
-        </thead>
-        <tbody>
-          <tr><td>Order #${inv.orderId} Products Subtotal</td><td>${formatPrice(inv.subtotal || inv.total)}</td></tr>
-          <tr><td>Tax Amount</td><td>${formatPrice(inv.taxTotal || 0)}</td></tr>
-          <tr class="total-row"><td>Grand Total</td><td>${formatPrice(inv.total)}</td></tr>
-        </tbody>
-      </table>
-    </body></html>`;
-
-    printWindow.document.write(html);
+    printWindow.document.write(generateInvoiceHtml(inv));
     printWindow.document.close();
+    printWindow.focus();
     printWindow.print();
+  };
+
+  const handleDownloadPdf = (inv: any) => {
+    const htmlContent = generateInvoiceHtml(inv);
+    const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${inv.invoiceNumber || 'invoice'}.html`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -121,15 +144,26 @@ export const CustomerInvoicesPage: React.FC = () => {
                         <Chip label={inv.invoiceStatus?.toUpperCase() || 'PAID'} color="success" size="small" sx={{ fontWeight: 700 }} />
                       </TableCell>
                       <TableCell align="right">
-                        <Button
-                          variant="outlined"
-                          size="small"
-                          startIcon={<Printer size={14} />}
-                          onClick={() => handlePrintDownload(inv)}
-                          sx={{ borderRadius: 2 }}
-                        >
-                          Print / Download PDF
-                        </Button>
+                        <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            startIcon={<Printer size={14} />}
+                            onClick={() => handlePrint(inv)}
+                            sx={{ borderRadius: 2 }}
+                          >
+                            Print
+                          </Button>
+                          <Button
+                            variant="contained"
+                            size="small"
+                            startIcon={<Download size={14} />}
+                            onClick={() => handleDownloadPdf(inv)}
+                            sx={{ borderRadius: 2 }}
+                          >
+                            Download PDF
+                          </Button>
+                        </Box>
                       </TableCell>
                     </TableRow>
                   ))}

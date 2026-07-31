@@ -38,6 +38,7 @@ import {
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { useAppSelector } from '../store/hooks';
+import { CustomerAccountLayout } from '../components/layout/CustomerAccountLayout';
 
 const API_BASE = 'http://localhost:5000/api/v1/support';
 
@@ -212,8 +213,9 @@ export const SupportCenterPage: React.FC = () => {
   };
 
   return (
-    <Box sx={{ maxWidth: 1200, mx: 'auto', p: 3 }}>
-      {/* HEADER BANNER */}
+    <CustomerAccountLayout>
+      <Box sx={{ maxWidth: 1200, mx: 'auto', p: 1 }}>
+        {/* HEADER BANNER */}
       <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Box>
           <Typography variant="h4" sx={{ fontWeight: 800, color: '#0F172A' }}>
@@ -534,5 +536,6 @@ export const SupportCenterPage: React.FC = () => {
         </Paper>
       )}
     </Box>
+  </CustomerAccountLayout>
   );
 };

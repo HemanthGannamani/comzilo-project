@@ -19,7 +19,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { CustomerAccountLayout } from '../../components/layout/CustomerAccountLayout';
 import { useGetCustomerDashboardQuery } from '../../api/customerPortalApi';
 import { formatPrice } from '../../utils/currencyService';
-import { useAppSelector } from '../../store/hooks';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import { updateUser } from '../../store/authSlice';
 
 export const CustomerDashboardPage: React.FC = () => {
   const navigate = useNavigate();
@@ -27,6 +28,7 @@ export const CustomerDashboardPage: React.FC = () => {
   const { items: wishlistItems } = useAppSelector((state) => state.wishlist);
   const { data: dashData, isLoading, refetch } = useGetCustomerDashboardQuery();
 
+  const dispatch = useAppDispatch();
   const metrics = dashData?.data?.metrics || {
     totalOrders: 0,
     pendingOrders: 0,
@@ -36,6 +38,19 @@ export const CustomerDashboardPage: React.FC = () => {
 
   const customer = dashData?.data?.customer || user;
   const recentOrders = dashData?.data?.recentOrders || [];
+
+  React.useEffect(() => {
+    if (dashData?.data?.customer) {
+      const c = dashData.data.customer;
+      const img = c.avatarUrl || c.profileImage || null;
+      dispatch(updateUser({
+        firstName: c.firstName,
+        lastName: c.lastName,
+        avatarUrl: img,
+        profileImage: img,
+      }));
+    }
+  }, [dashData, dispatch]);
 
   return (
     <CustomerAccountLayout>
@@ -56,6 +71,7 @@ export const CustomerDashboardPage: React.FC = () => {
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
               <Avatar
                 src={customer?.avatarUrl || customer?.profileImage || user?.avatarUrl || user?.profileImage || undefined}
+                imgProps={{ style: { objectFit: 'cover' } }}
                 sx={{
                   width: 60,
                   height: 60,
@@ -65,11 +81,12 @@ export const CustomerDashboardPage: React.FC = () => {
                   border: '3px solid #38BDF8',
                 }}
               >
-                {!(customer?.avatarUrl || customer?.profileImage || user?.avatarUrl || user?.profileImage) && (customer?.firstName?.[0] || 'C')}
+                {!(customer?.avatarUrl || customer?.profileImage || user?.avatarUrl || user?.profileImage) &&
+                  (customer?.firstName?.[0] || user?.firstName?.[0] || customer?.fullName?.[0] || 'A').toUpperCase()}
               </Avatar>
               <Box>
                 <Typography variant="h5" sx={{ fontWeight: 800, color: '#FFFFFF' }}>
-                  Hello, {customer?.firstName || 'Valued Customer'}!
+                  Hello, {customer?.firstName || user?.firstName || (customer?.fullName ? customer.fullName.split(' ')[0] : 'Customer')}!
                 </Typography>
                 <Typography variant="body2" sx={{ color: '#94A3B8' }}>
                   Manage your personal profile, live orders, addresses, and wishlist.
@@ -91,8 +108,8 @@ export const CustomerDashboardPage: React.FC = () => {
       </Paper>
 
       {/* 2. Key Metrics Summary Grid */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6} md={3}>
+      <Grid container spacing={2} sx={{ mb: 4 }}>
+        <Grid item xs={12} sm={6} md={2.4}>
           <Paper sx={{ p: 2.5, borderRadius: 3, border: '1px solid #E2E8F0', boxShadow: 'none', borderLeft: '4px solid #2563EB' }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <Box>
@@ -107,12 +124,12 @@ export const CustomerDashboardPage: React.FC = () => {
                   </Typography>
                 )}
               </Box>
-              <Package size={28} color="#2563EB" />
+              <Package size={24} color="#2563EB" />
             </Box>
           </Paper>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} md={2.4}>
           <Paper sx={{ p: 2.5, borderRadius: 3, border: '1px solid #E2E8F0', boxShadow: 'none', borderLeft: '4px solid #F59E0B' }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <Box>
@@ -127,12 +144,32 @@ export const CustomerDashboardPage: React.FC = () => {
                   </Typography>
                 )}
               </Box>
-              <Clock size={28} color="#F59E0B" />
+              <Clock size={24} color="#F59E0B" />
             </Box>
           </Paper>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} md={2.4}>
+          <Paper sx={{ p: 2.5, borderRadius: 3, border: '1px solid #E2E8F0', boxShadow: 'none', borderLeft: '4px solid #DC2626' }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Box>
+                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>
+                  CANCELLED
+                </Typography>
+                {isLoading ? (
+                  <Skeleton width={40} height={32} />
+                ) : (
+                  <Typography variant="h4" sx={{ fontWeight: 800, mt: 0.5 }}>
+                    {metrics.cancelledOrders || 0}
+                  </Typography>
+                )}
+              </Box>
+              <XCircle size={24} color="#DC2626" />
+            </Box>
+          </Paper>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={2.4}>
           <Paper sx={{ p: 2.5, borderRadius: 3, border: '1px solid #E2E8F0', boxShadow: 'none', borderLeft: '4px solid #10B981' }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <Box>
@@ -147,12 +184,12 @@ export const CustomerDashboardPage: React.FC = () => {
                   </Typography>
                 )}
               </Box>
-              <CheckCircle2 size={28} color="#10B981" />
+              <CheckCircle2 size={24} color="#10B981" />
             </Box>
           </Paper>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} md={2.4}>
           <Paper sx={{ p: 2.5, borderRadius: 3, border: '1px solid #E2E8F0', boxShadow: 'none', borderLeft: '4px solid #EC4899' }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <Box>
@@ -163,7 +200,7 @@ export const CustomerDashboardPage: React.FC = () => {
                   {wishlistItems.length}
                 </Typography>
               </Box>
-              <Heart size={28} color="#EC4899" />
+              <Heart size={24} color="#EC4899" />
             </Box>
           </Paper>
         </Grid>

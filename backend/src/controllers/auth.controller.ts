@@ -1,4 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
+import { QueryTypes } from 'sequelize';
+import { sequelize } from '../config/database';
 import { AuthService } from '../services/auth.service';
 import { success, created } from '../shared/responses';
 import { User, Tenant, Store, UserRole, Role } from '../database/models';
@@ -32,14 +34,24 @@ export class AuthController {
 
       const result = await this.authService.login(tenantId, req.body, clientContext, req.context);
 
+      const [cust]: any = await sequelize.query(
+        'SELECT avatar_url, profile_image FROM customers WHERE user_id = :uId AND deleted_at IS NULL ORDER BY id DESC LIMIT 1',
+        { replacements: { uId: result.user.id }, type: QueryTypes.SELECT }
+      );
+      const avatarUrl = cust?.avatar_url || cust?.profile_image || (result.user as any).avatarUrl || (result.user as any).profileImage || null;
+
       success(res, 'Login successful', {
         accessToken: result.accessToken,
         refreshToken: result.refreshToken,
         user: {
+          id: result.user.id,
           uuid: result.user.uuid,
           email: result.user.email,
           firstName: result.user.firstName,
           lastName: result.user.lastName,
+          fullName: `${result.user.firstName || ''} ${result.user.lastName || ''}`.trim() || result.user.email,
+          avatarUrl,
+          profileImage: avatarUrl,
           emailVerifiedAt: result.user.emailVerifiedAt,
           status: result.user.status,
           mustChangePassword: result.user.mustChangePassword,
@@ -269,6 +281,60 @@ export class AuthController {
               country: user.profile.country,
             }
           : null,
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public updateProfile = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = req.context.authenticatedUserId!;
+      const user = await User.findByPk(userId);
+      if (!user) {
+        res.sendStatus(401);
+        return;
+      }
+
+      if (req.body.firstName) user.firstName = req.body.firstName;
+      if (req.body.lastName) user.lastName = req.body.lastName;
+      if (req.body.email) user.email = req.body.email;
+      if (req.body.phone || req.body.mobile) (user as any).mobile = req.body.phone || req.body.mobile;
+
+      const imgUrl = req.body.avatarUrl || req.body.profileImage || req.body.avatar;
+      if (imgUrl) {
+        (user as any).avatarUrl = imgUrl;
+        (user as any).profileImage = imgUrl;
+        try {
+          await sequelize.query(
+            'UPDATE users SET avatar_url = :imgUrl, profile_image = :imgUrl WHERE id = :userId',
+            { replacements: { imgUrl, userId }, type: QueryTypes.UPDATE }
+          );
+          await sequelize.query(
+            'UPDATE customers SET avatar_url = :imgUrl, profile_image = :imgUrl WHERE user_id = :userId OR email = :email',
+            { replacements: { imgUrl, userId, email: user.email }, type: QueryTypes.UPDATE }
+          );
+        } catch {
+          // Non-fatal
+        }
+      }
+      await user.save();
+
+      const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email;
+      const avatar = imgUrl || (user as any).avatarUrl || (user as any).profileImage || null;
+
+      success(res, 'Profile updated successfully', {
+        id: user.id,
+        uuid: user.uuid,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        fullName,
+        phone: (user as any).mobile,
+        mobile: (user as any).mobile,
+        avatar,
+        avatarUrl: avatar,
+        profileImage: avatar,
       });
     } catch (error) {
       next(error);

@@ -54,7 +54,7 @@ export const PaymentsPage: React.FC = () => {
     },
   ];
 
-  const rows = data?.data?.payments || data?.data || [];
+  const rows = data?.data?.rows || data?.data?.payments || (Array.isArray(data?.data) ? data.data : []);
 
   return (
     <PageContainer

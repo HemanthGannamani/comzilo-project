@@ -9,8 +9,11 @@ export class ReportController {
   private reportService = new ReportService();
 
   private getStoreId(req: Request): number {
-    const storeId = Number(req.headers['x-store-id'] || req.query.storeId || req.body.storeId || req.context?.storeId || 1);
-    return isNaN(storeId) ? 1 : storeId;
+    const raw = req.headers['x-store-id'] || req.query.storeId || req.body.storeId || req.context?.storeId;
+    if (raw && !isNaN(Number(raw))) {
+      return Number(raw);
+    }
+    return req.context?.storeId || 1;
   }
 
   public getDashboard = async (req: Request, res: Response, next: NextFunction): Promise<void> => {

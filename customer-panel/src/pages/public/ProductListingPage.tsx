@@ -26,10 +26,11 @@ import {
 import { Search, ShoppingCart, Heart, Filter, PackageX, Globe } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useGetProductsQuery } from '../../api/catalogApi';
-import { useAppDispatch } from '../../store/hooks';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { addToCart } from '../../store/cartSlice';
 import { toggleWishlist } from '../../store/wishlistSlice';
 import { SUPPORTED_COUNTRIES, formatPrice } from '../../utils/currencyService';
+import { getProductImage } from '../../utils/productImageService';
 import toast from 'react-hot-toast';
 
 interface ProductTypeItem {
@@ -76,29 +77,6 @@ const PRODUCT_IMAGE_MAP: Record<string, string> = {
   'RNT-PROJ-HD-002': 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=500',
 };
 
-const API_BASE_URL = 'http://localhost:5000';
-
-const getProductImage = (prod: any): string => {
-  const images = prod?.images || prod?.media || [];
-  // Find valid uploaded image URL (ignore browser local blob: URLs)
-  const validImg = images.find((img: any) => {
-    const url = img?.imageUrl || img?.url;
-    return url && typeof url === 'string' && !url.startsWith('blob:');
-  });
-
-  let rawUrl = validImg?.imageUrl || validImg?.url || prod?.image;
-
-  if (rawUrl && typeof rawUrl === 'string' && !rawUrl.startsWith('blob:')) {
-    if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) {
-      return rawUrl;
-    }
-    return `${API_BASE_URL}${rawUrl.startsWith('/') ? '' : '/'}${rawUrl}`;
-  }
-
-  if (prod?.sku && PRODUCT_IMAGE_MAP[prod.sku]) return PRODUCT_IMAGE_MAP[prod.sku];
-  return 'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=500';
-};
-
 export const ProductListingPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const initialSearch = searchParams.get('search') || '';
@@ -108,9 +86,7 @@ export const ProductListingPage: React.FC = () => {
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
-  const [selectedCountry, setSelectedCountry] = useState('IN'); // Location-aware country currency
 
-  // Pass selected multi-type filter array to backend MySQL query
   const typesQuery = selectedTypes.length > 0 ? selectedTypes.join(',') : undefined;
 
   const tenantIdParam = searchParams.get('tenant_id');
@@ -128,6 +104,8 @@ export const ProductListingPage: React.FC = () => {
     store: storeSlugParam || undefined,
   });
   const dispatch = useAppDispatch();
+  const { items: wishlistItems } = useAppSelector((state) => state.wishlist);
+  const isWishlisted = (id: number | string) => wishlistItems.some((i: any) => String(i.id) === String(id));
 
   const handleTypeToggle = (typeCode: string) => {
     if (selectedTypes.includes(typeCode)) {
@@ -290,25 +268,28 @@ export const ProductListingPage: React.FC = () => {
             </Paper>
           ) : (
             <Grid container spacing={3}>
-              {products.map((prod: any) => (
-                <Grid key={prod.id} item xs={12} sm={6} md={4}>
-                  <Card sx={{ borderRadius: 3, border: '1px solid #E2E8F0', boxShadow: 'none', height: '100%', display: 'flex', flexDirection: 'column' }}>
-                    <Box sx={{ position: 'relative' }}>
-                      <CardMedia
-                        component="img"
-                        height="200"
-                        image={getProductImage(prod)}
-                        alt={prod.name}
-                      />
-                      <Button
-                        onClick={() => {
-                          dispatch(toggleWishlist(prod));
-                          toast.success('Wishlist updated');
-                        }}
-                        sx={{ position: 'absolute', top: 8, right: 8, minWidth: 0, p: 1, bgcolor: '#FFFFFF', borderRadius: '50%', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}
-                      >
-                        <Heart size={18} color="#DC2626" />
-                      </Button>
+              {products.map((prod: any) => {
+                const wishlisted = isWishlisted(prod.id);
+                return (
+                  <Grid key={prod.id} item xs={12} sm={6} md={4}>
+                    <Card sx={{ borderRadius: 3, border: '1px solid #E2E8F0', boxShadow: 'none', height: '100%', display: 'flex', flexDirection: 'column' }}>
+                      <Box sx={{ position: 'relative' }}>
+                        <CardMedia
+                          component="img"
+                          height="200"
+                          image={getProductImage(prod)}
+                          alt={prod.name}
+                        />
+                        <Button
+                          onClick={() => {
+                            const imgUrl = getProductImage(prod);
+                            dispatch(toggleWishlist({ ...prod, image: imgUrl }));
+                            toast.success(wishlisted ? 'Removed from wishlist' : 'Added to wishlist');
+                          }}
+                          sx={{ position: 'absolute', top: 8, right: 8, minWidth: 0, p: 1, bgcolor: '#FFFFFF', borderRadius: '50%', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}
+                        >
+                          <Heart size={18} color="#DC2626" fill={wishlisted ? '#DC2626' : 'none'} />
+                        </Button>
                       {prod.productType && (
                         <Chip
                           label={prod.productType.toUpperCase().replace(/_/g, ' ')}
@@ -350,8 +331,9 @@ export const ProductListingPage: React.FC = () => {
                     </CardActions>
                   </Card>
                 </Grid>
-              ))}
-            </Grid>
+              );
+            })}
+          </Grid>
           )}
         </Grid>
       </Grid>

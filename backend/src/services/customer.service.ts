@@ -222,7 +222,7 @@ export class CustomerService extends BaseService {
 
     if (data.email && data.email !== customer.email) {
       const existingEmail = await this.customerRepo.findOne(tenantId, {
-        where: { email: data.email },
+        where: { email: data.email, id: { [Op.ne]: id } },
         paranoid: false,
       });
       if (existingEmail) {
@@ -232,7 +232,7 @@ export class CustomerService extends BaseService {
 
     if (data.phone && data.phone !== customer.phone) {
       const existingPhone = await this.customerRepo.findOne(tenantId, {
-        where: { phone: data.phone },
+        where: { phone: data.phone, id: { [Op.ne]: id } },
         paranoid: false,
       });
       if (existingPhone) {

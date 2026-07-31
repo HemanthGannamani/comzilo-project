@@ -69,13 +69,13 @@ export const OrdersPage: React.FC = () => {
       ),
     },
     {
-      field: 'orderStatus',
+      field: 'status',
       headerName: 'Fulfillment',
       width: 130,
       renderCell: (params) => (
         <Chip
-          label={params.value || 'Completed'}
-          color={params.value === 'cancelled' ? 'error' : 'info'}
+          label={params.value || 'pending'}
+          color={params.value === 'cancelled' ? 'error' : params.value === 'completed' ? 'success' : 'info'}
           size="small"
         />
       ),
@@ -92,7 +92,7 @@ export const OrdersPage: React.FC = () => {
       width: 110,
       renderCell: (params) => (
         <Box sx={{ display: 'flex', gap: 1 }}>
-          {canCancel && params.row.orderStatus !== 'cancelled' && (
+          {canCancel && params.row.status !== 'cancelled' && (
             <Button
               size="small"
               variant="outlined"
@@ -108,8 +108,8 @@ export const OrdersPage: React.FC = () => {
     },
   ];
 
-  const rows = data?.data?.orders || data?.data || [];
-  const totalCount = data?.data?.total || rows.length;
+  const rows = data?.data?.rows || data?.data?.orders || (Array.isArray(data?.data) ? data.data : []);
+  const totalCount = data?.data?.count || data?.data?.total || rows.length;
 
   return (
     <PageContainer

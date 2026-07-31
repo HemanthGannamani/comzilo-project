@@ -3,30 +3,41 @@ import { Container, Grid, Box, Typography, Button, Rating, Chip, Paper, Divider,
 import { ShoppingCart, Heart, ShieldCheck, Truck, RotateCcw } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useGetProductByIdQuery } from '../../api/catalogApi';
-import { useAppDispatch } from '../../store/hooks';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { addToCart } from '../../store/cartSlice';
 import { toggleWishlist } from '../../store/wishlistSlice';
 import { formatPrice } from '../../utils/currencyService';
+import { getProductImage } from '../../utils/productImageService';
 import toast from 'react-hot-toast';
 
 export const ProductDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [quantity, setQuantity] = useState(1);
 
-  const { data, isLoading } = useGetProductByIdQuery(id || 1);
+  const { data } = useGetProductByIdQuery(id || 1);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
+  const { items: wishlistItems } = useAppSelector((state) => state.wishlist);
 
   const product = data?.data || data;
+  const isWishlisted = product ? wishlistItems.some((i: any) => String(i.id) === String(product.id)) : false;
 
   const handleAddToCart = () => {
-    dispatch(addToCart({ id: product.id, name: product.name, price: product.price, image: product.image || '', quantity }));
+    if (!product) return;
+    dispatch(addToCart({ id: product.id, name: product.name, price: product.price, image: getProductImage(product), quantity }));
     toast.success(`${quantity}x ${product.name} added to cart`);
   };
 
   const handleBuyNow = () => {
     handleAddToCart();
     navigate('/cart');
+  };
+
+  const handleToggleWishlist = () => {
+    if (!product) return;
+    const imgUrl = getProductImage(product);
+    dispatch(toggleWishlist({ ...product, image: imgUrl }));
+    toast.success(isWishlisted ? 'Removed from wishlist' : 'Added to wishlist');
   };
 
   return (
@@ -37,8 +48,8 @@ export const ProductDetailPage: React.FC = () => {
           <Paper sx={{ p: 2, borderRadius: 4, overflow: 'hidden', border: '1px solid #E2E8F0', boxShadow: 'none' }}>
             <Box
               component="img"
-              src={product.image || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800'}
-              alt={product.name}
+              src={product ? getProductImage(product) : ''}
+              alt={product?.name || 'Product'}
               sx={{ width: '100%', height: 400, objectFit: 'cover', borderRadius: 3 }}
             />
           </Paper>
@@ -46,13 +57,13 @@ export const ProductDetailPage: React.FC = () => {
 
         {/* Product Specs & Purchase Options */}
         <Grid item xs={12} md={6}>
-          <Chip label={product.category || 'Retail Product'} color="primary" size="small" sx={{ fontWeight: 700, mb: 1.5 }} />
+          <Chip label={product?.category || 'Retail Product'} color="primary" size="small" sx={{ fontWeight: 700, mb: 1.5 }} />
           <Typography variant="h3" sx={{ fontWeight: 800, color: '#0F172A', mb: 1 }}>
-            {product.name}
+            {product?.name}
           </Typography>
 
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
-            <Rating value={product.rating || 4.8} precision={0.5} readOnly />
+            <Rating value={product?.rating || 4.8} precision={0.5} readOnly />
             <Typography variant="body2" color="text.secondary">(48 customer reviews)</Typography>
           </Box>
 
@@ -61,13 +72,13 @@ export const ProductDetailPage: React.FC = () => {
           </Typography>
 
           <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-            {product.description}
+            {product?.description}
           </Typography>
 
           <Divider sx={{ mb: 3 }} />
 
           <Typography variant="body2" sx={{ fontWeight: 700, mb: 1 }}>
-            SKU Code: <span style={{ color: '#64748B', fontWeight: 500 }}>{product.sku || 'SKU-MAIN-01'}</span>
+            SKU Code: <span style={{ color: '#64748B', fontWeight: 500 }}>{product?.sku || 'SKU-MAIN-01'}</span>
           </Typography>
           <Typography variant="body2" sx={{ fontWeight: 700, mb: 3 }}>
             Availability: <Chip label="IN STOCK" color="success" size="small" sx={{ ml: 1, fontWeight: 700 }} />
@@ -103,15 +114,12 @@ export const ProductDetailPage: React.FC = () => {
               Buy Now
             </Button>
             <Button
-              variant="outlined"
+              variant={isWishlisted ? 'contained' : 'outlined'}
               color="error"
-              onClick={() => {
-                dispatch(toggleWishlist(product));
-                toast.success('Wishlist updated');
-              }}
+              onClick={handleToggleWishlist}
               sx={{ p: 1.5, minWidth: 0, borderRadius: 2 }}
             >
-              <Heart size={20} />
+              <Heart size={20} fill={isWishlisted ? (isWishlisted ? '#FFFFFF' : '#DC2626') : 'none'} />
             </Button>
           </Box>
 

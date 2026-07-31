@@ -50,6 +50,11 @@ const authSlice = createSlice({
       storage.setActiveStoreId(action.payload);
     },
 
+    updateUser: (state, action: PayloadAction<Partial<User>>) => {
+      state.user = { ...(state.user || {}), ...action.payload } as User;
+      storage.setUser(state.user);
+    },
+
     logout: (state) => {
       state.user = null;
       state.tenant = null;
@@ -64,5 +69,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { setCredentials, setActiveStore, logout } = authSlice.actions;
+export const { setCredentials, setActiveStore, updateUser, logout } = authSlice.actions;
 export default authSlice.reducer;

@@ -3,7 +3,9 @@ import jwt from 'jsonwebtoken';
 import { env } from '../config/env';
 import { AuthenticationError, AuthorizationError } from '../shared/errors/AppError';
 
-import { UserRole, Role } from '../database/models';
+import { UserRole, Role, User } from '../database/models';
+import { QueryTypes } from 'sequelize';
+import { sequelize } from '../config/database';
 import { AuthorizationService } from '../services/authorization.service';
 
 const authzService = new AuthorizationService();
@@ -38,6 +40,32 @@ export const authenticate = async (
 
     // Set credentials on request context
     req.context.authenticatedUserId = decoded.userId;
+
+    // Lookup user record to resolve exact tenantId and storeId for multi-tenant isolation
+    if (decoded.userId) {
+      try {
+        const userRec: any = await User.findByPk(decoded.userId);
+        if (userRec) {
+          if (userRec.tenantId && (!req.context.tenantId || req.context.tenantId === 1)) {
+            req.context.tenantId = userRec.tenantId;
+          }
+          if (userRec.storeId) {
+            req.context.storeId = userRec.storeId;
+          }
+        }
+        if (!req.context.storeId && req.context.tenantId) {
+          const [st]: any = await sequelize.query(
+            'SELECT id FROM stores WHERE tenant_id = :tId AND status = "active" ORDER BY id ASC LIMIT 1',
+            { replacements: { tId: req.context.tenantId }, type: QueryTypes.SELECT }
+          );
+          if (st) {
+            req.context.storeId = Number(st.id);
+          }
+        }
+      } catch {
+        // Fallback gracefully
+      }
+    }
 
     if (decoded.email === 'admin@comzilo.com' || decoded.userId === 1) {
       req.context.userRole = 'SUPER_ADMIN';

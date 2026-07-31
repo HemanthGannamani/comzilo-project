@@ -6,6 +6,7 @@ import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { addToCart } from '../../store/cartSlice';
 import { toggleWishlist } from '../../store/wishlistSlice';
 import { formatPrice } from '../../utils/currencyService';
+import { getProductImage } from '../../utils/productImageService';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
@@ -15,7 +16,8 @@ export const CustomerWishlistPage: React.FC = () => {
   const navigate = useNavigate();
 
   const handleMoveToCart = (prod: any) => {
-    dispatch(addToCart({ id: prod.id, name: prod.name, price: prod.price, image: prod.image || '', quantity: 1 }));
+    const imgUrl = getProductImage(prod);
+    dispatch(addToCart({ id: prod.id, name: prod.name, price: prod.price, image: imgUrl, quantity: 1 }));
     dispatch(toggleWishlist(prod));
     toast.success(`${prod.name} moved to cart`);
   };
@@ -50,7 +52,7 @@ export const CustomerWishlistPage: React.FC = () => {
                 <CardMedia
                   component="img"
                   height="180"
-                  image={prod.image || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500'}
+                  image={getProductImage(prod)}
                   alt={prod.name}
                 />
                 <CardContent sx={{ flexGrow: 1 }}>

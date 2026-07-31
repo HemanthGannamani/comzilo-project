@@ -291,8 +291,13 @@ export const MainLayout: React.FC = () => {
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', bgcolor: mode === 'light' ? '#FAFAFA' : '#0F172A' }}>
       {/* Header Profile Brand */}
       <Box sx={{ p: 2.5, pb: 2, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-        <Avatar sx={{ bgcolor: 'primary.main', fontWeight: 800, width: 40, height: 40, boxShadow: '0 2px 8px rgba(37,99,235,0.25)' }}>
-          S
+        <Avatar
+          src={(user as any)?.avatarUrl || (user as any)?.profileImage || (user as any)?.avatar || undefined}
+          imgProps={{ style: { objectFit: 'cover' } }}
+          sx={{ bgcolor: 'primary.main', fontWeight: 800, width: 40, height: 40, boxShadow: '0 2px 8px rgba(37,99,235,0.25)' }}
+        >
+          {!((user as any)?.avatarUrl || (user as any)?.profileImage || (user as any)?.avatar) &&
+            (user?.firstName?.[0] || tenant?.name?.[0] || 'S').toUpperCase()}
         </Avatar>
         <Box sx={{ overflow: 'hidden' }}>
           <Typography variant="subtitle1" sx={{ fontWeight: 800, lineHeight: 1.2, letterSpacing: '-0.3px' }}>
@@ -555,8 +560,13 @@ export const MainLayout: React.FC = () => {
 
             <Tooltip title="Account Settings">
               <IconButton onClick={handleUserMenuOpen} size="small" sx={{ ml: 1 }}>
-                <Avatar sx={{ width: 36, height: 36, bgcolor: 'secondary.main', fontWeight: 700 }}>
-                  {user?.firstName?.[0] || 'S'}
+                <Avatar
+                  src={(user as any)?.avatarUrl || (user as any)?.profileImage || (user as any)?.avatar || undefined}
+                  imgProps={{ style: { objectFit: 'cover' } }}
+                  sx={{ width: 36, height: 36, bgcolor: '#0F172A', color: '#FFFFFF', fontWeight: 700 }}
+                >
+                  {!((user as any)?.avatarUrl || (user as any)?.profileImage || (user as any)?.avatar) &&
+                    (user?.firstName?.[0] || 'S').toUpperCase()}
                 </Avatar>
               </IconButton>
             </Tooltip>

@@ -2,7 +2,7 @@
 import { OrderRepository } from '../repositories/order.repository';
 import { OrderItemRepository } from '../repositories/orderItem.repository';
 import { CustomerRepository } from '../repositories/customer.repository';
-import { Product, Order, OrderItem, Customer } from '../database/models';
+import { Product, Order, OrderItem, Customer, Payment, Refund } from '../database/models';
 import { BaseService } from '../core/BaseService';
 import { sequelize } from '../config/database';
 import { NotFoundError, ValidationError } from '../shared/errors/AppError';
@@ -579,7 +579,6 @@ export class OrderService extends BaseService {
         status: 'cancelled',
         updatedBy: userId,
       };
-      if (reason) updateData.cancelReason = reason;
 
       await this.orderRepo.updateScoped(
         tenantId,
@@ -588,6 +587,31 @@ export class OrderService extends BaseService {
         updateData,
         { transaction: t }
       );
+
+      // 3. Sync Refund record for seller visibility if payment exists
+      const payment: any = await Payment.findOne({
+        where: { orderId: id, tenantId },
+        transaction: t,
+      });
+
+      if (payment) {
+        const refNum = `REF-SLR-${tenantId}-${Date.now().toString().slice(-6)}`;
+        await Refund.create(
+          {
+            tenantId,
+            storeId,
+            paymentId: payment.id,
+            refundNumber: refNum,
+            amount: order.totalAmount,
+            reason: reason || 'Customer requested order cancellation',
+            status: 'processed',
+            refundedAt: new Date(),
+            createdBy: userId,
+          } as any,
+          { transaction: t }
+        );
+        await payment.update({ paymentStatus: 'refunded' }, { transaction: t });
+      }
     });
 
     const updated = await this.getOrder(tenantId, storeId, id);

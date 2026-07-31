@@ -46,11 +46,18 @@ export const CustomerProfilePage: React.FC = () => {
         gender: p.gender || '',
         dateOfBirth: p.dateOfBirth ? p.dateOfBirth.split('T')[0] : '',
       });
-      if (p.avatarUrl || p.profileImage) {
-        setAvatarPreview(p.avatarUrl || p.profileImage);
+      const img = p.avatarUrl || p.profileImage || null;
+      if (img) {
+        setAvatarPreview(img);
       }
+      dispatch(updateUser({
+        firstName: p.firstName,
+        lastName: p.lastName,
+        avatarUrl: img,
+        profileImage: img,
+      }));
     }
-  }, [profileData]);
+  }, [profileData, dispatch]);
 
   const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -61,7 +68,12 @@ export const CustomerProfilePage: React.FC = () => {
       }
       const reader = new FileReader();
       reader.onloadend = () => {
-        setAvatarPreview(reader.result as string);
+        const photoData = reader.result as string;
+        setAvatarPreview(photoData);
+        dispatch(updateUser({
+          avatarUrl: photoData,
+          profileImage: photoData,
+        }));
         toast.success('Photo selected! Click Save Profile Changes to apply.');
       };
       reader.readAsDataURL(file);
@@ -82,11 +94,13 @@ export const CustomerProfilePage: React.FC = () => {
         profileImage: avatarPreview || undefined,
       };
       const res = await updateProfile(payload).unwrap();
+      const updated = res.data || res;
+      const img = updated?.avatarUrl || updated?.profileImage || avatarPreview;
       dispatch(updateUser({
         firstName: formData.firstName,
         lastName: formData.lastName,
-        avatarUrl: avatarPreview,
-        profileImage: avatarPreview,
+        avatarUrl: img,
+        profileImage: img,
       }));
       toast.success('Profile details & photo updated successfully!');
     } catch (err: any) {

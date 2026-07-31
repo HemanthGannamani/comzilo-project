@@ -16,22 +16,32 @@ export class ReportService extends BaseService {
    * Generates Executive Dashboard Summary.
    */
   public async getDashboardSummary(tenantId: number, storeId: number | null): Promise<any> {
-    const sId = storeId || null;
+    const replacements: any = { tenantId };
+    let storeCondition = 'tenant_id = :tenantId';
+    if (storeId) {
+      storeCondition = 'store_id = :storeId';
+      replacements.storeId = storeId;
+    }
+
     const [salesSummary]: any = await sequelize.query(
       `SELECT 
-         COALESCE(SUM(total_amount), 0) AS totalRevenue,
+         COALESCE(SUM(CASE WHEN status != 'cancelled' THEN total_amount ELSE 0 END), 0) AS totalRevenue,
          COALESCE(COUNT(id), 0) AS totalOrders,
-         COALESCE(AVG(total_amount), 0) AS averageOrderValue
+         COALESCE(COUNT(CASE WHEN status IN ('pending', 'processing', 'unconfirmed', 'draft') THEN 1 END), 0) AS pendingOrders,
+         COALESCE(COUNT(CASE WHEN status = 'cancelled' THEN 1 END), 0) AS cancelledOrders,
+         COALESCE(COUNT(CASE WHEN status IN ('completed', 'delivered') THEN 1 END), 0) AS completedOrders,
+         COALESCE(AVG(CASE WHEN status != 'cancelled' THEN total_amount ELSE 0 END), 0) AS averageOrderValue
        FROM orders
-       WHERE tenant_id = :tenantId AND (:sId IS NULL OR store_id = :sId) AND status != 'cancelled' AND deleted_at IS NULL`,
-      { replacements: { tenantId, sId }, type: QueryTypes.SELECT }
+       WHERE ${storeCondition} AND deleted_at IS NULL`,
+      { replacements, type: QueryTypes.SELECT }
     );
 
     const [customerSummary]: any = await sequelize.query(
-      `SELECT COALESCE(COUNT(id), 0) AS totalCustomers
-       FROM customers
-       WHERE tenant_id = :tenantId AND (:sId IS NULL OR store_id = :sId) AND deleted_at IS NULL`,
-      { replacements: { tenantId, sId }, type: QueryTypes.SELECT }
+      `SELECT COALESCE(COUNT(DISTINCT c.id), 0) AS totalCustomers
+       FROM customers c
+       LEFT JOIN orders o ON o.customer_id = c.id
+       WHERE (${storeId ? 'c.store_id = :storeId OR o.store_id = :storeId' : 'c.tenant_id = :tenantId OR o.tenant_id = :tenantId'}) AND c.deleted_at IS NULL`,
+      { replacements, type: QueryTypes.SELECT }
     );
 
     let lowStockCount = 0;
@@ -42,8 +52,8 @@ export class ReportService extends BaseService {
            COALESCE(COUNT(CASE WHEN on_hand_quantity <= 10 THEN 1 END), 0) AS lowStockCount,
            COALESCE(COUNT(CASE WHEN on_hand_quantity = 0 THEN 1 END), 0) AS outOfStockCount
          FROM inventory_balances
-         WHERE tenant_id = :tenantId AND (:sId IS NULL OR store_id = :sId)`,
-        { replacements: { tenantId, sId }, type: QueryTypes.SELECT }
+         WHERE tenant_id = :tenantId`,
+        { replacements: { tenantId }, type: QueryTypes.SELECT }
       );
       if (inventorySummary) {
         lowStockCount = Number(inventorySummary.lowStockCount || 0);
@@ -56,25 +66,28 @@ export class ReportService extends BaseService {
     const recentOrders = await sequelize.query(
       `SELECT id, order_number AS orderNumber, total_amount AS totalAmount, status, created_at AS createdAt
        FROM orders
-       WHERE tenant_id = :tenantId AND (:sId IS NULL OR store_id = :sId) AND deleted_at IS NULL
+       WHERE ${storeCondition} AND deleted_at IS NULL
        ORDER BY id DESC LIMIT 5`,
-      { replacements: { tenantId, sId }, type: QueryTypes.SELECT }
+      { replacements, type: QueryTypes.SELECT }
     );
 
     const revenueTrends: any = await sequelize.query(
       `SELECT 
          DATE_FORMAT(created_at, '%b') AS month,
-         COALESCE(SUM(total_amount), 0) AS sales
+         COALESCE(SUM(CASE WHEN status != 'cancelled' THEN total_amount ELSE 0 END), 0) AS sales
        FROM orders
-       WHERE tenant_id = :tenantId AND (:sId IS NULL OR store_id = :sId) AND status != 'cancelled' AND deleted_at IS NULL
+       WHERE ${storeCondition} AND deleted_at IS NULL
        GROUP BY DATE_FORMAT(created_at, '%Y-%m'), DATE_FORMAT(created_at, '%b')
        ORDER BY MIN(created_at) ASC
        LIMIT 12`,
-      { replacements: { tenantId, sId }, type: QueryTypes.SELECT }
+      { replacements, type: QueryTypes.SELECT }
     );
 
     const totalRev = this.norm(salesSummary?.totalRevenue || 0);
     const totalOrd = Number(salesSummary?.totalOrders || 0);
+    const pendingOrd = Number(salesSummary?.pendingOrders || 0);
+    const cancelledOrd = Number(salesSummary?.cancelledOrders || 0);
+    const completedOrd = Number(salesSummary?.completedOrders || 0);
     const totalCust = Number(customerSummary?.totalCustomers || 0);
     const growthRate = totalOrd > 0 ? 12.5 : 0.0;
 
@@ -82,6 +95,9 @@ export class ReportService extends BaseService {
       totalSales: totalRev,
       totalRevenue: totalRev,
       totalOrders: totalOrd,
+      pendingOrders: pendingOrd,
+      cancelledOrders: cancelledOrd,
+      completedOrders: completedOrd,
       averageOrderValue: this.norm(salesSummary?.averageOrderValue || 0),
       totalCustomers: totalCust,
       growthRate,

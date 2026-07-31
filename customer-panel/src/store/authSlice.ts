@@ -36,10 +36,8 @@ const authSlice = createSlice({
       localStorage.setItem('customer_user_data', JSON.stringify(action.payload.user));
     },
     updateUser: (state, action: PayloadAction<Partial<any>>) => {
-      if (state.user) {
-        state.user = { ...state.user, ...action.payload };
-        localStorage.setItem('customer_user_data', JSON.stringify(state.user));
-      }
+      state.user = { ...(state.user || {}), ...action.payload };
+      localStorage.setItem('customer_user_data', JSON.stringify(state.user));
     },
     logout: (state) => {
       state.user = null;

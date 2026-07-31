@@ -46,6 +46,7 @@ export const orderValidation = {
   listOrders: Joi.object({
     page: Joi.number().integer().min(1).default(1),
     limit: Joi.number().integer().min(1).max(100).default(10),
+    search: Joi.string().allow('', null).optional(),
     sortBy: Joi.string()
       .valid('createdAt', 'orderNumber', 'totalAmount', 'status')
       .default('createdAt'),
@@ -63,5 +64,5 @@ export const orderValidation = {
     endDate: Joi.date().iso().optional(),
     minTotal: Joi.number().min(0).optional(),
     maxTotal: Joi.number().min(0).optional(),
-  }).unknown(false),
+  }).unknown(true),
 };

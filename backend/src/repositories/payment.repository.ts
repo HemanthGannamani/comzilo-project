@@ -11,8 +11,7 @@ export class PaymentRepository extends BaseRepository<Payment> {
     const opts = { ...options };
     opts.where = {
       ...opts.where,
-      tenant_id: tenantId,
-      store_id: storeId,
+      tenantId: tenantId,
     };
     return opts;
   }

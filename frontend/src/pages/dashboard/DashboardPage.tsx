@@ -1,17 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import { Grid, Card, CardContent, Typography, Box, Paper, Stack } from '@mui/material';
 import { PageContainer } from '../../components/layout/PageContainer';
-import { DollarSign, ShoppingBag, Users, TrendingUp } from 'lucide-react';
+import { DollarSign, ShoppingBag, Users, TrendingUp, Clock, XCircle } from 'lucide-react';
 import { formatCurrency } from '../../utils/formatters';
 import { axiosInstance } from '../../api/axiosInstance';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 
 export const DashboardPage: React.FC = () => {
   const [stats, setStats] = useState<any>({
-    totalSales: 128500.75,
-    totalOrders: 1420,
-    totalCustomers: 385,
-    growthRate: 14.2,
+    totalSales: 0,
+    totalOrders: 0,
+    pendingOrders: 0,
+    cancelledOrders: 0,
+    totalCustomers: 0,
+    growthRate: 0,
   });
 
   useEffect(() => {
@@ -28,86 +30,118 @@ export const DashboardPage: React.FC = () => {
     fetchStats();
   }, []);
 
-  const chartData = [
-    { month: 'Jan', sales: 12000 },
-    { month: 'Feb', sales: 19000 },
-    { month: 'Mar', sales: 15000 },
-    { month: 'Apr', sales: 24000 },
-    { month: 'May', sales: 28000 },
-    { month: 'Jun', sales: 32000 },
-    { month: 'Jul', sales: 41000 },
+  const chartData = stats.chartData || [
+    { month: 'Jan', sales: 0 },
+    { month: 'Feb', sales: 0 },
+    { month: 'Mar', sales: 0 },
   ];
 
   return (
     <PageContainer title="Executive Dashboard" subtitle="Overview of real-time sales performance and business metrics">
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+      <Grid container spacing={2.5} sx={{ mb: 3 }}>
+        <Grid size={{ xs: 12, sm: 6, md: 2 }}>
           <Card>
-            <CardContent>
+            <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
               <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
                 <Box>
                   <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
                     TOTAL REVENUE
                   </Typography>
                   <Typography variant="h5" sx={{ fontWeight: 800, mt: 0.5 }}>
-                    {formatCurrency(stats.totalSales || 128500.75)}
+                    {formatCurrency(stats.totalSales || stats.totalRevenue || 0)}
                   </Typography>
                 </Box>
-                <AvatarBox icon={<DollarSign size={24} color="#2563EB" />} bgcolor="#EFF6FF" />
+                <AvatarBox icon={<DollarSign size={22} color="#2563EB" />} bgcolor="#EFF6FF" />
               </Stack>
             </CardContent>
           </Card>
         </Grid>
 
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+        <Grid size={{ xs: 12, sm: 6, md: 2 }}>
           <Card>
-            <CardContent>
+            <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
               <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
                 <Box>
                   <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
                     TOTAL ORDERS
                   </Typography>
                   <Typography variant="h5" sx={{ fontWeight: 800, mt: 0.5 }}>
-                    {stats.totalOrders || 1420}
+                    {stats.totalOrders || 0}
                   </Typography>
                 </Box>
-                <AvatarBox icon={<ShoppingBag size={24} color="#10B981" />} bgcolor="#ECFDF5" />
+                <AvatarBox icon={<ShoppingBag size={22} color="#10B981" />} bgcolor="#ECFDF5" />
               </Stack>
             </CardContent>
           </Card>
         </Grid>
 
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+        <Grid size={{ xs: 12, sm: 6, md: 2 }}>
           <Card>
-            <CardContent>
+            <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+              <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                <Box>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                    PENDING ORDERS
+                  </Typography>
+                  <Typography variant="h5" sx={{ fontWeight: 800, mt: 0.5 }}>
+                    {stats.pendingOrders || 0}
+                  </Typography>
+                </Box>
+                <AvatarBox icon={<Clock size={22} color="#F59E0B" />} bgcolor="#FFFBEB" />
+              </Stack>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid size={{ xs: 12, sm: 6, md: 2 }}>
+          <Card>
+            <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+              <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                <Box>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                    CANCELLED ORDERS
+                  </Typography>
+                  <Typography variant="h5" sx={{ fontWeight: 800, mt: 0.5 }}>
+                    {stats.cancelledOrders || 0}
+                  </Typography>
+                </Box>
+                <AvatarBox icon={<XCircle size={22} color="#DC2626" />} bgcolor="#FEF2F2" />
+              </Stack>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid size={{ xs: 12, sm: 6, md: 2 }}>
+          <Card>
+            <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
               <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
                 <Box>
                   <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
                     TOTAL CUSTOMERS
                   </Typography>
                   <Typography variant="h5" sx={{ fontWeight: 800, mt: 0.5 }}>
-                    {stats.totalCustomers || 385}
+                    {stats.totalCustomers || 0}
                   </Typography>
                 </Box>
-                <AvatarBox icon={<Users size={24} color="#8B5CF6" />} bgcolor="#F5F3FF" />
+                <AvatarBox icon={<Users size={22} color="#8B5CF6" />} bgcolor="#F5F3FF" />
               </Stack>
             </CardContent>
           </Card>
         </Grid>
 
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+        <Grid size={{ xs: 12, sm: 6, md: 2 }}>
           <Card>
-            <CardContent>
+            <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
               <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
                 <Box>
                   <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
                     GROWTH RATE
                   </Typography>
                   <Typography variant="h5" sx={{ fontWeight: 800, mt: 0.5 }}>
-                    +{stats.growthRate || 14.2}%
+                    +{stats.growthRate || 0}%
                   </Typography>
                 </Box>
-                <AvatarBox icon={<TrendingUp size={24} color="#F59E0B" />} bgcolor="#FFFBEB" />
+                <AvatarBox icon={<TrendingUp size={22} color="#10B981" />} bgcolor="#ECFDF5" />
               </Stack>
             </CardContent>
           </Card>

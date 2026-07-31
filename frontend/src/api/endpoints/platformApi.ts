@@ -98,6 +98,20 @@ export const platformApi = baseApi.injectEndpoints({
       query: () => '/integrations/marketplace',
       providesTags: ['Integration'],
     }),
+
+    // PROFILE
+    getSellerProfile: builder.query<any, void>({
+      query: () => '/auth/me',
+      providesTags: ['Settings'],
+    }),
+    updateSellerProfile: builder.mutation<any, any>({
+      query: (data) => ({
+        url: '/auth/profile',
+        method: 'PUT',
+        body: data,
+      }),
+      invalidatesTags: ['Settings'],
+    }),
   }),
 });
 
@@ -118,4 +132,6 @@ export const {
   useDeleteWebhookMutation,
   useGetIntegrationsQuery,
   useGetMarketplaceAppsQuery,
+  useGetSellerProfileQuery,
+  useUpdateSellerProfileMutation,
 } = platformApi;

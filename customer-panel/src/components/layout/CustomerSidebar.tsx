@@ -30,6 +30,8 @@ import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { logout } from '../../store/authSlice';
 import { baseApi } from '../../api/baseApi';
 
+import { useGetCustomerProfileQuery } from '../../api/customerPortalApi';
+
 interface SidebarItem {
   label: string;
   path: string;
@@ -43,6 +45,12 @@ export const CustomerSidebar: React.FC = () => {
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
   const { items: wishlistItems } = useAppSelector((state) => state.wishlist);
+  const { data: profileData } = useGetCustomerProfileQuery();
+
+  const avatarImage = profileData?.data?.avatarUrl || profileData?.data?.profileImage || user?.avatarUrl || user?.profileImage || undefined;
+  const firstName = profileData?.data?.firstName || user?.firstName || 'abhay';
+  const lastName = profileData?.data?.lastName || user?.lastName || 'ram';
+  const email = profileData?.data?.email || user?.email || 'maddipativikas130@gmail.com';
 
   const handleLogout = () => {
     dispatch(logout());
@@ -70,7 +78,8 @@ export const CustomerSidebar: React.FC = () => {
       {/* Customer Brief Header */}
       <Box sx={{ p: 3, bgcolor: '#0F172A', color: '#FFFFFF', display: 'flex', alignItems: 'center', gap: 2 }}>
         <Avatar
-          src={user?.avatarUrl || user?.profileImage || undefined}
+          src={avatarImage}
+          imgProps={{ style: { objectFit: 'cover' } }}
           sx={{
             width: 52,
             height: 52,
@@ -80,14 +89,14 @@ export const CustomerSidebar: React.FC = () => {
             border: '2px solid #38BDF8',
           }}
         >
-          {!(user?.avatarUrl || user?.profileImage) && (user?.firstName?.[0] || 'C')}
+          {!avatarImage && (firstName?.[0] || 'A').toUpperCase()}
         </Avatar>
         <Box sx={{ overflow: 'hidden' }}>
           <Typography variant="subtitle1" noWrap sx={{ fontWeight: 800, lineHeight: 1.2 }}>
-            {user?.firstName || 'Customer'} {user?.lastName || ''}
+            {firstName} {lastName}
           </Typography>
           <Typography variant="caption" noWrap sx={{ color: '#94A3B8', display: 'block' }}>
-            {user?.email || 'customer@comzilo.com'}
+            {email}
           </Typography>
         </Box>
       </Box>

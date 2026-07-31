@@ -58,7 +58,8 @@ export const CustomerOrdersPage: React.FC = () => {
 
   const [cancelOrder, { isLoading: isCancelling }] = useCancelMyOrderMutation();
 
-  const orders = ordersData?.data?.rows || ordersData?.data?.orders || [];
+  const rawOrders = ordersData?.data?.rows || ordersData?.data?.orders || ordersData?.data || [];
+  const orders = Array.isArray(rawOrders) ? rawOrders : [];
   const selectedOrder = orderDetailsData?.data;
 
   const handleOpenCancelDialog = (ord: any) => {

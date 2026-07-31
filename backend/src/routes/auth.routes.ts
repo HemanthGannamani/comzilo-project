@@ -151,8 +151,9 @@ router.post(
   controller.verifyEmail
 );
 
-// Fetch current user details (Requires authenticated session)
+// Fetch & update current user details (Requires authenticated session)
 router.get('/me', tenantResolver, authenticate, controller.me);
 router.get('/profile', tenantResolver, authenticate, controller.me);
+router.put('/profile', tenantResolver, authenticate, controller.updateProfile);
 
 export default router;

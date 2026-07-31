@@ -209,8 +209,13 @@ export const MainLayout: React.FC = () => {
 
             <Tooltip title="Account Settings">
               <IconButton onClick={handleUserMenuOpen} size="small" sx={{ ml: 1 }}>
-                <Avatar sx={{ width: 36, height: 36, bgcolor: 'secondary.main' }}>
-                  {user?.firstName?.[0] || 'U'}
+                <Avatar
+                  src={(user as any)?.avatarUrl || (user as any)?.profileImage || (user as any)?.avatar || undefined}
+                  imgProps={{ style: { objectFit: 'cover' } }}
+                  sx={{ width: 36, height: 36, bgcolor: '#0F172A', color: '#FFFFFF', fontWeight: 700 }}
+                >
+                  {!((user as any)?.avatarUrl || (user as any)?.profileImage || (user as any)?.avatar) &&
+                    (user?.firstName?.[0] || 'U').toUpperCase()}
                 </Avatar>
               </IconButton>
             </Tooltip>

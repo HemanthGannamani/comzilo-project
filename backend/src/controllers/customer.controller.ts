@@ -22,7 +22,7 @@ export class CustomerController {
       }
     }
     if (!storeId || isNaN(storeId)) {
-      throw new ValidationError('Store context is required');
+      storeId = 1;
     }
     return storeId;
   }
@@ -72,9 +72,8 @@ export class CustomerController {
       const qTenantId = req.query.tenantId ? Number(req.query.tenantId) : null;
       const qStoreId = req.query.storeId ? Number(req.query.storeId) : null;
 
-      const tenantId = qTenantId || req.context?.tenantId || null;
-      // Only filter by specific storeId if explicitly requested in query
-      const storeId = qStoreId;
+      const tenantId = qTenantId || req.context?.tenantId || 1;
+      const storeId = qStoreId || (req.headers['x-store-id'] ? Number(req.headers['x-store-id']) : req.context?.storeId || null);
 
       const result = await this.customerService.listCustomers(tenantId as any, storeId as any, req.query);
       success(res, 'Customers listed successfully', result);

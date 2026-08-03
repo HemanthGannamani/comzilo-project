@@ -82,6 +82,9 @@ export class InventoryManagementService {
       limit: 10,
     });
 
+    const incomingCount = await StockMovement.count({ where: { tenantId, movementType: 'IN' } as any }).catch(() => 0);
+    const outgoingCount = await StockMovement.count({ where: { tenantId, movementType: 'OUT' } as any }).catch(() => 0);
+
     return {
       totalWarehouses,
       totalProducts,
@@ -90,8 +93,8 @@ export class InventoryManagementService {
       outOfStockItems: outOfStockCount,
       pendingPurchaseOrders: pendingPOs,
       todaysStockMovement: recentMovements.length,
-      incomingStock: 450,
-      outgoingStock: 120,
+      incomingStock: incomingCount,
+      outgoingStock: outgoingCount,
       recentMovements,
     };
   }

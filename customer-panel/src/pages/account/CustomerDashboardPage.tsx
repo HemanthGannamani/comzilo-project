@@ -108,18 +108,18 @@ export const CustomerDashboardPage: React.FC = () => {
       </Paper>
 
       {/* 2. Key Metrics Summary Grid */}
-      <Grid container spacing={2} sx={{ mb: 4 }}>
+      <Grid container spacing={2} alignItems="stretch" sx={{ mb: 4 }}>
         <Grid item xs={12} sm={6} md={2.4}>
-          <Paper sx={{ p: 2.5, borderRadius: 3, border: '1px solid #E2E8F0', boxShadow: 'none', borderLeft: '4px solid #2563EB' }}>
+          <Paper sx={{ p: 2.25, height: 110, borderRadius: 3, border: '1px solid #E2E8F0', boxShadow: 'none', borderLeft: '4px solid #2563EB', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Box>
-                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>
+              <Box sx={{ overflow: 'hidden' }}>
+                <Typography variant="caption" color="text.secondary" noWrap sx={{ fontWeight: 700, fontSize: '0.72rem', letterSpacing: 0.5, display: 'block' }}>
                   TOTAL ORDERS
                 </Typography>
                 {isLoading ? (
                   <Skeleton width={40} height={32} />
                 ) : (
-                  <Typography variant="h4" sx={{ fontWeight: 800, mt: 0.5 }}>
+                  <Typography variant="h4" sx={{ fontWeight: 800, mt: 0.5, lineHeight: 1.2 }}>
                     {metrics.totalOrders}
                   </Typography>
                 )}
@@ -130,16 +130,16 @@ export const CustomerDashboardPage: React.FC = () => {
         </Grid>
 
         <Grid item xs={12} sm={6} md={2.4}>
-          <Paper sx={{ p: 2.5, borderRadius: 3, border: '1px solid #E2E8F0', boxShadow: 'none', borderLeft: '4px solid #F59E0B' }}>
+          <Paper sx={{ p: 2.25, height: 110, borderRadius: 3, border: '1px solid #E2E8F0', boxShadow: 'none', borderLeft: '4px solid #F59E0B', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Box>
-                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>
+              <Box sx={{ overflow: 'hidden' }}>
+                <Typography variant="caption" color="text.secondary" noWrap sx={{ fontWeight: 700, fontSize: '0.72rem', letterSpacing: 0.5, display: 'block' }}>
                   PENDING ORDERS
                 </Typography>
                 {isLoading ? (
                   <Skeleton width={40} height={32} />
                 ) : (
-                  <Typography variant="h4" sx={{ fontWeight: 800, mt: 0.5 }}>
+                  <Typography variant="h4" sx={{ fontWeight: 800, mt: 0.5, lineHeight: 1.2 }}>
                     {metrics.pendingOrders}
                   </Typography>
                 )}
@@ -150,16 +150,16 @@ export const CustomerDashboardPage: React.FC = () => {
         </Grid>
 
         <Grid item xs={12} sm={6} md={2.4}>
-          <Paper sx={{ p: 2.5, borderRadius: 3, border: '1px solid #E2E8F0', boxShadow: 'none', borderLeft: '4px solid #DC2626' }}>
+          <Paper sx={{ p: 2.25, height: 110, borderRadius: 3, border: '1px solid #E2E8F0', boxShadow: 'none', borderLeft: '4px solid #DC2626', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Box>
-                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>
-                  CANCELLED
+              <Box sx={{ overflow: 'hidden' }}>
+                <Typography variant="caption" color="text.secondary" noWrap sx={{ fontWeight: 700, fontSize: '0.72rem', letterSpacing: 0.5, display: 'block' }}>
+                  CANCELLED ORDERS
                 </Typography>
                 {isLoading ? (
                   <Skeleton width={40} height={32} />
                 ) : (
-                  <Typography variant="h4" sx={{ fontWeight: 800, mt: 0.5 }}>
+                  <Typography variant="h4" sx={{ fontWeight: 800, mt: 0.5, lineHeight: 1.2 }}>
                     {metrics.cancelledOrders || 0}
                   </Typography>
                 )}
@@ -170,16 +170,16 @@ export const CustomerDashboardPage: React.FC = () => {
         </Grid>
 
         <Grid item xs={12} sm={6} md={2.4}>
-          <Paper sx={{ p: 2.5, borderRadius: 3, border: '1px solid #E2E8F0', boxShadow: 'none', borderLeft: '4px solid #10B981' }}>
+          <Paper sx={{ p: 2.25, height: 110, borderRadius: 3, border: '1px solid #E2E8F0', boxShadow: 'none', borderLeft: '4px solid #10B981', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Box>
-                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>
-                  COMPLETED
+              <Box sx={{ overflow: 'hidden' }}>
+                <Typography variant="caption" color="text.secondary" noWrap sx={{ fontWeight: 700, fontSize: '0.72rem', letterSpacing: 0.5, display: 'block' }}>
+                  COMPLETED ORDERS
                 </Typography>
                 {isLoading ? (
                   <Skeleton width={40} height={32} />
                 ) : (
-                  <Typography variant="h4" sx={{ fontWeight: 800, mt: 0.5 }}>
+                  <Typography variant="h4" sx={{ fontWeight: 800, mt: 0.5, lineHeight: 1.2 }}>
                     {metrics.completedOrders}
                   </Typography>
                 )}
@@ -190,13 +190,13 @@ export const CustomerDashboardPage: React.FC = () => {
         </Grid>
 
         <Grid item xs={12} sm={6} md={2.4}>
-          <Paper sx={{ p: 2.5, borderRadius: 3, border: '1px solid #E2E8F0', boxShadow: 'none', borderLeft: '4px solid #EC4899' }}>
+          <Paper sx={{ p: 2.25, height: 110, borderRadius: 3, border: '1px solid #E2E8F0', boxShadow: 'none', borderLeft: '4px solid #EC4899', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Box>
-                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>
+              <Box sx={{ overflow: 'hidden' }}>
+                <Typography variant="caption" color="text.secondary" noWrap sx={{ fontWeight: 700, fontSize: '0.72rem', letterSpacing: 0.5, display: 'block' }}>
                   SAVED WISHLIST
                 </Typography>
-                <Typography variant="h4" sx={{ fontWeight: 800, mt: 0.5 }}>
+                <Typography variant="h4" sx={{ fontWeight: 800, mt: 0.5, lineHeight: 1.2 }}>
                   {wishlistItems.length}
                 </Typography>
               </Box>

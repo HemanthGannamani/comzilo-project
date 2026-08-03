@@ -10,6 +10,8 @@ import { OrderConfirmationPage } from '../pages/public/OrderConfirmationPage';
 
 import { CustomerLoginPage } from '../pages/auth/CustomerLoginPage';
 import { CustomerRegisterPage } from '../pages/auth/CustomerRegisterPage';
+import { CustomerForgotPasswordPage } from '../pages/auth/CustomerForgotPasswordPage';
+import { CustomerResetPasswordPage } from '../pages/auth/CustomerResetPasswordPage';
 
 import { CustomerDashboardPage } from '../pages/account/CustomerDashboardPage';
 import { CustomerProfilePage } from '../pages/account/CustomerProfilePage';
@@ -42,9 +44,13 @@ export const AppRoutes: React.FC = () => {
           {/* Auth & Storefront Store-specific Routes */}
           <Route path="/login" element={<CustomerLoginPage />} />
           <Route path="/register" element={<CustomerRegisterPage />} />
+          <Route path="/forgot-password" element={<CustomerForgotPasswordPage />} />
+          <Route path="/reset-password" element={<CustomerResetPasswordPage />} />
           <Route path="/store/:storeSlug" element={<HomePage />} />
           <Route path="/store/:storeSlug/login" element={<CustomerLoginPage />} />
           <Route path="/store/:storeSlug/register" element={<CustomerRegisterPage />} />
+          <Route path="/store/:storeSlug/forgot-password" element={<CustomerForgotPasswordPage />} />
+          <Route path="/store/:storeSlug/reset-password" element={<CustomerResetPasswordPage />} />
 
           {/* Enterprise Customer Portal Account Routes */}
           <Route path="/account" element={<CustomerDashboardPage />} />

@@ -7,10 +7,14 @@ export class POSController {
   private posService = new POSService();
 
   private getStoreId(req: Request): number {
-    const storeId = Number(req.headers['x-store-id'] || req.query.storeId || req.body.storeId);
-    if (!storeId || isNaN(storeId)) {
-      throw new ValidationError('Store context is missing');
-    }
+    const storeId = Number(
+      req.headers['x-store-id'] ||
+        req.query.storeId ||
+        req.body.storeId ||
+        req.context?.storeId ||
+        (req.user as any)?.storeId ||
+        1
+    );
     return storeId;
   }
 

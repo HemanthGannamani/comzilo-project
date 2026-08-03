@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Chip, Button, Stack } from '@mui/material';
 import type { GridColDef } from '@mui/x-data-grid';
-import { Printer, Download } from 'lucide-react';
+import { Printer, Download, Share2 } from 'lucide-react';
 import { PageContainer } from '../../../components/layout/PageContainer';
 import { DataTable } from '../../../components/data-display/DataTable';
 import { useGetInvoicesQuery } from '../../../api/endpoints/salesApi';
@@ -11,6 +11,15 @@ export const InvoicesPage: React.FC = () => {
   const [page, setPage] = useState(0);
 
   const { data, isLoading } = useGetInvoicesQuery({ page: page + 1, limit: 10 });
+
+  const handleWhatsAppShare = (inv: any) => {
+    const invNumber = inv.invoiceNumber || `INV-${inv.id}`;
+    const amount = formatCurrency(inv.amount || inv.total || 0);
+    const text = encodeURIComponent(
+      `📄 Sales Tax Invoice #${invNumber}\nOrder ID: #${inv.orderId}\nTotal Amount: ${amount}\nStatus: ${inv.status || 'Issued'}\nView Invoice: ${window.location.origin}/invoices`
+    );
+    window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank', 'noopener,noreferrer');
+  };
 
   const handlePrint = (inv: any) => {
     window.print();
@@ -97,9 +106,19 @@ export const InvoicesPage: React.FC = () => {
     {
       field: 'actions',
       headerName: 'Actions',
-      width: 250,
+      width: 340,
       renderCell: (params) => (
         <Stack direction="row" spacing={1} alignItems="center" sx={{ height: '100%' }}>
+          <Button
+            size="small"
+            variant="outlined"
+            color="success"
+            startIcon={<Share2 size={14} />}
+            onClick={() => handleWhatsAppShare(params.row)}
+            sx={{ fontWeight: 600, px: 1.5, borderColor: '#25D366', color: '#16A34A', '&:hover': { bgcolor: '#F0FDF4' } }}
+          >
+            Share
+          </Button>
           <Button
             size="small"
             variant="outlined"

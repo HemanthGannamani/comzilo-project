@@ -115,6 +115,9 @@ router.post(
   controller.requestPasswordReset
 );
 
+// Validate reset token
+router.get('/validate-reset-token', tenantResolver, controller.validateResetToken);
+
 // Reset password
 router.post(
   '/reset-password',

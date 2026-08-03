@@ -2,11 +2,28 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
+import os from 'os';
 import { v4 as uuidv4 } from 'uuid';
 import { QueryTypes } from 'sequelize';
 import { sequelize } from '../config/database';
 import { env } from '../config/env';
 import { BaseService } from '../core/BaseService';
+
+function getLocalNetworkIp(): string {
+  try {
+    const interfaces = os.networkInterfaces();
+    for (const name of Object.keys(interfaces)) {
+      for (const net of interfaces[name] || []) {
+        if (net.family === 'IPv4' && !net.internal && net.address !== '127.0.0.1') {
+          return net.address;
+        }
+      }
+    }
+  } catch {
+    // fallback
+  }
+  return '';
+}
 import {
   User,
   Tenant,
@@ -33,6 +50,7 @@ import {
 import { withTransaction } from '../utils/transactions';
 import { RequestContext } from '../middleware/requestContext';
 import { NotificationService } from './notification.service';
+import { SmtpService } from './smtpService';
 import { createAuditLog } from '../utils/auditHelper';
 import { validatePasswordPolicy } from '../validations/auth.validation';
 
@@ -485,47 +503,139 @@ export class AuthService extends BaseService {
    * Requests a password reset token
    */
   public async requestPasswordReset(
-    tenantId: number,
+    tenantId: number | null,
     email: string,
     clientContext: { ip: string; userAgent: string },
     _context?: RequestContext
   ): Promise<string> {
-    let user = await this.userRepository.findByEmail(tenantId, email);
+    const normalizedEmail = String(email || '').trim().toLowerCase();
+    let user = await User.findOne({ where: { email: normalizedEmail, status: 'active' } });
     if (!user) {
-      user = await this.userRepository.findByEmail(null, email);
+      user = await this.userRepository.findByEmail(tenantId || 1, normalizedEmail);
     }
     if (!user) {
       // Prevent user enumeration: act successful
-      return 'dummy-token';
+      return 'generic-success';
+    }
+
+    // Invalidate any previous unused password reset tokens for this user
+    try {
+      await PasswordResetToken.update(
+        { consumedAt: new Date() },
+        { where: { userId: user.id, consumedAt: null } }
+      );
+    } catch {
+      // Invalidation cleanup
     }
 
     const rawToken = crypto.randomBytes(32).toString('hex');
     const tokenHash = this.hashSHA256(rawToken);
 
+    // 15 Minutes Expiration Requirement
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+
     await PasswordResetToken.create({
       tenantId: user.tenantId,
       userId: user.id,
       tokenHash,
-      expiresAt: new Date(Date.now() + 1 * 60 * 60 * 1000), // 1 hour validity
+      expiresAt,
       requestedIp: clientContext.ip,
       userAgent: clientContext.userAgent,
     });
 
     try {
-      const notificationService = new NotificationService();
-      const resetUrl = `${env.FRONTEND_URL}/reset-password?token=${rawToken}`;
-      await notificationService.sendNotification(user.tenantId, null, {
-        userId: user.id,
-        recipient: user.email,
-        channel: 'email',
-        title: 'Password Reset Request',
-        content: `Dear ${user.firstName}, you requested a password reset. Click here to reset: ${resetUrl}`,
+      const userRole = (user as any).role || (user as any).userType || 'CUSTOMER';
+      const isCustomer = userRole === 'CUSTOMER';
+      const defaultPort = isCustomer ? '3000' : '5173';
+      const localNetworkIp = getLocalNetworkIp();
+
+      const localhostUrl = isCustomer ? `http://localhost:3000/reset-password?token=${rawToken}` : `http://localhost:5173/reset-password?token=${rawToken}`;
+      const networkUrl = localNetworkIp ? `http://${localNetworkIp}:${defaultPort}/reset-password?token=${rawToken}` : '';
+      const primaryUrl = process.env.CUSTOMER_PORTAL_URL ? `${process.env.CUSTOMER_PORTAL_URL}/reset-password?token=${rawToken}` : localhostUrl;
+
+      const emailHtml = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style>
+            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8fafc; color: #1e293b; margin: 0; padding: 40px 20px; }
+            .container { max-width: 580px; margin: 0 auto; background: #ffffff; border-radius: 12px; padding: 40px; border: 1px solid #e2e8f0; }
+            .logo { font-size: 24px; font-weight: bold; color: #2563eb; text-decoration: none; margin-bottom: 24px; display: inline-block; }
+            .heading { font-size: 20px; font-weight: 700; color: #0f172a; margin-bottom: 16px; }
+            .body-text { font-size: 15px; line-height: 1.6; color: #475569; margin-bottom: 20px; }
+            .btn { display: inline-block; background-color: #2563eb; color: #ffffff !important; font-weight: 700; font-size: 15px; padding: 14px 28px; text-decoration: none; border-radius: 8px; margin: 10px 0; }
+            .btn-mobile { display: inline-block; background-color: #16a34a; color: #ffffff !important; font-weight: 700; font-size: 15px; padding: 14px 28px; text-decoration: none; border-radius: 8px; margin: 10px 0; }
+            .warning { font-size: 13px; color: #dc2626; background: #fef2f2; padding: 12px; border-radius: 6px; border: 1px solid #fecaca; margin-top: 20px; }
+            .mobile-box { font-size: 13px; color: #1e40af; background: #eff6ff; padding: 16px; border-radius: 8px; border: 1px solid #bfdbfe; margin-top: 16px; text-align: center; }
+            .footer { font-size: 12px; color: #94a3b8; margin-top: 32px; border-top: 1px solid #f1f5f9; padding-top: 16px; text-align: center; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="logo">Comzilo Platform</div>
+            <div class="heading">Password Reset Request</div>
+            <div class="body-text">
+              Hello <strong>${user.firstName || 'Valued User'}</strong>,<br/><br/>
+              We received a request to reset the password for your Comzilo account (<strong>${user.email}</strong>).
+            </div>
+            
+            <div style="text-align: center; margin: 16px 0;">
+              <a href="${primaryUrl}" class="btn" target="_blank">Reset Password (Computer / PC)</a>
+            </div>
+
+            ${networkUrl ? `
+            <div class="mobile-box">
+              <strong style="font-size: 14px;">📱 Opening on Mobile Phone / Tablet?</strong><br/>
+              <span style="font-size: 13px; color: #475569;">If opening from a phone connected to local Wi-Fi, tap the button below:</span><br/>
+              <a href="${networkUrl}" class="btn-mobile" target="_blank">Reset Password (Mobile Phone)</a>
+            </div>
+            ` : ''}
+
+            <div class="warning">
+              ⏳ <strong>Expiration Notice:</strong> This password reset link is valid for <strong>15 minutes</strong> only and can be used only once.
+            </div>
+            <div class="body-text" style="margin-top: 24px;">
+              If you did not request a password reset, please ignore this email or contact support.
+            </div>
+            <div class="footer">
+              &copy; ${new Date().getFullYear()} Comzilo Multi-Tenant SaaS Platform. All rights reserved.
+            </div>
+          </div>
+        </body>
+        </html>
+      `;
+
+      const smtpService = new SmtpService();
+      await smtpService.sendEmail({
+        tenantId: user.tenantId || 1,
+        to: user.email,
+        subject: '🔒 Reset Your Comzilo Account Password',
+        html: emailHtml,
+        templateName: 'password_reset',
       });
-    } catch (e) {
-      this.logError('Failed to send password reset notification email', e);
+    } catch (e: any) {
+      this.logError('Failed to send password reset email via SMTP', e);
     }
 
     return rawToken;
+  }
+
+  /**
+   * Validate password reset token
+   */
+  public async validateResetToken(token: string): Promise<{ valid: boolean; message?: string }> {
+    if (!token || typeof token !== 'string') {
+      return { valid: false, message: 'This password reset link is invalid or has expired.' };
+    }
+
+    const tokenHash = this.hashSHA256(token);
+    const tokenRecord = await PasswordResetToken.findOne({ where: { tokenHash } });
+
+    if (!tokenRecord || tokenRecord.consumedAt || new Date(tokenRecord.expiresAt) < new Date()) {
+      return { valid: false, message: 'This password reset link is invalid or has expired.' };
+    }
+
+    return { valid: true };
   }
 
   /**
@@ -536,30 +646,41 @@ export class AuthService extends BaseService {
     data: any,
     context?: RequestContext
   ): Promise<void> {
-    const tokenHash = this.hashSHA256(data.token);
-    let tokenRecord = await this.resetTokenRepository.findActiveToken(tenantId, tokenHash);
-    if (!tokenRecord) {
-      tokenRecord = await this.resetTokenRepository.findActiveToken(1, tokenHash);
-    }
-
-    if (!tokenRecord || new Date(tokenRecord.expiresAt) < new Date() || tokenRecord.consumedAt) {
-      throw new ValidationError('Invalid or expired password reset token');
-    }
-
-    const user = await User.findByPk(tokenRecord.userId);
-    if (!user) {
-      throw new ValidationError('User not found');
+    const rawToken = data.token;
+    if (!rawToken) {
+      throw new ValidationError('Reset token is required');
     }
 
     const newPass = data.password || data.newPassword;
+    const confirmPass = data.confirmPassword;
+
     if (!newPass) {
       throw new ValidationError('New password is required');
+    }
+
+    if (confirmPass && newPass !== confirmPass) {
+      throw new ValidationError('New Password and Confirm Password must match.');
     }
 
     if (!validatePasswordPolicy(newPass)) {
       throw new ValidationError(
         'Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character.'
       );
+    }
+
+    const tokenHash = this.hashSHA256(rawToken);
+    let tokenRecord = await PasswordResetToken.findOne({ where: { tokenHash } });
+    if (!tokenRecord) {
+      tokenRecord = await this.resetTokenRepository.findActiveToken(tenantId || 1, tokenHash);
+    }
+
+    if (!tokenRecord || new Date(tokenRecord.expiresAt) < new Date() || tokenRecord.consumedAt) {
+      throw new ValidationError('This password reset link is invalid or has expired.');
+    }
+
+    const user = await User.findByPk(tokenRecord.userId);
+    if (!user) {
+      throw new ValidationError('User not found');
     }
 
     const passwordHash = await bcrypt.hash(newPass, env.BCRYPT_ROUNDS);
@@ -575,10 +696,20 @@ export class AuthService extends BaseService {
       await tokenRecord!.save({ transaction: t });
     });
 
+    // Revoke any active login sessions for user
+    try {
+      await RefreshToken.update(
+        { revokedAt: new Date(), revokeReason: 'Password reset' },
+        { where: { userId: user.id, revokedAt: null } }
+      );
+    } catch {
+      // Invalidate sessions
+    }
+
     await createAuditLog(
       {
         action: 'password.reset',
-        entityType: 'user',
+        entityType: 'User',
         entityId: String(user.id),
       },
       context

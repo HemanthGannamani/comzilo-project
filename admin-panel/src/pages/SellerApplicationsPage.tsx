@@ -22,6 +22,7 @@ import {
   IconButton,
   Alert,
   CircularProgress,
+  Tooltip,
 } from '@mui/material';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { Eye, FileText, CheckCircle2, XCircle, Search, Copy, Download, Send, EyeOff } from 'lucide-react';
@@ -167,51 +168,113 @@ SECURITY INSTRUCTIONS:
   };
 
   const columns: GridColDef[] = [
-    { field: 'applicationNumber', headerName: 'App Number', width: 150, renderCell: (params) => <Typography sx={{ fontFamily: 'monospace', fontWeight: 700 }}>{params.value}</Typography> },
-    { field: 'businessName', headerName: 'Business Name', width: 200 },
-    { field: 'ownerName', headerName: 'Owner Name', width: 180 },
-    { field: 'email', headerName: 'Email', width: 200 },
-    { field: 'phone', headerName: 'Phone', width: 150 },
+    {
+      field: 'applicationNumber',
+      headerName: 'App Number',
+      width: 190,
+      renderCell: (params) => (
+        <Tooltip title={params.value || ''}>
+          <Typography sx={{ fontFamily: 'monospace', fontWeight: 800, color: '#2563EB', fontSize: '0.85rem' }}>
+            {params.value}
+          </Typography>
+        </Tooltip>
+      ),
+    },
+    {
+      field: 'businessName',
+      headerName: 'Business Name',
+      width: 220,
+      renderCell: (params) => (
+        <Tooltip title={params.value || ''}>
+          <Typography variant="body2" sx={{ fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {params.value}
+          </Typography>
+        </Tooltip>
+      ),
+    },
+    {
+      field: 'ownerName',
+      headerName: 'Owner Name',
+      width: 180,
+      renderCell: (params) => (
+        <Typography variant="body2" sx={{ color: '#334155' }}>
+          {params.value}
+        </Typography>
+      ),
+    },
+    {
+      field: 'email',
+      headerName: 'Email Address',
+      width: 230,
+      renderCell: (params) => (
+        <Tooltip title={params.value || ''}>
+          <Typography variant="body2" sx={{ color: '#475569', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {params.value}
+          </Typography>
+        </Tooltip>
+      ),
+    },
+    { field: 'phone', headerName: 'Phone', width: 140 },
     { field: 'businessType', headerName: 'Type', width: 120 },
     {
       field: 'status',
       headerName: 'Status',
       width: 130,
       renderCell: (params) => {
-        const value = params.value as string;
+        const value = (params.value || 'Pending') as string;
         let color: 'warning' | 'success' | 'error' = 'warning';
         if (value === 'Approved') color = 'success';
         if (value === 'Rejected') color = 'error';
-        return <Chip label={value} color={color} size="small" sx={{ fontWeight: 700 }} />;
+        return <Chip label={value} color={color} size="small" sx={{ fontWeight: 800, fontSize: '0.72rem' }} />;
       },
     },
     {
       field: 'submittedAt',
       headerName: 'Submitted Date',
-      width: 160,
-      valueFormatter: (value) => new Date(value).toLocaleDateString(),
-    },
-    {
-      field: 'reviewedBy',
-      headerName: 'Reviewed By',
-      width: 130,
-      valueGetter: (_, row) => row.reviewedBy ? `Admin #${row.reviewedBy}` : 'N/A',
-    },
-    {
-      field: 'reviewedAt',
-      headerName: 'Reviewed Date',
-      width: 160,
-      valueGetter: (_, row) => row.reviewedAt ? new Date(row.reviewedAt).toLocaleDateString() : 'N/A',
+      width: 150,
+      valueFormatter: (value) => (value ? new Date(value).toLocaleDateString() : 'N/A'),
     },
     {
       field: 'actions',
       headerName: 'Actions',
-      width: 100,
+      width: 140,
       sortable: false,
       renderCell: (params) => (
-        <IconButton color="primary" onClick={() => handleViewDetails(params.row)} size="small">
-          <Eye size={18} />
-        </IconButton>
+        <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
+          <Tooltip title="View Full Application Details">
+            <IconButton color="primary" onClick={() => handleViewDetails(params.row)} size="small">
+              <Eye size={18} />
+            </IconButton>
+          </Tooltip>
+          {params.row.status === 'Pending' && (
+            <>
+              <Tooltip title="Approve & Generate Credentials">
+                <IconButton
+                  color="success"
+                  onClick={() => {
+                    setSelectedApp(params.row);
+                    handleApproveClick();
+                  }}
+                  size="small"
+                >
+                  <CheckCircle2 size={18} />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Reject Application">
+                <IconButton
+                  color="error"
+                  onClick={() => {
+                    setSelectedApp(params.row);
+                    setIsRejectDialogOpen(true);
+                  }}
+                  size="small"
+                >
+                  <XCircle size={18} />
+                </IconButton>
+              </Tooltip>
+            </>
+          )}
+        </Box>
       ),
     },
   ];

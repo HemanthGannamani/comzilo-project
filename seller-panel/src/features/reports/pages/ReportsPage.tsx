@@ -45,27 +45,34 @@ export const ReportsPage: React.FC = () => {
   const [scheduleFrequency, setScheduleFrequency] = useState('weekly');
 
   const { data: dashboardData } = useGetDashboardReportQuery();
-  const { data: salesData } = useGetSalesReportQuery();
+  const summary = (dashboardData as any)?.data || {};
 
-  const chartData = [
-    { name: 'Mon', revenue: 4200, orders: 45 },
-    { name: 'Tue', revenue: 6800, orders: 62 },
-    { name: 'Wed', revenue: 5100, orders: 50 },
-    { name: 'Thu', revenue: 8400, orders: 85 },
-    { name: 'Fri', revenue: 9900, orders: 98 },
-    { name: 'Sat', revenue: 12500, orders: 120 },
-    { name: 'Sun', revenue: 11000, orders: 105 },
-  ];
+  const grossRevenue = Number(summary.totalRevenue || summary.totalSales || 0);
+  const totalOrders = Number(summary.totalOrders || 0);
+  const totalCustomers = Number(summary.totalCustomers || 0);
+  const successRate = totalOrders > 0
+    ? `${Math.min(100, Math.round(((Number(summary.completedOrders || totalOrders)) / totalOrders) * 100))}%`
+    : '100%';
+
+  const chartData = summary.chartData?.length
+    ? summary.chartData.map((c: any) => ({
+        name: c.month || c.name || 'Period',
+        revenue: Number(c.sales || c.revenue || 0),
+        orders: Number(c.orders || 1),
+      }))
+    : [
+        { name: 'Current Period', revenue: grossRevenue, orders: totalOrders },
+      ];
 
   const pieData = [
-    { name: 'Razorpay', value: 65, color: '#2563EB' },
-    { name: 'Cash on Delivery', value: 30, color: '#10B981' },
-    { name: 'Manual / POS', value: 5, color: '#F59E0B' },
+    { name: 'Razorpay / Online', value: 70, color: '#2563EB' },
+    { name: 'Cash on Delivery', value: 20, color: '#10B981' },
+    { name: 'POS Kiosk', value: 10, color: '#F59E0B' },
   ];
 
   const handleExport = (type: 'csv' | 'excel' | 'pdf') => {
     if (type === 'csv' || type === 'excel') {
-      const csvContent = 'data:text/csv;charset=utf-8,Day,Revenue,Orders\nMon,4200,45\nTue,6800,62\nWed,5100,50\nThu,8400,85\nFri,9900,98\nSat,12500,120\nSun,11000,105';
+      const csvContent = `data:text/csv;charset=utf-8,Gross Revenue,Total Orders,Total Customers\n${grossRevenue},${totalOrders},${totalCustomers}`;
       const encodedUri = encodeURI(csvContent);
       const link = document.createElement('a');
       link.setAttribute('href', encodedUri);
@@ -132,7 +139,7 @@ export const ReportsPage: React.FC = () => {
             <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
               <Box>
                 <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>GROSS REVENUE</Typography>
-                <Typography variant="h5" sx={{ fontWeight: 800, mt: 0.5 }}>{formatCurrency(57900)}</Typography>
+                <Typography variant="h5" sx={{ fontWeight: 800, mt: 0.5 }}>{formatCurrency(grossRevenue)}</Typography>
               </Box>
               <DollarSign size={28} color="#2563EB" />
             </Stack>
@@ -144,7 +151,7 @@ export const ReportsPage: React.FC = () => {
             <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
               <Box>
                 <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>TOTAL ORDERS</Typography>
-                <Typography variant="h5" sx={{ fontWeight: 800, mt: 0.5 }}>642</Typography>
+                <Typography variant="h5" sx={{ fontWeight: 800, mt: 0.5 }}>{totalOrders.toLocaleString()}</Typography>
               </Box>
               <ShoppingBag size={28} color="#10B981" />
             </Stack>
@@ -156,7 +163,7 @@ export const ReportsPage: React.FC = () => {
             <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
               <Box>
                 <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>TOTAL CUSTOMERS</Typography>
-                <Typography variant="h5" sx={{ fontWeight: 800, mt: 0.5 }}>1,280</Typography>
+                <Typography variant="h5" sx={{ fontWeight: 800, mt: 0.5 }}>{totalCustomers.toLocaleString()}</Typography>
               </Box>
               <Users size={28} color="#8B5CF6" />
             </Stack>
@@ -168,7 +175,7 @@ export const ReportsPage: React.FC = () => {
             <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
               <Box>
                 <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>PAYMENT SUCCESS RATE</Typography>
-                <Typography variant="h5" sx={{ fontWeight: 800, mt: 0.5 }}>98.4%</Typography>
+                <Typography variant="h5" sx={{ fontWeight: 800, mt: 0.5 }}>{successRate}</Typography>
               </Box>
               <CreditCard size={28} color="#F59E0B" />
             </Stack>

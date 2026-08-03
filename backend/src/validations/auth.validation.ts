@@ -39,6 +39,7 @@ export const resetPasswordSchema = {
     token: Joi.string().required(),
     password: Joi.string().min(8).max(100).optional(),
     newPassword: Joi.string().min(8).max(100).optional(),
+    confirmPassword: Joi.string().optional(),
   }).or('password', 'newPassword'),
 };
 

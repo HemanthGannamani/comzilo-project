@@ -307,4 +307,66 @@ export class ShippingProviderService {
       limit: 100,
     });
   }
+
+  public async deleteZone(tenantId: number, zoneIdOrName: string | number) {
+    if (!isNaN(Number(zoneIdOrName))) {
+      await ShippingZone.destroy({ where: { id: Number(zoneIdOrName), tenantId } });
+    } else {
+      await ShippingZone.destroy({ where: { name: String(zoneIdOrName), tenantId } });
+    }
+    return true;
+  }
+
+  public async deleteMethod(tenantId: number, methodIdOrCode: string | number) {
+    if (!isNaN(Number(methodIdOrCode))) {
+      await ShippingMethod.destroy({ where: { id: Number(methodIdOrCode), tenantId } });
+    } else {
+      await ShippingMethod.destroy({ where: { code: String(methodIdOrCode), tenantId } });
+    }
+    return true;
+  }
+
+  public async deletePickupAddress(tenantId: number, addressIdOrName: string | number) {
+    if (!isNaN(Number(addressIdOrName))) {
+      await PickupAddress.destroy({ where: { id: Number(addressIdOrName), tenantId } });
+    } else {
+      await PickupAddress.destroy({ where: { name: String(addressIdOrName), tenantId } });
+    }
+    return true;
+  }
+
+  public async deletePackage(tenantId: number, packageIdOrName: string | number) {
+    if (!isNaN(Number(packageIdOrName))) {
+      await ShipmentPackage.destroy({ where: { id: Number(packageIdOrName), tenantId } });
+    } else {
+      await ShipmentPackage.destroy({ where: { name: String(packageIdOrName), tenantId } });
+    }
+    return true;
+  }
+
+  public async deleteShipment(tenantId: number, shipmentIdOrAwb: string | number) {
+    if (!isNaN(Number(shipmentIdOrAwb))) {
+      await Shipment.destroy({ where: { id: Number(shipmentIdOrAwb), tenantId } });
+    } else {
+      await Shipment.destroy({ where: { awbNumber: String(shipmentIdOrAwb), tenantId } });
+    }
+    return true;
+  }
+
+  public async deleteLog(tenantId: number, logId: number) {
+    await ShippingLog.destroy({ where: { id: Number(logId), tenantId } });
+    return true;
+  }
+
+  public async deleteProvider(tenantId: number, providerIdOrCode: string | number) {
+    if (!isNaN(Number(providerIdOrCode))) {
+      await TenantShippingProviderConfig.destroy({ where: { id: Number(providerIdOrCode), tenantId } });
+    } else {
+      const prov = await ShippingProvider.findOne({ where: { code: String(providerIdOrCode) } });
+      if (prov) {
+        await TenantShippingProviderConfig.destroy({ where: { providerId: prov.id, tenantId } });
+      }
+    }
+    return true;
+  }
 }

@@ -15,10 +15,11 @@ import {
   Tabs,
   Tab,
 } from '@mui/material';
-import { Download, Printer, CreditCard, RefreshCw } from 'lucide-react';
+import { Download, Printer, CreditCard, RefreshCw, Share2 } from 'lucide-react';
 import { CustomerAccountLayout } from '../../components/layout/CustomerAccountLayout';
 import { useGetMyInvoicesQuery, useGetMyPaymentsQuery } from '../../api/customerPortalApi';
 import { formatPrice } from '../../utils/currencyService';
+import toast from 'react-hot-toast';
 
 export const CustomerInvoicesPage: React.FC = () => {
   const [tab, setTab] = useState(0);
@@ -27,6 +28,14 @@ export const CustomerInvoicesPage: React.FC = () => {
 
   const invoices = invoiceData?.data?.rows || invoiceData?.data || [];
   const payments = paymentData?.data?.rows || paymentData?.data || [];
+
+  const handleWhatsAppShareInvoice = (inv: any) => {
+    const text = encodeURIComponent(
+      `📄 Comzilo Tax Invoice #${inv.invoiceNumber}\nDate: ${new Date(inv.createdAt).toLocaleDateString()}\nTotal Amount: ${formatPrice(inv.total)}\nStatus: ${inv.invoiceStatus?.toUpperCase() || 'PAID'}\nView details: ${window.location.origin}/account/invoices`
+    );
+    window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank', 'noopener,noreferrer');
+    toast.success('Opening WhatsApp to share invoice...');
+  };
 
   const generateInvoiceHtml = (inv: any) => {
     return `<!DOCTYPE html>
@@ -145,6 +154,16 @@ export const CustomerInvoicesPage: React.FC = () => {
                       </TableCell>
                       <TableCell align="right">
                         <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+                          <Button
+                            variant="outlined"
+                            color="success"
+                            size="small"
+                            startIcon={<Share2 size={14} />}
+                            onClick={() => handleWhatsAppShareInvoice(inv)}
+                            sx={{ borderRadius: 2, borderColor: '#25D366', color: '#16A34A', '&:hover': { bgcolor: '#F0FDF4' } }}
+                          >
+                            Share
+                          </Button>
                           <Button
                             variant="outlined"
                             size="small"

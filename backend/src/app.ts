@@ -283,6 +283,7 @@ app.use('/api/v1/store/products', storeProductRoutes);
 app.use('/api/v1/store/inventory-management', storeInventoryManagementRoutes);
 app.use('/api/v1/store/inventory', storeInventoryRoutes);
 app.use('/api/v1/store/orders', storeOrderRoutes);
+app.use('/api/v1/orders', storeOrderRoutes);
 app.use('/api/v1/store/shipping-providers', storeShippingProviderRoutes);
 app.use('/api/v1/store/shipping', storeShippingRoutes);
 app.use('/api/v1/store/payments', storePaymentRoutes);

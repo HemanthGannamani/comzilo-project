@@ -14,7 +14,7 @@ export const posValidation = {
   }).unknown(false),
 
   createPOSSale: Joi.object({
-    registerId: Joi.number().integer().positive().required(),
+    registerId: Joi.number().integer().positive().optional().default(1),
     customerId: Joi.number().integer().positive().optional(),
     items: Joi.array()
       .items(
@@ -23,15 +23,18 @@ export const posValidation = {
           sku: Joi.string().optional(),
           barcode: Joi.string().optional(),
           quantity: Joi.number().integer().positive().required(),
+          unitPrice: Joi.number().min(0).optional(),
           discountType: Joi.string().valid('percentage', 'fixed').optional(),
           discountValue: Joi.number().min(0).optional(),
-        })
+        }).unknown(true)
       )
       .min(1)
       .required(),
     orderDiscountType: Joi.string().valid('percentage', 'fixed').optional(),
     orderDiscountValue: Joi.number().min(0).optional(),
     tax: Joi.number().min(0).default(0),
+    paymentMethod: Joi.string().optional(),
+    totalAmount: Joi.number().optional(),
     payments: Joi.array()
       .items(
         Joi.object({
@@ -44,15 +47,17 @@ export const posValidation = {
               'Wallet',
               'Cheque',
               'Store Credit',
-              'Manual'
+              'Manual',
+              'cash',
+              'card'
             )
             .required(),
           amount: Joi.number().positive().required(),
-        })
+        }).unknown(true)
       )
       .min(1)
-      .required(),
-  }).unknown(false),
+      .optional(),
+  }).unknown(true),
 
   createPOSReturn: Joi.object({
     registerId: Joi.number().integer().positive().required(),

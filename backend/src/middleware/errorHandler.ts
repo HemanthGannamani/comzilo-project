@@ -37,7 +37,7 @@ export const errorHandler = (
   ) {
     statusCode = HTTP_STATUS.BAD_REQUEST;
     code = 'DATABASE_VALIDATION_ERROR';
-    message = 'Database validation constraint failed';
+    message = err.errors?.[0]?.message || 'Database validation constraint failed';
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     errors = err.errors.map((e: any) => ({
       message: e.message,

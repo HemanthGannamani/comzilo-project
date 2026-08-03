@@ -115,17 +115,29 @@ export const authorize = async (req: Request, res: Response, next: NextFunction)
       const isSuperAdmin = await authzService.isSuperAdmin(userId, req.context.rbacCache);
 
       // Verify tenant ownership unless user is Super Admin
-      if (!isSuperAdmin && store.tenant_id !== tenantId) {
-        sendResponse(
-          res,
-          HTTP_STATUS.FORBIDDEN,
-          false,
-          'Access denied: Store does not belong to this tenant scope',
-          null,
-          req.context?.requestId,
-          []
+      if (!isSuperAdmin && Number(store.tenant_id) !== Number(tenantId)) {
+        const [tenantStore]: any = await sequelize.query(
+          'SELECT id, tenant_id, status, deleted_at FROM stores WHERE tenant_id = :tenantId AND status = "active" AND deleted_at IS NULL LIMIT 1',
+          {
+            replacements: { tenantId },
+            type: QueryTypes.SELECT,
+          }
         );
-        return;
+
+        if (tenantStore) {
+          req.context.storeId = tenantStore.id;
+        } else {
+          sendResponse(
+            res,
+            HTTP_STATUS.FORBIDDEN,
+            false,
+            'Access denied: Store does not belong to this tenant scope',
+            null,
+            req.context?.requestId,
+            []
+          );
+          return;
+        }
       }
 
       // Verify active/deleted policy

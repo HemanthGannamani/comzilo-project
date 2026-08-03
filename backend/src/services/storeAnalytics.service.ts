@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { Op } from 'sequelize';
 import {
   AnalyticsDashboard,
   AnalyticsWidget,
@@ -16,15 +17,22 @@ import { createAuditLog } from '../utils/auditHelper';
 export class StoreAnalyticsService {
   // ================= EXECUTIVE DASHBOARD & KPIS =================
   static async getDashboardKPIs(tenantId: number, storeId: number) {
-    const totalOrders = await Order.count({ where: { tenantId, storeId } });
-    const totalProducts = await Product.count({ where: { tenantId, storeId } });
-    const totalCustomers = await Customer.count({ where: { tenantId, storeId } });
-    const totalSuppliers = await Supplier.count({ where: { tenantId, storeId } });
+    const orderWhere: any = { tenantId: tenantId || 1 };
+    if (storeId) {
+      orderWhere[Op.or] = [{ storeId }, { storeId: null }];
+    }
 
-    const orders = await Order.findAll({ where: { tenantId, storeId } });
+    const totalOrders = await Order.count({ where: orderWhere });
+    const totalProducts = await Product.count({ where: { tenantId: tenantId || 1 } });
+    const totalCustomers = await Customer.count({ where: { tenantId: tenantId || 1 } });
+    const totalSuppliers = await Supplier.count({ where: { tenantId: tenantId || 1 } });
+
+    const orders = await Order.findAll({ where: orderWhere });
     let totalRevenue = 0;
     for (const o of orders) {
-      totalRevenue += Number(o.totalAmount || 0);
+      if ((o as any).status !== 'cancelled' && (o as any).orderStatus !== 'cancelled') {
+        totalRevenue += Number(o.totalAmount || 0);
+      }
     }
 
     const inventoryItems = await InventoryBalance.findAll({ where: { tenantId, storeId } });

@@ -27,9 +27,12 @@ export const CustomerLoginPage: React.FC = () => {
     try {
       const res = await axiosInstance.post('/auth/login', { email, password });
       if (res.data?.data?.accessToken) {
-        const { user, accessToken } = res.data.data;
+        const { user, accessToken, refreshToken } = res.data.data;
 
         localStorage.setItem('customer_access_token', accessToken);
+        if (refreshToken) {
+          localStorage.setItem('customer_refresh_token', refreshToken);
+        }
         localStorage.setItem('customer_user_data', JSON.stringify(user));
 
         // Role Routing Verification
@@ -91,9 +94,14 @@ export const CustomerLoginPage: React.FC = () => {
             fullWidth
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            sx={{ mb: 3 }}
+            sx={{ mb: 1.5 }}
             required
           />
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2.5 }}>
+            <Typography component={Link} to="/forgot-password" variant="caption" sx={{ fontWeight: 700, color: '#2563EB', textDecoration: 'none' }}>
+              Forgot Password?
+            </Typography>
+          </Box>
           <Button
             type="submit"
             variant="contained"

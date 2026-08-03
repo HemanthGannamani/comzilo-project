@@ -8,8 +8,9 @@ const controller = new CustomerPortalController();
 
 router.use(tenantResolver);
 
-// Public Webhook Endpoint (No JWT Auth Required)
+// Public Endpoints (No JWT Auth Required)
 router.post('/webhooks/razorpay', controller.handleRazorpayWebhook);
+router.post('/newsletter/subscribe', controller.subscribeNewsletter);
 
 router.use(requireAuth);
 

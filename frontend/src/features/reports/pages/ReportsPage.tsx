@@ -8,21 +8,22 @@ import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGri
 import toast from 'react-hot-toast';
 
 export const ReportsPage: React.FC = () => {
-  useGetDashboardReportQuery();
-  useGetSalesReportQuery();
+  const { data: dashboardData } = useGetDashboardReportQuery();
+  const summary = (dashboardData as any)?.data || {};
 
-  const chartData = [
-    { name: 'Mon', revenue: 4200 },
-    { name: 'Tue', revenue: 6800 },
-    { name: 'Wed', revenue: 5100 },
-    { name: 'Thu', revenue: 8400 },
-    { name: 'Fri', revenue: 9900 },
-    { name: 'Sat', revenue: 12500 },
-    { name: 'Sun', revenue: 11000 },
-  ];
+  const grossRevenue = Number(summary.totalRevenue || summary.totalSales || 0);
+  const totalOrders = Number(summary.totalOrders || 0);
+  const totalCustomers = Number(summary.totalCustomers || 0);
+
+  const chartData = summary.chartData?.length
+    ? summary.chartData.map((c: any) => ({
+        name: c.month || c.name || 'Period',
+        revenue: Number(c.sales || c.revenue || 0),
+      }))
+    : [{ name: 'Current', revenue: grossRevenue }];
 
   const handleExportCSV = () => {
-    const csvContent = 'data:text/csv;charset=utf-8,Day,Revenue\nMon,4200\nTue,6800\nWed,5100\nThu,8400\nFri,9900\nSat,12500\nSun,11000';
+    const csvContent = `data:text/csv;charset=utf-8,Gross Revenue,Total Orders,Total Customers\n${grossRevenue},${totalOrders},${totalCustomers}`;
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
@@ -46,10 +47,10 @@ export const ReportsPage: React.FC = () => {
             <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
               <Box>
                 <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-                  WEEKLY REVENUE
+                  GROSS REVENUE
                 </Typography>
                 <Typography variant="h5" sx={{ fontWeight: 800, mt: 0.5 }}>
-                  {formatCurrency(57900)}
+                  {formatCurrency(grossRevenue)}
                 </Typography>
               </Box>
               <DollarSign size={28} color="#2563EB" />
@@ -65,9 +66,13 @@ export const ReportsPage: React.FC = () => {
                   ORDERS PROCESSED
                 </Typography>
                 <Typography variant="h5" sx={{ fontWeight: 800, mt: 0.5 }}>
-                  642
+                  {totalOrders.toLocaleString()}
                 </Typography>
               </Box>
+              <ShoppingBag size={28} color="#10B981" />
+            </Stack>
+          </Paper>
+        </Grid>
               <ShoppingBag size={28} color="#10B981" />
             </Stack>
           </Paper>

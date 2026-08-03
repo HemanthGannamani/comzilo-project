@@ -429,11 +429,23 @@ export const SubscriptionPage: React.FC = () => {
             }
           />
         </Box>
-
         <Grid container spacing={3}>
           {plans.map((plan: any) => {
-            const isCurrent = currentPlan.id === plan.id;
-            const price = billingCycle === 'yearly' ? plan.priceYearly : plan.priceMonthly;
+            // Check if this plan tier matches active subscription
+            const isMatchingTier =
+              Number(currentPlan?.id) === Number(plan?.id) ||
+              (currentPlan?.code && plan?.code && String(currentPlan.code).toLowerCase() === String(plan.code).toLowerCase()) ||
+              (currentPlan?.name && plan?.name && String(currentPlan.name).toLowerCase().trim() === String(plan.name).toLowerCase().trim());
+
+            // ONLY display CURRENT PLAN badge if the merchant actually has THIS billing cycle active!
+            const userActiveCycle = (currentSub?.billingCycle || 'monthly').toLowerCase();
+            const isCurrentPlan = isMatchingTier && userActiveCycle === billingCycle.toLowerCase();
+
+            // Price calculation - Keep exact plan charges from DB
+            const monthlyPrice = Number(plan.priceMonthly || plan.price || 0);
+            const yearlyPrice = Number(plan.priceYearly || plan.priceYearlyTotal || (monthlyPrice * 12 * 0.8));
+            const price = billingCycle === 'yearly' ? yearlyPrice.toFixed(2) : monthlyPrice.toFixed(2);
+            const unitLabel = billingCycle === 'yearly' ? '/ year' : '/ month';
 
             return (
               <Grid item xs={12} md={4} key={plan.id}>
@@ -441,19 +453,19 @@ export const SubscriptionPage: React.FC = () => {
                   sx={{
                     borderRadius: 3,
                     position: 'relative',
-                    border: isCurrent ? '2px solid #3b82f6' : '1px solid rgba(255,255,255,0.1)',
-                    boxShadow: isCurrent ? '0 10px 30px rgba(59,130,246,0.15)' : 'none',
+                    border: isCurrentPlan ? '2px solid #2563EB' : '1px solid #E2E8F0',
+                    boxShadow: isCurrentPlan ? '0 10px 30px rgba(37,99,235,0.12)' : 'none',
                     height: '100%',
                     display: 'flex',
                     flexDirection: 'column',
                   }}
                 >
-                  {isCurrent && (
+                  {isCurrentPlan && (
                     <Chip
                       label="CURRENT PLAN"
                       color="primary"
                       size="small"
-                      sx={{ position: 'absolute', top: 16, right: 16, fontWeight: 'bold' }}
+                      sx={{ position: 'absolute', top: 16, right: 16, fontWeight: 800, fontSize: 11 }}
                     />
                   )}
 
@@ -466,11 +478,11 @@ export const SubscriptionPage: React.FC = () => {
                     </Typography>
 
                     <Box mb={3}>
-                      <Typography variant="h4" fontWeight="extrabold" component="span">
+                      <Typography variant="h4" fontWeight="extrabold" component="span" sx={{ color: '#0F172A' }}>
                         ₹{price}
                       </Typography>
                       <Typography variant="body2" color="text.secondary" component="span" ml={1}>
-                        / {billingCycle === 'yearly' ? 'year' : 'month'}
+                        {unitLabel}
                       </Typography>
                     </Box>
 
@@ -483,19 +495,19 @@ export const SubscriptionPage: React.FC = () => {
                       <Box display="flex" alignItems="center" gap={1}>
                         <CheckCircle2 size={16} color="#22c55e" />
                         <Typography variant="body2">
-                          <b>{plan.warehouseLimit || plan.warehouse_limit}</b> Warehouses
+                          <b>{plan.warehouseLimit || plan.warehouse_limit || 3}</b> Warehouses
                         </Typography>
                       </Box>
                       <Box display="flex" alignItems="center" gap={1}>
                         <CheckCircle2 size={16} color="#22c55e" />
                         <Typography variant="body2">
-                          <b>{plan.userLimit || plan.user_limit}</b> Staff Accounts
+                          <b>{plan.userLimit || plan.user_limit || 15}</b> Staff Accounts
                         </Typography>
                       </Box>
                       <Box display="flex" alignItems="center" gap={1}>
                         <CheckCircle2 size={16} color="#22c55e" />
                         <Typography variant="body2">
-                          <b>{plan.storeLimit || plan.store_limit}</b> Storefronts
+                          <b>{plan.storeLimit || plan.store_limit || 3}</b> Storefronts
                         </Typography>
                       </Box>
 
@@ -512,14 +524,18 @@ export const SubscriptionPage: React.FC = () => {
                   <Box p={3} pt={0}>
                     <Button
                       fullWidth
-                      variant={isCurrent ? 'outlined' : 'contained'}
+                      variant={isCurrentPlan ? 'outlined' : 'contained'}
                       color="primary"
-                      disabled={isCurrent && !isExpired}
+                      disabled={isCurrentPlan && !isExpired}
                       onClick={() => handleSubscribe(plan)}
                       startIcon={checkoutLoading === plan.id ? <CircularProgress size={18} /> : <Zap size={18} />}
                       sx={{ py: 1.2, borderRadius: 2, fontWeight: 'bold' }}
                     >
-                      {isCurrent ? (isExpired ? 'Renew Plan' : 'Active Plan') : 'Subscribe / Upgrade'}
+                      {isCurrentPlan && !isExpired
+                        ? 'Current Plan'
+                        : billingCycle === 'yearly'
+                        ? `Subscribe Annual (₹${price}/yr)`
+                        : `Subscribe Monthly (₹${price}/mo)`}
                     </Button>
                   </Box>
                 </Card>

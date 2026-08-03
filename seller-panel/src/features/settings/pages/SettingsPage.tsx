@@ -47,8 +47,8 @@ export const SettingsPage: React.FC = () => {
       setFirstName(profile.firstName || authUser?.firstName || 'Chowdary');
       setLastName(profile.lastName || authUser?.lastName || 'Traders');
       setEmail(profile.email || authUser?.email || 'maddipativikas130@gmail.com');
-      setPhone(profile.phone || profile.mobile || authUser?.phone || authUser?.mobile || '+919876543210');
-      const img = profile.avatarUrl || profile.profileImage || profile.avatar || authUser?.avatarUrl || authUser?.profileImage || null;
+      setPhone(profile.phone || profile.mobile || (authUser as any)?.phone || (authUser as any)?.mobile || '+919876543210');
+      const img = profile.avatarUrl || profile.profileImage || profile.avatar || (authUser as any)?.avatarUrl || (authUser as any)?.profileImage || null;
       if (img) setAvatarPreview(img);
     }
   }, [profileResponse, authUser]);
@@ -182,7 +182,7 @@ export const SettingsPage: React.FC = () => {
               }}
             >
               <Avatar
-                src={avatarPreview || authUser?.avatarUrl || authUser?.profileImage || undefined}
+                src={avatarPreview || (authUser as any)?.avatarUrl || (authUser as any)?.profileImage || undefined}
                 imgProps={{ style: { objectFit: 'cover' } }}
                 sx={{
                   width: 80,

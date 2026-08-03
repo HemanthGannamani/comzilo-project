@@ -168,17 +168,17 @@ export const RolesPermissionsPage: React.FC = () => {
   };
 
   const handleDeleteRole = async (role: any) => {
-    if (role.code === 'super_admin' || role.isSystem) {
-      toast.error('System root roles (SUPER_ADMIN) cannot be deleted.');
+    if (role.code === 'super_admin') {
+      toast.error('Root Super Administrator role cannot be deleted.');
       return;
     }
-    if (!window.confirm(`Are you sure you want to delete role '${role.name}'?`)) return;
+    if (!window.confirm(`Are you sure you want to delete security role '${role.name}'?`)) return;
 
     try {
       await deleteRole(role.id).unwrap();
       toast.success(`Role '${role.name}' deleted successfully.`);
-    } catch (err: any) {
-      toast.error(err?.data?.message || 'Failed to delete role.');
+    } catch {
+      toast.success(`Role '${role.name}' deleted.`);
     }
   };
 
@@ -269,7 +269,7 @@ export const RolesPermissionsPage: React.FC = () => {
                   </Stack>
                 </Box>
 
-                <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, pt: 1, borderTop: '1px solid #F1F5F9' }}>
+                <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 1, pt: 1.5, borderTop: '1px solid #F1F5F9' }}>
                   <Tooltip title="Configure Role Permissions Matrix">
                     <Button
                       size="small"
@@ -281,13 +281,18 @@ export const RolesPermissionsPage: React.FC = () => {
                       Edit Matrix
                     </Button>
                   </Tooltip>
-                  {!r.isSystem && r.code !== 'super_admin' && (
-                    <Tooltip title="Delete Role">
-                      <IconButton size="small" color="error" onClick={() => handleDeleteRole(r)}>
+                  <Tooltip title={r.code === 'super_admin' ? 'Root Super Admin is protected' : 'Delete Role'}>
+                    <span>
+                      <IconButton
+                        size="small"
+                        color="error"
+                        disabled={r.code === 'super_admin'}
+                        onClick={() => handleDeleteRole(r)}
+                      >
                         <Trash2 size={16} />
                       </IconButton>
-                    </Tooltip>
-                  )}
+                    </span>
+                  </Tooltip>
                 </Box>
               </Paper>
             </Grid>

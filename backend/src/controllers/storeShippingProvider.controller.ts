@@ -156,4 +156,81 @@ export class StoreShippingProviderController {
       next(error);
     }
   };
+
+  public deleteZone = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const tenantId = req.context.tenantId!;
+      const { id } = req.params;
+      await shippingService.deleteZone(tenantId, id);
+      success(res, 'Shipping zone deleted successfully');
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public deleteMethod = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const tenantId = req.context.tenantId!;
+      const { id } = req.params;
+      await shippingService.deleteMethod(tenantId, id);
+      success(res, 'Shipping method deleted successfully');
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public deletePickupAddress = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const tenantId = req.context.tenantId!;
+      const { id } = req.params;
+      await shippingService.deletePickupAddress(tenantId, id);
+      success(res, 'Pickup address deleted successfully');
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public deletePackage = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const tenantId = req.context.tenantId!;
+      const { id } = req.params;
+      await shippingService.deletePackage(tenantId, id);
+      success(res, 'Package deleted successfully');
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public deleteShipment = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const tenantId = req.context.tenantId!;
+      const { id } = req.params;
+      await shippingService.deleteShipment(tenantId, id);
+      success(res, 'Shipment deleted successfully');
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public deleteLog = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const tenantId = req.context.tenantId!;
+      const { id } = req.params;
+      await shippingService.deleteLog(tenantId, Number(id));
+      success(res, 'Log deleted successfully');
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public deleteProvider = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const tenantId = req.context.tenantId!;
+      const { id } = req.params;
+      await shippingService.deleteProvider(tenantId, id);
+      success(res, 'Shipping provider deleted successfully');
+    } catch (error) {
+      next(error);
+    }
+  };
 }

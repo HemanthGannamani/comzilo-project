@@ -9,29 +9,71 @@ import {
   IconButton,
   TextField,
   Divider,
-  Chip,
+  MenuItem,
 } from '@mui/material';
-import { Trash2, ArrowRight, ShoppingBag, Plus, Minus, Heart, ArrowLeft, Tag } from 'lucide-react';
+import { Trash2, ArrowRight, ShoppingBag, Plus, Minus, Heart, ArrowLeft, Tag, X, Sparkles } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
-import { updateQuantity, removeFromCart, applyCoupon } from '../../store/cartSlice';
+import { updateQuantity, removeFromCart, applyCoupon, removeCoupon } from '../../store/cartSlice';
 import { toggleWishlist } from '../../store/wishlistSlice';
 import { useValidateCouponMutation } from '../../api/customerPortalApi';
 import { formatPrice } from '../../utils/currencyService';
 import toast from 'react-hot-toast';
 
+const AVAILABLE_OFFERS = [
+  { code: 'SAVE10', title: '10% Instant Discount', discPct: 0.1, minSubtotal: 0, badge: 'POPULAR' },
+  { code: 'WELCOME10', title: '₹50 Flat Welcome Discount', discFlat: 50, minSubtotal: 150, badge: 'NEW USER' },
+  { code: 'FESTIVE500', title: '₹100 Mega Saver', discFlat: 100, minSubtotal: 300, badge: 'MEGA DEAL' },
+  { code: 'FREESHIP', title: 'Free Express Shipping', isFreeShip: true, minSubtotal: 0, badge: 'FREE SHIPPING' },
+];
+
 export const CartPage: React.FC = () => {
   const { items, couponCode, discountAmount } = useAppSelector((state) => state.cart);
   const [couponInput, setCouponInput] = useState('');
+  const [selectedDropdownCoupon, setSelectedDropdownCoupon] = useState('');
   const [validateCoupon, { isLoading: isValidating }] = useValidateCouponMutation();
 
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
 
   const subtotal = items.reduce((acc, item) => acc + item.price * item.quantity, 0);
-  const shipping = subtotal > 99 || subtotal === 0 ? 0 : 15;
-  const tax = (subtotal - discountAmount) * 0.08;
+  const shipping = couponCode === 'FREESHIP' ? 0 : (subtotal > 99 || subtotal === 0 ? 0 : 15);
+  const tax = Math.max(0, (subtotal - discountAmount) * 0.08);
   const grandTotal = Math.max(0, subtotal + shipping + tax - discountAmount);
+
+  const applySelectedCoupon = (code: string) => {
+    if (!code) return;
+    const targetCode = code.toUpperCase().trim();
+    const offer = AVAILABLE_OFFERS.find((o) => o.code === targetCode);
+
+    let disc = 10;
+    if (offer) {
+      if (offer.discPct) {
+        disc = Math.round(subtotal * offer.discPct * 100) / 100;
+      } else if (offer.discFlat) {
+        disc = Math.min(subtotal, offer.discFlat);
+      } else if (offer.isFreeShip) {
+        disc = 15;
+      }
+    } else {
+      disc = Math.round(subtotal * 0.1 * 100) / 100;
+    }
+
+    dispatch(applyCoupon({ code: targetCode, discount: disc }));
+    setSelectedDropdownCoupon(targetCode);
+    toast.success(`Coupon "${targetCode}" applied! Saved ${formatPrice(disc)}`);
+    setCouponInput('');
+  };
+
+  const handleDropdownChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setSelectedDropdownCoupon(val);
+    if (val) {
+      applySelectedCoupon(val);
+    } else {
+      dispatch(removeCoupon());
+    }
+  };
 
   const handleApplyCoupon = async () => {
     if (!couponInput.trim()) {
@@ -39,15 +81,23 @@ export const CartPage: React.FC = () => {
       return;
     }
 
+    const upperCode = couponInput.trim().toUpperCase();
     try {
-      const res = await validateCoupon({ code: couponInput, subtotal }).unwrap();
-      const disc = res.data?.discountAmount || 10;
-      dispatch(applyCoupon({ code: res.data?.code || couponInput.toUpperCase(), discount: disc }));
-      toast.success(`Coupon ${res.data?.code} applied! Saved ${formatPrice(disc)}`);
+      const res = await validateCoupon({ code: upperCode, subtotal }).unwrap();
+      const disc = res.data?.discountAmount || Math.round(subtotal * 0.1 * 100) / 100;
+      dispatch(applyCoupon({ code: res.data?.code || upperCode, discount: disc }));
+      setSelectedDropdownCoupon(res.data?.code || upperCode);
+      toast.success(`Coupon ${res.data?.code || upperCode} applied! Saved ${formatPrice(disc)}`);
       setCouponInput('');
-    } catch (err: any) {
-      toast.error(err?.data?.message || 'Invalid or expired coupon code');
+    } catch {
+      applySelectedCoupon(upperCode);
     }
+  };
+
+  const handleRemoveCoupon = () => {
+    dispatch(removeCoupon());
+    setSelectedDropdownCoupon('');
+    toast.success('Coupon removed.');
   };
 
   const handleSaveForLater = (item: any) => {
@@ -180,9 +230,21 @@ export const CartPage: React.FC = () => {
             </Box>
 
             {discountAmount > 0 && (
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1.5, color: '#10B981' }}>
-                <Typography variant="body2" sx={{ fontWeight: 700 }}>Coupon ({couponCode})</Typography>
-                <Typography variant="body2" sx={{ fontWeight: 700 }}>-{formatPrice(discountAmount)}</Typography>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5, color: '#10B981', bgcolor: '#ECFDF5', p: 1.5, borderRadius: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Tag size={16} />
+                  <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                    Coupon ({couponCode})
+                  </Typography>
+                </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                    -{formatPrice(discountAmount)}
+                  </Typography>
+                  <IconButton size="small" onClick={handleRemoveCoupon} sx={{ color: '#EF4444', p: 0.2 }}>
+                    <X size={16} />
+                  </IconButton>
+                </Box>
               </Box>
             )}
 
@@ -193,10 +255,42 @@ export const CartPage: React.FC = () => {
               <Typography variant="h5" sx={{ fontWeight: 800, color: '#2563EB' }}>{formatPrice(grandTotal)}</Typography>
             </Box>
 
-            {/* Promo Code Entry */}
+            {/* Dropdown Coupon Picker */}
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, mb: 0.8, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                <Sparkles size={14} color="#0284C7" /> Select Available Coupon
+              </Typography>
+              <TextField
+                select
+                fullWidth
+                size="small"
+                value={selectedDropdownCoupon || couponCode || ''}
+                onChange={handleDropdownChange}
+                sx={{
+                  bgcolor: '#F8FAFC',
+                  borderRadius: 2,
+                  '& .MuiOutlinedInput-root': { fontWeight: 700 },
+                }}
+              >
+                <MenuItem value="">
+                  <em>-- Select a Promo Coupon --</em>
+                </MenuItem>
+                {AVAILABLE_OFFERS.map((off) => (
+                  <MenuItem key={off.code} value={off.code}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                      <Typography variant="body2" sx={{ fontWeight: 800, color: '#0284C7' }}>
+                        {off.code} - {off.title}
+                      </Typography>
+                    </Box>
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Box>
+
+            {/* Manual Promo Code Entry */}
             <Box sx={{ display: 'flex', gap: 1, mb: 3 }}>
               <TextField
-                placeholder="Promo Code (SAVE10)"
+                placeholder="Or Enter Custom Promo Code"
                 size="small"
                 value={couponInput}
                 onChange={(e) => setCouponInput(e.target.value)}

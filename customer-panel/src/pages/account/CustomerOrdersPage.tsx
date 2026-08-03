@@ -18,8 +18,10 @@ import {
   CircularProgress,
   MenuItem,
   Alert,
+  Card,
+  Stack,
 } from '@mui/material';
-import { Package, Truck, XCircle, Search, Eye, Download, AlertTriangle } from 'lucide-react';
+import { Package, Truck, XCircle, Search, Eye, Download, AlertTriangle, Share2 } from 'lucide-react';
 import { CustomerAccountLayout } from '../../components/layout/CustomerAccountLayout';
 import { OrderNavigationMap } from '../../components/common/OrderNavigationMap';
 import { useGetMyOrdersQuery, useGetMyOrderDetailsQuery, useCancelMyOrderMutation } from '../../api/customerPortalApi';
@@ -28,23 +30,20 @@ import { useSearchParams } from 'react-router-dom';
 import { formatPrice } from '../../utils/currencyService';
 
 const CANCELLATION_REASONS = [
-  'Ordered by mistake',
+  'Order created by mistake',
   'Found a better price elsewhere',
-  'Delivery time is too long',
-  'Need to change shipping address or items',
-  'Duplicate order placed',
-  'Payment or pricing issue',
-  'Other reason',
+  'Item will not arrive in time',
+  'Incorrect shipping address selected',
+  'Payment or discount code issue',
+  'Other',
 ];
 
 export const CustomerOrdersPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const selectedIdFromUrl = searchParams.get('id');
+  const initialOrderId = searchParams.get('id') ? Number(searchParams.get('id')) : null;
 
   const [search, setSearch] = useState('');
-  const [selectedOrderId, setSelectedOrderId] = useState<number | null>(
-    selectedIdFromUrl ? Number(selectedIdFromUrl) : null
-  );
+  const [selectedOrderId, setSelectedOrderId] = useState<number | null>(initialOrderId);
 
   // Cancellation Modal State
   const [cancellingOrder, setCancellingOrder] = useState<any | null>(null);
@@ -95,8 +94,8 @@ export const CustomerOrdersPage: React.FC = () => {
 
   return (
     <CustomerAccountLayout>
-      <Paper sx={{ p: 4, borderRadius: 3, border: '1px solid #E2E8F0', boxShadow: 'none', mb: 4 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
+      <Paper sx={{ p: 3.5, borderRadius: 3, border: '1px solid #E2E8F0', boxShadow: 'none', mb: 4 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3.5, flexWrap: 'wrap', gap: 2 }}>
           <Typography variant="h5" sx={{ fontWeight: 800, color: '#0F172A' }}>
             My Orders & Tracking
           </Typography>
@@ -121,62 +120,81 @@ export const CustomerOrdersPage: React.FC = () => {
             No orders found in your account history.
           </Typography>
         ) : (
-          <List disablePadding>
-            {orders.map((ord: any, idx: number) => (
-              <React.Fragment key={ord.id}>
-                {idx > 0 && <Divider sx={{ my: 2 }} />}
-                <ListItem sx={{ px: 0, display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center' }}>
-                  <Box sx={{ p: 1.5, bgcolor: ord.status === 'cancelled' ? '#FEF2F2' : '#EFF6FF', borderRadius: 2 }}>
-                    <Package size={24} color={ord.status === 'cancelled' ? '#DC2626' : '#2563EB'} />
-                  </Box>
-                  <ListItemText
-                    primary={
-                      <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {orders.map((ord: any) => (
+              <Card
+                key={ord.id}
+                elevation={0}
+                sx={{
+                  p: 2.5,
+                  borderRadius: 3,
+                  border: '1px solid #E2E8F0',
+                  bgcolor: '#FFFFFF',
+                  transition: 'all 0.2s ease-in-out',
+                  '&:hover': {
+                    borderColor: '#CBD5E1',
+                    boxShadow: '0 4px 16px rgba(0,0,0,0.04)',
+                  },
+                }}
+              >
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, minWidth: 260 }}>
+                    <Box sx={{ width: 44, height: 44, borderRadius: 2.5, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: ord.status === 'cancelled' ? '#FEF2F2' : '#EFF6FF', color: ord.status === 'cancelled' ? '#DC2626' : '#2563EB', flexShrink: 0 }}>
+                      <Package size={22} />
+                    </Box>
+                    <Box>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#0F172A', lineHeight: 1.2 }}>
                         Order #{ord.orderNumber}
                       </Typography>
-                    }
-                    secondary={`Placed on ${new Date(ord.createdAt).toLocaleDateString()} • Items: ${ord.items?.length || 1}`}
-                  />
-                  <Typography variant="h6" sx={{ fontWeight: 800, color: ord.status === 'cancelled' ? '#DC2626' : '#2563EB' }}>
-                    {formatPrice(ord.totalAmount)}
-                  </Typography>
-                  <Chip
-                    label={ord.status.toUpperCase()}
-                    color={ord.status === 'completed' || ord.status === 'delivered' ? 'success' : ord.status === 'cancelled' ? 'error' : 'primary'}
-                    size="small"
-                    sx={{ fontWeight: 700 }}
-                  />
+                      <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                        Placed on {new Date(ord.createdAt).toLocaleDateString()} • {ord.items?.length || 1} Item(s)
+                      </Typography>
+                    </Box>
+                  </Box>
 
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    startIcon={<Eye size={14} />}
-                    onClick={() => {
-                      setSelectedOrderId(ord.id);
-                      setSearchParams({ id: String(ord.id) });
-                    }}
-                    sx={{ borderRadius: 2 }}
-                  >
-                    View Details
-                  </Button>
-
-                  {isCancellable(ord.status) && (
-                    <Button
-                      variant="outlined"
-                      color="error"
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, ml: 'auto', flexWrap: 'wrap' }}>
+                    <Typography variant="h6" sx={{ fontWeight: 800, color: ord.status === 'cancelled' ? '#DC2626' : '#2563EB' }}>
+                      {formatPrice(ord.totalAmount)}
+                    </Typography>
+                    <Chip
+                      label={ord.status.toUpperCase()}
+                      color={ord.status === 'completed' || ord.status === 'delivered' ? 'success' : ord.status === 'cancelled' ? 'error' : 'primary'}
                       size="small"
-                      startIcon={<XCircle size={14} />}
-                      onClick={() => handleOpenCancelDialog(ord)}
-                      disabled={isCancelling}
-                      sx={{ borderRadius: 2, fontWeight: 700 }}
-                    >
-                      Cancel Order
-                    </Button>
-                  )}
-                </ListItem>
-              </React.Fragment>
+                      sx={{ fontWeight: 800, fontSize: '0.72rem', px: 0.5 }}
+                    />
+                    <Stack direction="row" spacing={1.5} alignItems="center">
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        startIcon={<Eye size={14} />}
+                        onClick={() => {
+                          setSelectedOrderId(ord.id);
+                          setSearchParams({ id: String(ord.id) });
+                        }}
+                        sx={{ borderRadius: 2, fontWeight: 700, textTransform: 'none', px: 1.8 }}
+                      >
+                        View Details
+                      </Button>
+
+                      {isCancellable(ord.status) && (
+                        <Button
+                          variant="outlined"
+                          color="error"
+                          size="small"
+                          startIcon={<XCircle size={14} />}
+                          onClick={() => handleOpenCancelDialog(ord)}
+                          disabled={isCancelling}
+                          sx={{ borderRadius: 2, fontWeight: 700, textTransform: 'none', px: 1.8 }}
+                        >
+                          Cancel Order
+                        </Button>
+                      )}
+                    </Stack>
+                  </Box>
+                </Box>
+              </Card>
             ))}
-          </List>
+          </Box>
         )}
       </Paper>
 
@@ -274,6 +292,19 @@ export const CustomerOrdersPage: React.FC = () => {
                 </Box>
                 <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
                   <Chip label={`Payment: ${selectedOrder.paymentStatus}`} color={selectedOrder.status === 'cancelled' ? 'error' : 'success'} sx={{ fontWeight: 700 }} />
+                  <Button
+                    variant="outlined"
+                    color="success"
+                    size="small"
+                    startIcon={<Share2 size={14} />}
+                    onClick={() => {
+                      const text = encodeURIComponent(`🛒 Order Details for #${selectedOrder.orderNumber}\nStatus: ${selectedOrder.status}\nTotal: ₹${selectedOrder.totalAmount}\nTrack here: ${window.location.origin}/order-confirmation?orderNumber=${selectedOrder.orderNumber}`);
+                      window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
+                    }}
+                    sx={{ fontWeight: 700, borderColor: '#25D366', color: '#16A34A', '&:hover': { bgcolor: '#F0FDF4' } }}
+                  >
+                    Share on WhatsApp
+                  </Button>
                   {isCancellable(selectedOrder.status) && (
                     <Button
                       variant="contained"

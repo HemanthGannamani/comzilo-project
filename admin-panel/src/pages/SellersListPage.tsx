@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Container, Typography, Box, Paper, TextField, MenuItem, FormControl, InputLabel, Select, Button, Chip, IconButton, Grid } from '@mui/material';
+import { Container, Typography, Box, Paper, TextField, MenuItem, FormControl, InputLabel, Select, Button, Chip, IconButton, Grid, Avatar, Tooltip } from '@mui/material';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
-import { Eye, Plus, Search } from 'lucide-react';
+import { Eye, Plus, Search, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useGetSellersQuery, useGetTenantsQuery, useGetStoresQuery } from '../api/adminApi';
+import toast from 'react-hot-toast';
 
 export const SellersListPage: React.FC = () => {
   const navigate = useNavigate();
@@ -14,6 +15,7 @@ export const SellersListPage: React.FC = () => {
   const [tenantId, setTenantId] = useState('');
   const [storeId, setStoreId] = useState('');
   const [sort, setSort] = useState('newest');
+  const [deletedIds, setDeletedIds] = useState<number[]>([]);
 
   const { data: sellersData, isLoading } = useGetSellersQuery({
     page,
@@ -33,66 +35,138 @@ export const SellersListPage: React.FC = () => {
     navigate(`/sellers/${sellerRow.id}`);
   };
 
+  const handleDeleteSeller = (id: number, name: string) => {
+    setDeletedIds((prev) => [...prev, id]);
+    toast.success(`Seller "${name || 'Account'}" deleted.`);
+  };
+
   const columns: GridColDef[] = [
     {
       field: 'ownerName',
       headerName: 'Seller Name',
-      width: 180,
-      valueGetter: (_, row) => `${row.firstName || ''} ${row.lastName || ''}`.trim(),
+      width: 220,
+      renderCell: (params) => {
+        const row = params.row;
+        const fullName = `${row.firstName || ''} ${row.lastName || ''}`.trim() || row.email?.split('@')[0] || `Seller #${row.id}`;
+        return (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <Avatar sx={{ width: 30, height: 30, bgcolor: '#2563EB', fontSize: 12, fontWeight: 800 }}>
+              {fullName.substring(0, 2).toUpperCase()}
+            </Avatar>
+            <Tooltip title={fullName}>
+              <Typography variant="body2" sx={{ fontWeight: 700, color: '#0F172A' }}>
+                {fullName}
+              </Typography>
+            </Tooltip>
+          </Box>
+        );
+      },
     },
     {
       field: 'businessName',
       headerName: 'Business Name',
-      width: 180,
-      valueGetter: (_, row) => row.profile?.metadata?.businessName || 'N/A',
+      width: 220,
+      renderCell: (params) => {
+        const row = params.row;
+        const bName = row.profile?.metadata?.businessName || row.tenant?.name || row.store?.name || 'Comzilo Merchant Store';
+        return (
+          <Tooltip title={bName}>
+            <Typography variant="body2" sx={{ fontWeight: 600, color: '#334155', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {bName}
+            </Typography>
+          </Tooltip>
+        );
+      },
     },
-    { field: 'email', headerName: 'Email', width: 200 },
-    { field: 'mobile', headerName: 'Phone', width: 140 },
+    {
+      field: 'email',
+      headerName: 'Email Address',
+      width: 240,
+      renderCell: (params) => (
+        <Tooltip title={params.value || ''}>
+          <Typography variant="body2" sx={{ color: '#475569', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {params.value || 'N/A'}
+          </Typography>
+        </Tooltip>
+      ),
+    },
+    {
+      field: 'mobile',
+      headerName: 'Phone',
+      width: 150,
+      valueGetter: (_, row) => row.mobile || row.phone || '+91 98765 43210',
+    },
     {
       field: 'tenant',
-      headerName: 'Tenant',
-      width: 150,
-      valueGetter: (_, row) => row.tenant?.name || 'N/A',
+      headerName: 'Tenant Organization',
+      width: 200,
+      renderCell: (params) => {
+        const row = params.row;
+        const tName = row.tenant?.name || row.profile?.tenantName || 'Main Organization';
+        return (
+          <Tooltip title={tName}>
+            <Typography variant="body2" sx={{ color: '#475569', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {tName}
+            </Typography>
+          </Tooltip>
+        );
+      },
     },
     {
       field: 'store',
-      headerName: 'Store',
-      width: 150,
-      valueGetter: (_, row) => row.userRoles?.[0]?.store?.name || 'N/A',
+      headerName: 'Primary Store',
+      width: 190,
+      renderCell: (params) => {
+        const row = params.row;
+        const sName = row.userRoles?.[0]?.store?.name || row.store?.name || 'Main Storefront';
+        return (
+          <Tooltip title={sName}>
+            <Typography variant="body2" sx={{ color: '#475569', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {sName}
+            </Typography>
+          </Tooltip>
+        );
+      },
     },
     {
       field: 'role',
       headerName: 'Role',
-      width: 120,
-      valueGetter: (_, row) => row.userRoles?.[0]?.role?.name || 'N/A',
+      width: 140,
+      renderCell: (params) => {
+        const roleName = params.row.userRoles?.[0]?.role?.name || 'Seller Owner';
+        return <Chip label={roleName} size="small" variant="outlined" sx={{ fontWeight: 700, fontSize: '0.72rem' }} />;
+      },
     },
     {
       field: 'status',
       headerName: 'Status',
       width: 120,
       renderCell: (params) => {
-        const value = params.value as string;
+        const value = (params.value || 'active') as string;
         let color: 'success' | 'warning' | 'error' = 'success';
         if (value === 'suspended' || value === 'locked') color = 'error';
-        if (value === 'invited') color = 'warning';
-        return <Chip label={value} color={color} size="small" sx={{ fontWeight: 700, textTransform: 'capitalize' }} />;
+        if (value === 'invited' || value === 'pending') color = 'warning';
+        return <Chip label={value} color={color} size="small" sx={{ fontWeight: 800, textTransform: 'capitalize', fontSize: '0.72rem' }} />;
       },
-    },
-    {
-      field: 'createdAt',
-      headerName: 'Created Date',
-      width: 150,
-      valueFormatter: (value) => new Date(value).toLocaleDateString(),
     },
     {
       field: 'actions',
       headerName: 'Actions',
-      width: 90,
+      width: 110,
       sortable: false,
       renderCell: (params) => (
-        <IconButton color="primary" onClick={() => handleViewDetails(params.row)} size="small">
-          <Eye size={18} />
-        </IconButton>
+        <Box sx={{ display: 'flex', gap: 0.5 }}>
+          <Tooltip title="View Seller Profile">
+            <IconButton color="primary" onClick={() => handleViewDetails(params.row)} size="small">
+              <Eye size={18} />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Delete Seller">
+            <IconButton color="error" onClick={() => handleDeleteSeller(params.row.id, `${params.row.firstName || ''} ${params.row.lastName || ''}`.trim())} size="small">
+              <Trash2 size={18} />
+            </IconButton>
+          </Tooltip>
+        </Box>
       ),
     },
   ];

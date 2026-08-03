@@ -98,7 +98,7 @@ export class SellerWalletService {
         `INSERT INTO seller_wallets 
           (uuid, tenant_id, store_id, total_balance, pending_balance, available_balance, total_withdrawn, currency, created_at, updated_at)
          VALUES 
-          (:uuid, :tenantId, :storeId, 5000.00, 1500.00, 3500.00, 0.00, 'INR', NOW(), NOW())`,
+          (:uuid, :tenantId, :storeId, 0.00, 0.00, 0.00, 0.00, 'INR', NOW(), NOW())`,
         {
           replacements: { uuid: walletUuid, tenantId, storeId },
           type: QueryTypes.INSERT,
@@ -112,6 +112,28 @@ export class SellerWalletService {
       rows = newWallet;
     }
 
+    const [bankAcc]: any = await sequelize.query(
+      `SELECT * FROM seller_bank_accounts WHERE tenant_id = :tenantId AND status = 'VERIFIED' ORDER BY id DESC LIMIT 1`,
+      { replacements: { tenantId }, type: QueryTypes.SELECT }
+    );
+
+    let bankDetails = null;
+    if (bankAcc) {
+      bankDetails = {
+        bankName: bankAcc.bank_name,
+        accountNumber: bankAcc.account_number,
+        ifscCode: bankAcc.ifsc_code,
+        accountHolderName: bankAcc.account_holder_name,
+      };
+    } else if (rows.account_number || rows.bank_name) {
+      bankDetails = {
+        bankName: rows.bank_name || '',
+        accountNumber: rows.account_number || '',
+        ifscCode: rows.ifsc_code || '',
+        accountHolderName: rows.account_holder_name || '',
+      };
+    }
+
     return {
       id: rows.id,
       uuid: rows.uuid,
@@ -122,12 +144,7 @@ export class SellerWalletService {
       availableBalance: Number(rows.available_balance || 0),
       totalWithdrawn: Number(rows.total_withdrawn || 0),
       currency: rows.currency || 'INR',
-      bankDetails: {
-        bankName: rows.bank_name || 'HDFC Bank Ltd',
-        accountNumber: rows.account_number || 'XXXX-XXXX-8890',
-        ifscCode: rows.ifsc_code || 'HDFC0001234',
-        accountHolderName: rows.account_holder_name || 'Comzilo Merchant',
-      },
+      bankDetails,
     };
   }
 

@@ -26,6 +26,7 @@ import {
   Building2,
   DollarSign,
   FileSpreadsheet,
+  Share2,
 } from 'lucide-react';
 import { PageContainer } from '../../components/layout/PageContainer';
 import { axiosInstance } from '../../api/axiosInstance';
@@ -199,12 +200,13 @@ export const SettlementReportsPage: React.FC = () => {
                 <TableCell sx={{ fontWeight: 800, textAlign: 'right' }}>Shipping Fee</TableCell>
                 <TableCell sx={{ fontWeight: 800, textAlign: 'right' }}>Net Seller Payout</TableCell>
                 <TableCell sx={{ fontWeight: 800 }}>Status</TableCell>
+                <TableCell sx={{ fontWeight: 800 }} align="right">Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {settlements.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={9} align="center" sx={{ py: 4 }}>
+                  <TableCell colSpan={10} align="center" sx={{ py: 4 }}>
                     No settlements executed yet. Click "Process Eligible Settlements" to run batch engine.
                   </TableCell>
                 </TableRow>
@@ -223,6 +225,21 @@ export const SettlementReportsPage: React.FC = () => {
                     </TableCell>
                     <TableCell>
                       <Chip label={s.status?.toUpperCase()} size="small" color="success" sx={{ fontWeight: 800 }} />
+                    </TableCell>
+                    <TableCell align="right">
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        color="success"
+                        startIcon={<Share2 size={14} />}
+                        onClick={() => {
+                          const text = encodeURIComponent(`📄 Settlement Statement #${s.settlement_number || s.settlementNumber}\nOrder #: ${s.order_number || s.order_id}\nNet Payout: INR ${Number(s.net_amount).toFixed(2)}\nStatus: ${s.status?.toUpperCase()}`);
+                          window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
+                        }}
+                        sx={{ fontWeight: 700, borderColor: '#25D366', color: '#16A34A', '&:hover': { bgcolor: '#F0FDF4' } }}
+                      >
+                        Share
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))

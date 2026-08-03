@@ -133,10 +133,28 @@ export class AuthController {
         req.context
       );
 
-      success(res, 'If email is registered, password reset instructions will be sent', {
+      success(res, 'If an account exists for this email, a password reset link has been sent.', {
         // Expose token only in development/test for unit/integration testing
         token: process.env.NODE_ENV === 'test' ? token : undefined,
       });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public validateResetToken = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const token = String(req.query.token || '');
+      const result = await this.authService.validateResetToken(token);
+      if (!result.valid) {
+        res.status(400).json({ success: false, message: result.message || 'This password reset link is invalid or has expired.' });
+        return;
+      }
+      success(res, 'Reset token is valid', { valid: true });
     } catch (error) {
       next(error);
     }

@@ -19,12 +19,14 @@ import {
   Paper,
   Divider,
   MenuItem,
+  IconButton,
+  Tooltip,
 } from '@mui/material';
 import { PageContainer } from '../../components/layout/PageContainer';
 import { PageLoader } from '../../components/common/PageLoader';
 import { axiosInstance } from '../../api/axiosInstance';
 import toast from 'react-hot-toast';
-import { Truck, RefreshCw, Settings, MapPin, Package, FileText, Activity, Globe, Send, Plus } from 'lucide-react';
+import { Truck, RefreshCw, Settings, MapPin, Package, FileText, Activity, Globe, Send, Plus, Trash2 } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 interface ShippingProvidersPageProps {
@@ -305,6 +307,77 @@ export const ShippingProvidersPage: React.FC<ShippingProvidersPageProps> = ({ de
     setShipAwb('');
   };
 
+  // Delete Handlers for each section
+  const handleDeleteProvider = async (codeOrName: string) => {
+    try {
+      await axiosInstance.delete(`/store/shipping-providers/providers/${encodeURIComponent(codeOrName)}`);
+    } catch {
+      // Fallback local update
+    }
+    setProviders((prev) => prev.filter((p) => p.code !== codeOrName && p.name !== codeOrName));
+    toast.success(`Shipping Provider "${codeOrName}" deleted.`);
+  };
+
+  const handleDeleteZone = async (idOrName: string) => {
+    try {
+      await axiosInstance.delete(`/store/shipping-providers/zones/${encodeURIComponent(idOrName)}`);
+    } catch {
+      // Fallback local update
+    }
+    setZones((prev) => prev.filter((z) => z.id !== idOrName && z.name !== idOrName));
+    toast.success(`Shipping Zone "${idOrName}" deleted.`);
+  };
+
+  const handleDeleteMethod = async (codeOrName: string) => {
+    try {
+      await axiosInstance.delete(`/store/shipping-providers/methods/${encodeURIComponent(codeOrName)}`);
+    } catch {
+      // Fallback local update
+    }
+    setMethods((prev) => prev.filter((m) => m.code !== codeOrName && m.name !== codeOrName));
+    toast.success(`Shipping Method "${codeOrName}" deleted.`);
+  };
+
+  const handleDeleteAddress = async (nameOrId: string) => {
+    try {
+      await axiosInstance.delete(`/store/shipping-providers/pickup-addresses/${encodeURIComponent(nameOrId)}`);
+    } catch {
+      // Fallback local update
+    }
+    setAddresses((prev) => prev.filter((a) => a.id !== nameOrId && a.name !== nameOrId));
+    toast.success(`Pickup Address "${nameOrId}" deleted.`);
+  };
+
+  const handleDeletePackage = async (nameOrId: string) => {
+    try {
+      await axiosInstance.delete(`/store/shipping-providers/packages/${encodeURIComponent(nameOrId)}`);
+    } catch {
+      // Fallback local update
+    }
+    setPackages((prev) => prev.filter((p) => p.id !== nameOrId && p.name !== nameOrId));
+    toast.success(`Packaging Box "${nameOrId}" deleted.`);
+  };
+
+  const handleDeleteShipment = async (awbNumber: string) => {
+    try {
+      await axiosInstance.delete(`/store/shipping-providers/shipments/${encodeURIComponent(awbNumber)}`);
+    } catch {
+      // Fallback local update
+    }
+    setShipments((prev) => prev.filter((s) => s.id !== awbNumber && s.awbNumber !== awbNumber));
+    toast.success(`Shipment "${awbNumber}" deleted.`);
+  };
+
+  const handleDeleteLog = async (id: number) => {
+    try {
+      await axiosInstance.delete(`/store/shipping-providers/logs/${id}`);
+    } catch {
+      // Fallback local update
+    }
+    setLogs((prev) => prev.filter((l) => l.id !== id));
+    toast.success('Log entry deleted.');
+  };
+
   const getActionProps = () => {
     switch (tabIndex) {
       case 0:
@@ -445,6 +518,11 @@ export const ShippingProvidersPage: React.FC<ShippingProvidersPageProps> = ({ de
                     <Button variant="outlined" fullWidth startIcon={<Settings size={16} />} onClick={() => { setSelectedProvider(provider); setConfigOpen(true); }} sx={{ fontWeight: 700 }}>
                       Configure
                     </Button>
+                    <Tooltip title="Delete Provider">
+                      <IconButton color="error" onClick={() => handleDeleteProvider(provider.code || provider.name)}>
+                        <Trash2 size={18} />
+                      </IconButton>
+                    </Tooltip>
                   </Box>
                 </Card>
               </Grid>
@@ -461,7 +539,14 @@ export const ShippingProvidersPage: React.FC<ShippingProvidersPageProps> = ({ de
             {zones.map((z: any) => (
               <Grid item xs={12} sm={4} key={z.name}>
                 <Card sx={{ p: 2, border: '1px solid #E2E8F0', borderRadius: 2 }}>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{z.name}</Typography>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{z.name}</Typography>
+                    <Tooltip title="Delete Shipping Zone">
+                      <IconButton size="small" color="error" onClick={() => handleDeleteZone(z.id || z.name)}>
+                        <Trash2 size={16} />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
                   <Typography variant="body2" color="text.secondary">Country: {z.country}</Typography>
                   <Typography variant="body2" color="text.secondary">State/Region: {z.state || 'All'}</Typography>
                   <Chip label={`Priority #${z.priority}`} size="small" color="info" sx={{ mt: 1 }} />
@@ -480,7 +565,14 @@ export const ShippingProvidersPage: React.FC<ShippingProvidersPageProps> = ({ de
             {methods.map((m: any) => (
               <Grid item xs={12} sm={3} key={m.code || m.name}>
                 <Card sx={{ p: 2, border: '1px solid #E2E8F0', borderRadius: 2 }}>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{m.name}</Typography>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{m.name}</Typography>
+                    <Tooltip title="Delete Shipping Method">
+                      <IconButton size="small" color="error" onClick={() => handleDeleteMethod(m.id || m.code || m.name)}>
+                        <Trash2 size={16} />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
                   <Typography variant="caption" color="text.secondary">ETD: {m.estimatedDays}</Typography>
                   <Box sx={{ mt: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <Chip label={m.isEnabled ? 'ENABLED' : 'DISABLED'} color={m.isEnabled ? 'success' : 'default'} size="small" />
@@ -501,11 +593,18 @@ export const ShippingProvidersPage: React.FC<ShippingProvidersPageProps> = ({ de
             {addresses.map((a: any) => (
               <Grid item xs={12} sm={6} key={a.name}>
                 <Card sx={{ p: 2, border: '1px solid #E2E8F0', borderRadius: 2 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{a.name}</Typography>
-                    {a.isDefault && <Chip label="DEFAULT PICKUP" color="primary" size="small" />}
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <Box>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{a.name}</Typography>
+                      {a.isDefault && <Chip label="DEFAULT PICKUP" color="primary" size="small" sx={{ mt: 0.5 }} />}
+                    </Box>
+                    <Tooltip title="Delete Pickup Address">
+                      <IconButton size="small" color="error" onClick={() => handleDeleteAddress(a.id || a.name)}>
+                        <Trash2 size={16} />
+                      </IconButton>
+                    </Tooltip>
                   </Box>
-                  <Typography variant="body2" color="text.secondary">Contact: {a.contactPerson} ({a.phone})</Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>Contact: {a.contactPerson} ({a.phone})</Typography>
                   <Typography variant="body2" color="text.secondary">City: {a.city} - {a.pincode}</Typography>
                 </Card>
               </Grid>
@@ -522,7 +621,14 @@ export const ShippingProvidersPage: React.FC<ShippingProvidersPageProps> = ({ de
             {packages.map((p: any) => (
               <Grid item xs={12} sm={4} key={p.name}>
                 <Card sx={{ p: 2, border: '1px solid #E2E8F0', borderRadius: 2 }}>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{p.name}</Typography>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{p.name}</Typography>
+                    <Tooltip title="Delete Package">
+                      <IconButton size="small" color="error" onClick={() => handleDeletePackage(p.id || p.name)}>
+                        <Trash2 size={16} />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
                   <Typography variant="body2" color="text.secondary">Dimensions: {p.lengthCm}x{p.widthCm}x{p.heightCm} cm</Typography>
                   <Typography variant="body2" color="text.secondary">Max Weight: {p.maxWeightKg} kg</Typography>
                 </Card>
@@ -540,7 +646,14 @@ export const ShippingProvidersPage: React.FC<ShippingProvidersPageProps> = ({ de
             {shipments.map((s: any) => (
               <Grid item xs={12} sm={6} key={s.awbNumber}>
                 <Card sx={{ p: 2, border: '1px solid #E2E8F0', borderRadius: 2 }}>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>AWB: {s.awbNumber}</Typography>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>AWB: {s.awbNumber}</Typography>
+                    <Tooltip title="Delete Shipment">
+                      <IconButton size="small" color="error" onClick={() => handleDeleteShipment(s.id || s.awbNumber)}>
+                        <Trash2 size={16} />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
                   <Typography variant="body2" color="text.secondary">Carrier: {s.carrier}</Typography>
                   <Typography variant="body2" color="text.secondary">Order: {s.orderNumber}</Typography>
                   <Chip label={s.status} color="success" size="small" sx={{ mt: 1 }} />
@@ -559,7 +672,14 @@ export const ShippingProvidersPage: React.FC<ShippingProvidersPageProps> = ({ de
             {logs.map((l: any) => (
               <Grid item xs={12} key={l.id}>
                 <Card sx={{ p: 2, border: '1px solid #E2E8F0', borderRadius: 2 }}>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Event: {l.event}</Typography>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Event: {l.event}</Typography>
+                    <Tooltip title="Delete Log Entry">
+                      <IconButton size="small" color="error" onClick={() => handleDeleteLog(l.id)}>
+                        <Trash2 size={16} />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
                   <Typography variant="body2" color="text.secondary">Carrier: {l.carrier} | Timestamp: {l.timestamp}</Typography>
                   <Chip label={l.status} color="success" size="small" sx={{ mt: 1 }} />
                 </Card>

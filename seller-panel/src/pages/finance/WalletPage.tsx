@@ -287,10 +287,10 @@ export const WalletPage: React.FC = () => {
             <Building2 size={28} color="#2563EB" />
             <Box>
               <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
-                Settlement Bank Account: {bankData.bankName}
+                Settlement Bank Account: {bankData?.bankName || 'Not Configured'}
               </Typography>
               <Typography variant="caption" color="text.secondary">
-                Account #: {bankData.accountNumber} • IFSC: {bankData.ifscCode} • Holder: {bankData.accountHolderName}
+                {bankData?.accountNumber ? `Account #: ${bankData.accountNumber} • IFSC: ${bankData.ifscCode} • Holder: ${bankData.accountHolderName}` : 'Add your settlement bank account details to enable withdrawals.'}
               </Typography>
             </Box>
           </Box>

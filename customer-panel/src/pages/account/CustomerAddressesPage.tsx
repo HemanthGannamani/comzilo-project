@@ -185,7 +185,17 @@ export const CustomerAddressesPage: React.FC = () => {
       }
       setOpenModal(false);
     } catch (err: any) {
-      toast.error(err?.data?.message || 'Failed to save address');
+      const msg = err?.data?.message || err?.message || 'Failed to save address';
+      if (msg === 'Token expired' || err?.status === 401) {
+        toast.error('Session expired. Redirecting to login...');
+        localStorage.removeItem('customer_access_token');
+        localStorage.removeItem('customer_refresh_token');
+        setTimeout(() => {
+          window.location.href = '/login?redirect=/account/addresses';
+        }, 1200);
+      } else {
+        toast.error(msg);
+      }
     }
   };
 

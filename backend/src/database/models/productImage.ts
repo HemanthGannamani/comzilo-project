@@ -53,11 +53,6 @@ ProductImage.init(
       allowNull: false,
       field: 'image_url',
     },
-    url: {
-      type: DataTypes.STRING(1000),
-      allowNull: true,
-      field: 'url',
-    },
     thumbnailUrl: {
       type: DataTypes.STRING(1000),
       allowNull: true,

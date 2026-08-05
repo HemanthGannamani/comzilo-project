@@ -14,14 +14,21 @@ interface CartState {
   discountAmount: number;
 }
 
+import { getProductImage } from '../utils/productImageService';
+
 const loadInitialCart = (): CartItem[] => {
   try {
     const stored = localStorage.getItem('customer_cart');
     if (!stored) return [];
     const parsed = JSON.parse(stored);
     if (!Array.isArray(parsed)) return [];
-    // Sanitize any stale mock cart items from previous testing sessions
-    return parsed.filter((item: any) => item && item.id && item.sku !== 'PROD-0074' && item.name !== 'QA Verified Physical Product');
+    // Sanitize and dynamically update item images from product data
+    return parsed
+      .filter((item: any) => item && item.id && item.sku !== 'PROD-0074' && item.name !== 'QA Verified Physical Product')
+      .map((item: any) => ({
+        ...item,
+        image: getProductImage(item),
+      }));
   } catch {
     return [];
   }

@@ -23,8 +23,8 @@ import {
   Chip,
   InputAdornment,
 } from '@mui/material';
-import { Search, ShoppingCart, Heart, Filter, PackageX, Globe } from 'lucide-react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Search, ShoppingCart, Heart, Filter, PackageX, Globe, Sparkles } from 'lucide-react';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { useGetProductsQuery } from '../../api/catalogApi';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { addToCart } from '../../store/cartSlice';
@@ -115,13 +115,21 @@ export const ProductListingPage: React.FC = () => {
     }
   };
 
+  const navigate = useNavigate();
+
   const handleAddToCart = (prod: any) => {
+    const isPod = prod.productType === 'print_on_demand' || prod.productTypeRecord?.code === 'print_on_demand' || (prod.sku && String(prod.sku).startsWith('POD-'));
+    if (isPod) {
+      navigate(`/products/${prod.id}`);
+      toast.success('🎨 Customization Required: Opening Design Studio!');
+      return;
+    }
     dispatch(
       addToCart({
         id: prod.id,
         name: prod.name,
         price: Number(prod.price),
-        image: prod.media?.[0]?.url || prod.image || '',
+        image: getProductImage(prod),
         quantity: 1,
       })
     );
@@ -319,15 +327,25 @@ export const ProductListingPage: React.FC = () => {
                       </Typography>
                     </CardContent>
                     <CardActions sx={{ p: 2, pt: 0 }}>
-                      <Button
-                        variant="contained"
-                        fullWidth
-                        startIcon={<ShoppingCart size={16} />}
-                        onClick={() => handleAddToCart(prod)}
-                        sx={{ fontWeight: 700, borderRadius: 2 }}
-                      >
-                        Add to Cart
-                      </Button>
+                      {(() => {
+                        const isPod = prod.productType === 'print_on_demand' || prod.productTypeRecord?.code === 'print_on_demand' || (prod.sku && String(prod.sku).startsWith('POD-'));
+                        return (
+                          <Button
+                            variant="contained"
+                            fullWidth
+                            color={isPod ? 'secondary' : 'primary'}
+                            startIcon={isPod ? <Sparkles size={16} /> : <ShoppingCart size={16} />}
+                            onClick={() => handleAddToCart(prod)}
+                            sx={{
+                              fontWeight: 800,
+                              borderRadius: 2,
+                              background: isPod ? 'linear-gradient(135deg, #6366F1 0%, #4F46E5 100%)' : undefined,
+                            }}
+                          >
+                            {isPod ? '🎨 CUSTOMIZE & DESIGN' : 'Add to Cart'}
+                          </Button>
+                        );
+                      })()}
                     </CardActions>
                   </Card>
                 </Grid>

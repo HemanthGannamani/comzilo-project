@@ -17,10 +17,14 @@ export class ReportService extends BaseService {
    */
   public async getDashboardSummary(tenantId: number, storeId: number | null): Promise<any> {
     const tId = tenantId || 1;
-    const sId = storeId || 1;
-    const replacements: any = { tenantId: tId, storeId: sId };
+    const replacements: any = { tenantId: tId };
+    if (storeId) {
+      replacements.storeId = storeId;
+    }
 
-    const storeCondition = '(tenant_id = :tenantId OR tenant_id = 1 OR store_id = :storeId OR store_id = 1 OR store_id IS NULL)';
+    const storeCondition = storeId
+      ? 'tenant_id = :tenantId AND (store_id = :storeId OR store_id IS NULL)'
+      : 'tenant_id = :tenantId';
 
     const [salesSummary]: any = await sequelize.query(
       `SELECT 
@@ -39,7 +43,7 @@ export class ReportService extends BaseService {
     const [customerSummary]: any = await sequelize.query(
       `SELECT COALESCE(COUNT(DISTINCT c.id), 0) AS totalCustomers
        FROM customers c
-       WHERE ${storeId ? 'c.store_id = :storeId' : 'c.tenant_id = :tenantId'} AND c.deleted_at IS NULL`,
+       WHERE c.tenant_id = :tenantId ${storeId ? 'AND c.store_id = :storeId' : ''} AND c.deleted_at IS NULL`,
       { replacements, type: QueryTypes.SELECT }
     );
 
@@ -114,7 +118,7 @@ export class ReportService extends BaseService {
   /**
    * Generates Sales Analytics Report.
    */
-  public async getSalesReport(tenantId: number, storeId: number, query: any): Promise<any> {
+  public async getSalesReport(tenantId: number, storeId: number | null, query: any): Promise<any> {
     const { startDate, endDate, period = 'daily' } = query;
 
     let groupClause = "DATE_FORMAT(created_at, '%Y-%m-%d')";
@@ -123,7 +127,10 @@ export class ReportService extends BaseService {
     if (period === 'yearly') groupClause = 'YEAR(created_at)';
 
     let dateWhere = '';
-    const replacements: any = { tenantId, storeId };
+    const replacements: any = { tenantId };
+    if (storeId) replacements.storeId = storeId;
+
+    const storeWhere = storeId ? 'AND store_id = :storeId' : '';
 
     if (startDate) {
       dateWhere += ' AND created_at >= :startDate';
@@ -144,7 +151,7 @@ export class ReportService extends BaseService {
          COALESCE(COUNT(id), 0) AS totalOrders,
          COALESCE(AVG(total_amount), 0) AS averageOrderValue
        FROM orders
-       WHERE tenant_id = :tenantId AND store_id = :storeId AND status != 'cancelled' AND deleted_at IS NULL ${dateWhere}
+       WHERE tenant_id = :tenantId ${storeWhere} AND status != 'cancelled' AND deleted_at IS NULL ${dateWhere}
        GROUP BY periodGroup
        ORDER BY periodGroup DESC`,
       { replacements, type: QueryTypes.SELECT }
@@ -191,12 +198,15 @@ export class ReportService extends BaseService {
   /**
    * Generates Product Performance Report.
    */
-  public async getProductReport(tenantId: number, storeId: number, query: any): Promise<any> {
+  public async getProductReport(tenantId: number, storeId: number | null, query: any): Promise<any> {
     const { sortBy = 'revenue', sortOrder = 'DESC', limit = 10 } = query;
 
     let orderClause = 'totalRevenue DESC';
     if (sortBy === 'units') orderClause = `totalQuantity ${sortOrder}`;
     if (sortBy === 'revenue') orderClause = `totalRevenue ${sortOrder}`;
+
+    const replacements: any = { tenantId, limit: Number(limit) };
+    if (storeId) replacements.storeId = storeId;
 
     const rows = await sequelize.query(
       `SELECT 
@@ -208,11 +218,11 @@ export class ReportService extends BaseService {
        FROM order_items oi
        JOIN products p ON oi.product_id = p.id
        JOIN orders o ON oi.order_id = o.id
-       WHERE o.tenant_id = :tenantId AND o.store_id = :storeId AND o.status != 'cancelled' AND o.deleted_at IS NULL
+       WHERE o.tenant_id = :tenantId ${storeId ? 'AND o.store_id = :storeId' : ''} AND o.status != 'cancelled' AND o.deleted_at IS NULL
        GROUP BY p.id, p.name, p.sku
        ORDER BY ${orderClause}
        LIMIT :limit`,
-      { replacements: { tenantId, storeId, limit: Number(limit) }, type: QueryTypes.SELECT }
+      { replacements, type: QueryTypes.SELECT }
     );
 
     return {
@@ -229,7 +239,7 @@ export class ReportService extends BaseService {
   /**
    * Generates Inventory Analytics Report.
    */
-  public async getInventoryReport(tenantId: number, storeId: number, query: any): Promise<any> {
+  public async getInventoryReport(tenantId: number, storeId: number | null, query: any): Promise<any> {
     const [summary]: any = await sequelize.query(
       `SELECT 
          COALESCE(SUM(ib.quantity_on_hand), 0) AS totalUnits,
@@ -284,7 +294,7 @@ export class ReportService extends BaseService {
   /**
    * Generates Customer Analytics Report.
    */
-  public async getCustomerReport(tenantId: number, storeId: number): Promise<any> {
+  public async getCustomerReport(tenantId: number, storeId: number | null): Promise<any> {
     const [customerStats]: any = await sequelize.query(
       `SELECT 
          COALESCE(COUNT(id), 0) AS totalCustomers
@@ -324,7 +334,7 @@ export class ReportService extends BaseService {
   /**
    * Generates Payment Analytics Report.
    */
-  public async getPaymentReport(tenantId: number, storeId: number): Promise<any> {
+  public async getPaymentReport(tenantId: number, storeId: number | null): Promise<any> {
     const methodBreakdown = await sequelize.query(
       `SELECT 
          payment_method AS paymentMethod,
@@ -357,7 +367,7 @@ export class ReportService extends BaseService {
   /**
    * Generates POS Analytics Report.
    */
-  public async getPOSReport(tenantId: number, storeId: number): Promise<any> {
+  public async getPOSReport(tenantId: number, storeId: number | null): Promise<any> {
     const registerSales = await sequelize.query(
       `SELECT 
          pr.id AS registerId,
@@ -407,7 +417,7 @@ export class ReportService extends BaseService {
   /**
    * Generates Marketing Performance Report.
    */
-  public async getMarketingReport(tenantId: number, storeId: number): Promise<any> {
+  public async getMarketingReport(tenantId: number, storeId: number | null): Promise<any> {
     const [campaignStats]: any = await sequelize.query(
       `SELECT COALESCE(COUNT(id), 0) AS totalCampaigns FROM marketing_campaigns WHERE tenant_id = :tenantId`,
       { replacements: { tenantId }, type: QueryTypes.SELECT }
@@ -432,7 +442,7 @@ export class ReportService extends BaseService {
   /**
    * Schedules automated report delivery.
    */
-  public async scheduleReport(tenantId: number, storeId: number, data: any): Promise<any> {
+  public async scheduleReport(tenantId: number, storeId: number | null, data: any): Promise<any> {
     return {
       id: Date.now(),
       tenantId,

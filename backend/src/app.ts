@@ -114,6 +114,9 @@ app.use('/api/v1/catalog', catalogRoutes);
 import marketingRoutes from './routes/marketing.routes';
 app.use('/api/v1/marketing', marketingRoutes);
 
+import podStudioRoutes from './routes/podStudio.routes';
+app.use('/api/v1/pod', podStudioRoutes);
+
 // Mount Tenant & Store Routes
 import tenantRoutes from './routes/tenant.routes';
 import storeRoutes from './routes/store.routes';

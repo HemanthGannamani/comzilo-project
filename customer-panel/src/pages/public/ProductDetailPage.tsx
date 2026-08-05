@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Container, Grid, Box, Typography, Button, Rating, Chip, Paper, Divider, TextField } from '@mui/material';
-import { ShoppingCart, Heart, ShieldCheck, Truck, RotateCcw } from 'lucide-react';
+import { ShoppingCart, Heart, ShieldCheck, Truck, RotateCcw, Sparkles } from 'lucide-react';
+import { PodStudioModal } from '../../components/pod/PodStudioModal';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useGetProductByIdQuery } from '../../api/catalogApi';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
@@ -22,10 +23,31 @@ export const ProductDetailPage: React.FC = () => {
   const product = data?.data || data;
   const isWishlisted = product ? wishlistItems.some((i: any) => String(i.id) === String(product.id)) : false;
 
+  const [isPodModalOpen, setIsPodModalOpen] = useState(false);
+
   const handleAddToCart = () => {
     if (!product) return;
+    const isPod = product.productType === 'print_on_demand' || product.productTypeRecord?.code === 'print_on_demand';
+    if (isPod) {
+      setIsPodModalOpen(true);
+      toast.success('🎨 Please configure your Front, Back, Left, and Right side artwork in the Studio!');
+      return;
+    }
     dispatch(addToCart({ id: product.id, name: product.name, price: product.price, image: getProductImage(product), quantity }));
     toast.success(`${quantity}x ${product.name} added to cart`);
+  };
+
+  const handleAddToCartCustomized = (customizedItem: any) => {
+    dispatch(
+      addToCart({
+        id: customizedItem.productId,
+        name: customizedItem.name,
+        price: customizedItem.price,
+        image: getProductImage(product),
+        quantity: 1,
+        customization: customizedItem.customization,
+      } as any)
+    );
   };
 
   const handleBuyNow = () => {
@@ -84,8 +106,8 @@ export const ProductDetailPage: React.FC = () => {
             Availability: <Chip label="IN STOCK" color="success" size="small" sx={{ ml: 1, fontWeight: 700 }} />
           </Typography>
 
-          {/* Quantity Selector */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 4 }}>
+          {/* Quantity Selector & Action Buttons */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2, flexWrap: 'wrap' }}>
             <TextField
               type="number"
               label="Qty"
@@ -119,9 +141,40 @@ export const ProductDetailPage: React.FC = () => {
               onClick={handleToggleWishlist}
               sx={{ p: 1.5, minWidth: 0, borderRadius: 2 }}
             >
-              <Heart size={20} fill={isWishlisted ? (isWishlisted ? '#FFFFFF' : '#DC2626') : 'none'} />
+              <Heart size={20} fill={isWishlisted ? '#DC2626' : 'none'} />
             </Button>
           </Box>
+
+          {/* LUMISE & PACKDORA 3D CUSTOMIZE BUTTON */}
+          <Box sx={{ mb: 4 }}>
+            <Button
+              variant="contained"
+              fullWidth
+              size="large"
+              startIcon={<Sparkles size={20} />}
+              onClick={() => setIsPodModalOpen(true)}
+              sx={{
+                py: 2,
+                fontWeight: 800,
+                borderRadius: 3,
+                background: 'linear-gradient(135deg, #6366F1 0%, #4F46E5 100%)',
+                boxShadow: '0 8px 24px rgba(99, 102, 241, 0.3)',
+                '&:hover': {
+                  background: 'linear-gradient(135deg, #4F46E5 0%, #4338CA 100%)',
+                },
+              }}
+            >
+              Customize & Design (2D Studio + 3D Packaging)
+            </Button>
+          </Box>
+
+          {/* POD STUDIO MODAL */}
+          <PodStudioModal
+            isOpen={isPodModalOpen}
+            onClose={() => setIsPodModalOpen(false)}
+            product={product}
+            onAddToCartCustomized={handleAddToCartCustomized}
+          />
 
           <Paper sx={{ p: 2.5, bgcolor: '#F8FAFC', borderRadius: 3, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>

@@ -33,16 +33,9 @@ export class CustomerPortalController {
 
   private async getCustomerFromUser(tenantId: number, userId: number): Promise<Customer> {
     let customer = await Customer.findOne({
-      where: { userId },
+      where: { tenantId, userId },
       include: ['preference', 'addresses'],
     });
-
-    if (!customer) {
-      customer = await Customer.findOne({
-        where: { tenantId, userId },
-        include: ['preference', 'addresses'],
-      });
-    }
 
     if (!customer) {
       const user = await User.findByPk(userId);
@@ -70,10 +63,8 @@ export class CustomerPortalController {
   }
 
   private async getAllCustomerIdsForUser(tenantId: number, userId: number, email?: string): Promise<number[]> {
-    const where: any[] = [{ userId }];
-    if (email) where.push({ email });
     const customers = await Customer.findAll({
-      where: { [Op.or]: where },
+      where: { tenantId, [Op.or]: [{ userId }, ...(email ? [{ email }] : [])] },
       attributes: ['id'],
     });
     const ids = customers.map((c) => c.id);
@@ -94,6 +85,7 @@ export class CustomerPortalController {
 
       const orders = await Order.findAll({
         where: {
+          tenantId,
           [Op.or]: [
             { customerId: { [Op.in]: custIds } },
             { createdBy: userId },
@@ -120,15 +112,18 @@ export class CustomerPortalController {
       const firstName = customer.firstName && customer.firstName !== 'Valued' ? customer.firstName : (userRecord?.firstName || customer.fullName?.split(' ')?.[0] || 'Valued');
       const lastName = customer.lastName && customer.lastName !== 'Customer' ? customer.lastName : (userRecord?.lastName || '');
       const fullName = `${firstName} ${lastName}`.trim() || customer.fullName || (userRecord ? `${userRecord.firstName} ${userRecord.lastName}` : 'Valued Customer');
-      const [cRow]: any = await sequelize.query(
-        'SELECT avatar_url, profile_image FROM customers WHERE id = :cId OR user_id = :uId ORDER BY id DESC LIMIT 1',
-        { replacements: { cId: customer.id, uId: userId }, type: QueryTypes.SELECT }
-      );
-      const [uRow]: any = await sequelize.query(
-        'SELECT avatar_url, profile_image FROM users WHERE id = :uId LIMIT 1',
-        { replacements: { uId: userId }, type: QueryTypes.SELECT }
-      );
-      const avatarUrl = cRow?.avatar_url || cRow?.profile_image || uRow?.avatar_url || uRow?.profile_image || (customer as any).avatarUrl || (customer as any).profileImage || null;
+      let avatarUrl: string | null = (customer as any).avatarUrl || (customer as any).profileImage || null;
+      try {
+        const [cRow]: any = await sequelize.query(
+          'SELECT id FROM customers WHERE id = :cId OR user_id = :uId ORDER BY id DESC LIMIT 1',
+          { replacements: { cId: customer.id, uId: userId }, type: QueryTypes.SELECT }
+        );
+        if (cRow) {
+          avatarUrl = cRow.avatar_url || cRow.profile_image || avatarUrl;
+        }
+      } catch {
+        // Safe fallback
+      }
 
       success(res, 'Customer dashboard metrics retrieved successfully', {
         customer: {
@@ -169,16 +164,18 @@ export class CustomerPortalController {
       const customer: any = await this.getCustomerFromUser(tenantId, userId);
       const userRecord = await User.findByPk(userId);
 
-      const [cRow]: any = await sequelize.query(
-        'SELECT avatar_url, profile_image FROM customers WHERE id = :cId OR user_id = :uId ORDER BY id DESC LIMIT 1',
-        { replacements: { cId: customer.id, uId: userId }, type: QueryTypes.SELECT }
-      );
-      const [uRow]: any = await sequelize.query(
-        'SELECT avatar_url, profile_image FROM users WHERE id = :uId LIMIT 1',
-        { replacements: { uId: userId }, type: QueryTypes.SELECT }
-      );
-
-      const avatarUrl = cRow?.avatar_url || cRow?.profile_image || uRow?.avatar_url || uRow?.profile_image || (customer as any).avatarUrl || (customer as any).profileImage || null;
+      let avatarUrl: string | null = (customer as any).avatarUrl || (customer as any).profileImage || null;
+      try {
+        const [cRow]: any = await sequelize.query(
+          'SELECT id FROM customers WHERE id = :cId OR user_id = :uId ORDER BY id DESC LIMIT 1',
+          { replacements: { cId: customer.id, uId: userId }, type: QueryTypes.SELECT }
+        );
+        if (cRow) {
+          avatarUrl = cRow.avatar_url || cRow.profile_image || avatarUrl;
+        }
+      } catch {
+        // Safe fallback
+      }
       const firstName = customer.firstName && customer.firstName !== 'Valued' ? customer.firstName : (userRecord?.firstName || 'abhay');
       const lastName = customer.lastName && customer.lastName !== 'Customer' ? customer.lastName : (userRecord?.lastName || 'ram');
 
@@ -267,16 +264,18 @@ export class CustomerPortalController {
         }
       }
 
-      const [cRow]: any = await sequelize.query(
-        'SELECT avatar_url, profile_image FROM customers WHERE id = :cId OR user_id = :uId ORDER BY id DESC LIMIT 1',
-        { replacements: { cId: customer.id, uId: userId }, type: QueryTypes.SELECT }
-      );
-      const [uRow]: any = await sequelize.query(
-        'SELECT avatar_url, profile_image FROM users WHERE id = :uId LIMIT 1',
-        { replacements: { uId: userId }, type: QueryTypes.SELECT }
-      );
-
-      const avatarUrl = imgUrl || cRow?.avatar_url || cRow?.profile_image || uRow?.avatar_url || uRow?.profile_image || null;
+      let avatarUrl: string | null = imgUrl || null;
+      try {
+        const [cRow]: any = await sequelize.query(
+          'SELECT id FROM customers WHERE id = :cId OR user_id = :uId ORDER BY id DESC LIMIT 1',
+          { replacements: { cId: customer.id, uId: userId }, type: QueryTypes.SELECT }
+        );
+        if (cRow) {
+          avatarUrl = avatarUrl || cRow.avatar_url || cRow.profile_image || null;
+        }
+      } catch {
+        // Safe fallback
+      }
       const updatedCustomer: any = await this.getCustomerFromUser(tenantId, userId);
       const firstName = req.body.firstName || updatedCustomer.firstName || user?.firstName || 'abhay';
       const lastName = req.body.lastName || updatedCustomer.lastName || user?.lastName || 'ram';
@@ -311,6 +310,7 @@ export class CustomerPortalController {
       const search = req.query.search ? String(req.query.search).trim() : '';
 
       const whereClause: any = {
+        tenantId,
         [Op.or]: [
           { customerId: { [Op.in]: custIds } },
           { createdBy: userId },

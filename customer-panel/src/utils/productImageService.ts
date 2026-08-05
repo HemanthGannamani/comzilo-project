@@ -42,24 +42,58 @@ const SKU_IMAGE_MAP: Record<string, string> = {
 /**
  * Returns full image URL for any product, prioritizing:
  * 1. Uploaded product images/media from backend API
- * 2. SKU-based specific image mapping
- * 3. Product-type specific fallback images
- * 4. General fallback product image
+ * 2. Product name keyword mapping (logo, hydizo, pant, etc.)
+ * 3. SKU-based specific image mapping
+ * 4. Product-type specific fallback images
+ * 5. General fallback product image
  */
 export const getProductImage = (prod: any): string => {
-  const images = prod?.images || prod?.media || [];
+  if (typeof prod === 'string' && prod) {
+    if (prod.startsWith('http://') || prod.startsWith('https://')) {
+      if (!prod.includes('unsplash.com')) return prod;
+    } else if (!prod.startsWith('blob:')) {
+      return `${API_BASE_URL}${prod.startsWith('/') ? '' : '/'}${prod}`;
+    }
+  }
+
+  const images = prod?.images || prod?.media || prod?.productImages || prod?.product_images || [];
+  
+  // 1. First look for real non-blob image URL
   const validImg = images.find((img: any) => {
-    const url = img?.imageUrl || img?.url;
+    const url = typeof img === 'string' ? img : (img?.imageUrl || img?.url || img?.image_url || img?.thumbnail_url || img?.path);
     return url && typeof url === 'string' && !url.startsWith('blob:');
   });
 
-  let rawUrl = validImg?.imageUrl || validImg?.url || prod?.image;
+  let rawUrl = typeof validImg === 'string' ? validImg : (validImg?.imageUrl || validImg?.url || validImg?.image_url || validImg?.thumbnail_url || validImg?.path || prod?.image || prod?.imageUrl || prod?.image_url);
 
   if (rawUrl && typeof rawUrl === 'string' && !rawUrl.startsWith('blob:')) {
-    if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) {
-      return rawUrl;
+    if (!rawUrl.includes('unsplash.com')) {
+      if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) {
+        return rawUrl;
+      }
+      return `${API_BASE_URL}${rawUrl.startsWith('/') ? '' : '/'}${rawUrl}`;
     }
-    return `${API_BASE_URL}${rawUrl.startsWith('/') ? '' : '/'}${rawUrl}`;
+  }
+
+  // 2. Check product name keywords
+  const lowerName = (prod?.name || '').toLowerCase();
+  if (lowerName.includes('logo') || lowerName.includes('hydizo')) {
+    return 'http://localhost:5000/uploads/products/product-1785931674466-722409561.png';
+  }
+  if (lowerName.includes('pant') || lowerName.includes('trouser') || lowerName.includes('jeans')) {
+    return 'https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?w=500';
+  }
+  if (lowerName.includes('book') || lowerName.includes('pdf') || lowerName.includes('ebook')) {
+    return 'https://images.unsplash.com/photo-1532012197267-da84d127e765?w=500';
+  }
+  if (lowerName.includes('shirt') || lowerName.includes('tshirt') || lowerName.includes('top')) {
+    return 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=500';
+  }
+  if (lowerName.includes('shoe') || lowerName.includes('sneaker')) {
+    return 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=500';
+  }
+  if (lowerName.includes('headphone') || lowerName.includes('headset') || lowerName.includes('audio')) {
+    return 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500';
   }
 
   if (prod?.sku && SKU_IMAGE_MAP[prod.sku]) {
@@ -71,16 +105,5 @@ export const getProductImage = (prod: any): string => {
     return PRODUCT_TYPE_DEFAULT_IMAGES[pType];
   }
 
-  // Generate deterministic unsplash image index based on product ID/name so distinct products don't all look identical
-  const fallbackList = [
-    'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500',
-    'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500',
-    'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=500',
-    'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=500',
-    'https://images.unsplash.com/photo-1581655353564-df123a1eb820?w=500',
-  ];
-  const charCodeSum = (prod?.name || prod?.sku || 'product').split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0);
-  const index = (Number(prod?.id || 0) + charCodeSum) % fallbackList.length;
-
-  return fallbackList[index];
+  return 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500';
 };

@@ -28,6 +28,7 @@ import {
   useVerifyRazorpayPaymentMutation,
 } from '../../api/customerPortalApi';
 import { formatPrice } from '../../utils/currencyService';
+import { getProductImage } from '../../utils/productImageService';
 import toast from 'react-hot-toast';
 
 declare global {
@@ -480,11 +481,29 @@ export const CheckoutPage: React.FC = () => {
             {/* Items List */}
             <Box sx={{ maxHeight: 220, overflowY: 'auto', pr: 1, mb: 2 }}>
               {items.map((item) => (
-                <Box key={item.id} sx={{ display: 'flex', justifyContent: 'space-between', mb: 1.5 }}>
-                  <Typography variant="body2" noWrap sx={{ fontWeight: 700, maxWidth: '70%' }}>
-                    {item.quantity}x {item.name}
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 800 }}>
+                <Box key={item.id} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5, gap: 1.5 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, minWidth: 0, flex: 1 }}>
+                    <Box
+                      component="img"
+                      src={getProductImage(item)}
+                      alt={item.name}
+                      sx={{ width: 44, height: 44, objectFit: 'cover', borderRadius: 1.5, border: '1px solid #E2E8F0', flexShrink: 0 }}
+                    />
+                    <Box sx={{ minWidth: 0 }}>
+                      <Typography variant="body2" noWrap sx={{ fontWeight: 700 }}>
+                        {item.name}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Qty: {item.quantity} × {formatPrice(item.price)}
+                      </Typography>
+                      {(item as any).customization && (
+                        <Typography variant="caption" sx={{ display: 'block', color: '#6366F1', fontWeight: 800, mt: 0.25 }}>
+                          🎨 Custom Artwork (Front, Back, Left, Right)
+                        </Typography>
+                      )}
+                    </Box>
+                  </Box>
+                  <Typography variant="body2" sx={{ fontWeight: 800, flexShrink: 0 }}>
                     {formatPrice(item.price * item.quantity)}
                   </Typography>
                 </Box>

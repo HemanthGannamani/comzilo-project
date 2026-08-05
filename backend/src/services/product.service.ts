@@ -133,6 +133,19 @@ export class ProductService {
         }
       }
 
+      // Handle optional variant payload
+      if (data.variants && Array.isArray(data.variants) && data.variants.length > 0) {
+        const { ProductVariantService } = require('./productVariant.service');
+        const variantService = new ProductVariantService();
+        for (const vData of data.variants) {
+          await variantService.createVariant(tenantId, {
+            ...vData,
+            productId: product.id,
+            storeId,
+          });
+        }
+      }
+
       // Handle product_images table entries if imageUrls or images provided
       if (data.images && Array.isArray(data.images)) {
         const { ProductImage } = require('../database/models');

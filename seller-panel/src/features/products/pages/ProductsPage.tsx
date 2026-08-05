@@ -23,6 +23,12 @@ import {
   Tabs,
   Tab,
   Divider,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
 } from '@mui/material';
 import type { GridColDef } from '@mui/x-data-grid';
 import {
@@ -216,6 +222,11 @@ export const ProductsPage: React.FC = () => {
   const [imageUrlInput, setImageUrlInput] = useState('');
   const [isDragging, setIsDragging] = useState(false);
 
+  // Variant Matrix State
+  const [variantsList, setVariantsList] = useState<
+    { id?: number; sku: string; barcode: string; price: number; compareAtPrice: number; stockQuantity: number; status: string }[]
+  >([]);
+
   // Dynamic Product Form Payload State
   const [productForm, setProductForm] = useState<any>({
     name: '',
@@ -399,6 +410,7 @@ export const ProductsPage: React.FC = () => {
       seoTitle: productForm.metaTitle || productForm.name,
       seoDescription: productForm.metaDescription,
       images: imagePayload,
+      variants: productForm.productType === 'variable' ? variantsList : undefined,
       dynamicAttributes: {
         weight: productForm.weight,
         dimensions: `${productForm.length}x${productForm.width}x${productForm.height} cm`,
@@ -886,6 +898,139 @@ export const ProductsPage: React.FC = () => {
                     value={productForm.barcode}
                     onChange={(e) => setProductForm({ ...productForm, barcode: e.target.value })}
                   />
+                </Grid>
+              </>
+            )}
+
+            {/* SELLER VARIANT BUILDER MATRIX (VARIABLE PRODUCT TYPE) */}
+            {selectedType?.code === 'variable' && (
+              <>
+                <Grid item xs={12}>
+                  <Divider sx={{ my: 1 }}>
+                    <Chip label="DYNAMIC PRODUCT VARIANT BUILDER (SKU, PRICE & STOCK MATRIX)" color="secondary" size="small" icon={<Layers size={14} />} />
+                  </Divider>
+                </Grid>
+
+                <Grid item xs={12}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
+                      Product Variants ({variantsList.length})
+                    </Typography>
+                    <Button
+                      variant="contained"
+                      size="small"
+                      color="secondary"
+                      startIcon={<Plus size={16} />}
+                      onClick={() => {
+                        const newSku = `${productForm.sku || 'SKU'}-VAR-${variantsList.length + 1}`;
+                        setVariantsList([
+                          ...variantsList,
+                          {
+                            sku: newSku,
+                            barcode: '',
+                            price: Number(productForm.price) || 0,
+                            compareAtPrice: 0,
+                            stockQuantity: 10,
+                            status: 'active',
+                          },
+                        ]);
+                      }}
+                      sx={{ fontWeight: 700 }}
+                    >
+                      Add Variant Option
+                    </Button>
+                  </Box>
+
+                  {variantsList.length === 0 ? (
+                    <Paper sx={{ p: 3, textAlign: 'center', bgcolor: '#F8FAFC', border: '1px dashed #CBD5E1', borderRadius: 2 }}>
+                      <Typography variant="body2" color="text.secondary">
+                        No variants added yet. Click <strong>Add Variant Option</strong> to configure SKUs, prices, and stock balances for each size/color option.
+                      </Typography>
+                    </Paper>
+                  ) : (
+                    <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2 }}>
+                      <Table size="small">
+                        <TableHead sx={{ bgcolor: '#F8FAFC' }}>
+                          <TableRow>
+                            <TableCell sx={{ fontWeight: 800 }}>Variant SKU</TableCell>
+                            <TableCell sx={{ fontWeight: 800 }}>Retail Price (₹)</TableCell>
+                            <TableCell sx={{ fontWeight: 800 }}>Compare Price (₹)</TableCell>
+                            <TableCell sx={{ fontWeight: 800 }}>Stock Qty</TableCell>
+                            <TableCell sx={{ fontWeight: 800 }}>Status</TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 800 }}>Action</TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {variantsList.map((v, idx) => (
+                            <TableRow key={idx} hover>
+                              <TableCell>
+                                <TextField
+                                  size="small"
+                                  value={v.sku}
+                                  onChange={(e) => {
+                                    const updated = [...variantsList];
+                                    updated[idx].sku = e.target.value;
+                                    setVariantsList(updated);
+                                  }}
+                                />
+                              </TableCell>
+                              <TableCell>
+                                <TextField
+                                  size="small"
+                                  type="number"
+                                  value={v.price}
+                                  onChange={(e) => {
+                                    const updated = [...variantsList];
+                                    updated[idx].price = Number(e.target.value);
+                                    setVariantsList(updated);
+                                  }}
+                                />
+                              </TableCell>
+                              <TableCell>
+                                <TextField
+                                  size="small"
+                                  type="number"
+                                  value={v.compareAtPrice}
+                                  onChange={(e) => {
+                                    const updated = [...variantsList];
+                                    updated[idx].compareAtPrice = Number(e.target.value);
+                                    setVariantsList(updated);
+                                  }}
+                                />
+                              </TableCell>
+                              <TableCell>
+                                <TextField
+                                  size="small"
+                                  type="number"
+                                  value={v.stockQuantity}
+                                  onChange={(e) => {
+                                    const updated = [...variantsList];
+                                    updated[idx].stockQuantity = Number(e.target.value);
+                                    setVariantsList(updated);
+                                  }}
+                                />
+                              </TableCell>
+                              <TableCell>
+                                <Chip label={v.status.toUpperCase()} size="small" color={v.status === 'active' ? 'success' : 'default'} sx={{ fontWeight: 700 }} />
+                              </TableCell>
+                              <TableCell align="right">
+                                <IconButton
+                                  size="small"
+                                  color="error"
+                                  onClick={() => {
+                                    const updated = variantsList.filter((_, i) => i !== idx);
+                                    setVariantsList(updated);
+                                  }}
+                                >
+                                  <Trash2 size={16} />
+                                </IconButton>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                  )}
                 </Grid>
               </>
             )}

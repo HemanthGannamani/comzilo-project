@@ -123,6 +123,9 @@ import { brandRoutes } from './routes/brand.routes';
 import { collectionRoutes } from './routes/collection.routes';
 import { tagRoutes } from './routes/tag.routes';
 import { productClassificationRoutes } from './routes/productClassification.routes';
+import productVariantRoutes from './routes/productVariant.routes';
+import attributeManagementRoutes from './routes/attributeManagement.routes';
+import variantInventoryRoutes from './routes/variantInventory.routes';
 
 // Step 12 Routes
 import { warehouseRoutes } from './routes/warehouse.routes';
@@ -178,6 +181,9 @@ app.use('/api/v1/brands', brandRoutes);
 app.use('/api/v1/collections', collectionRoutes);
 app.use('/api/v1/tags', tagRoutes);
 app.use('/api/v1/products', productClassificationRoutes);
+app.use('/api/v1', productVariantRoutes);
+app.use('/api/v1/admin/attributes', attributeManagementRoutes);
+app.use('/api/v1/seller', variantInventoryRoutes);
 
 app.use('/api/v1/warehouses', warehouseRoutes);
 app.use('/api/v1/warehouse-locations', warehouseLocationRoutes);
@@ -251,6 +257,11 @@ app.use('/api/v1/subscription-plans', planRoutes);
 app.use('/api/v1/plans', planRoutes);
 app.use('/api/v1/seller/subscription', sellerSubscriptionRoutes);
 app.use('/api/v1/seller/wallet', sellerWalletRoutes);
+import variantAnalyticsRoutes from './routes/variantAnalytics.routes';
+import bulkVariantRoutes from './routes/bulkVariant.routes';
+
+app.use('/api/v1/seller/analytics/variants', variantAnalyticsRoutes);
+app.use('/api/v1/seller/bulk-variants', bulkVariantRoutes);
 app.use('/api/v1/admin/withdrawals', sellerWalletRoutes);
 app.use('/api/v1/commission', commissionEngineRoutes);
 app.use('/api/v1/admin/commission', commissionEngineRoutes);

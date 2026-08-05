@@ -38,6 +38,7 @@ import {
   Boxes,
   Warehouse as WarehouseIcon,
   AlertTriangle,
+  FolderTree,
 } from 'lucide-react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
@@ -89,7 +90,9 @@ export const AdminLayout: React.FC = () => {
     { label: 'Roles & Permissions', path: '/roles', icon: <ShieldCheck size={20} /> },
 
     { isHeader: true, label: 'Inventory Management' },
+    { label: 'Categories', path: '/categories', icon: <FolderTree size={20} /> },
     { label: 'Inventory Analytics', path: '/inventory-management', icon: <Boxes size={20} /> },
+    { label: 'Category Attributes', path: '/attributes', icon: <FolderTree size={20} /> },
 
     { isHeader: true, label: 'Financial Management' },
     { label: 'Financial Dashboard', path: '/finance', icon: <BarChart3 size={20} /> },

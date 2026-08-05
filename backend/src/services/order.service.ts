@@ -148,7 +148,42 @@ export class OrderService extends BaseService {
             throw new NotFoundError(`Product with ID ${item.productId} not found.`);
           }
 
-          const unitPrice = Number(product.price || 0);
+          let unitPrice = Number(product.price || 0);
+          let itemSku = product.sku;
+          let variantIdVal: number | null = item.variantId || item.productVariantId || null;
+          let variantSkuVal: string | null = null;
+          let variantAttributesVal: any = null;
+
+          if (variantIdVal) {
+            const { ProductVariant } = require('../database/models');
+            const variant = await ProductVariant.findOne({
+              where: { id: variantIdVal },
+              transaction: t,
+            });
+
+            if (variant) {
+              unitPrice = Number(variant.price || unitPrice);
+              variantSkuVal = variant.sku;
+              itemSku = variant.sku;
+
+              const availStock = Number(variant.stockQuantity ?? (variant as any).stock_quantity ?? 0);
+              if (availStock < Number(item.quantity || 1)) {
+                throw new ValidationError(`Variant ${variant.sku} has insufficient stock (Available: ${availStock}).`);
+              }
+
+              // Deduct Variant Inventory stock
+              const { VariantInventoryService } = require('./variantInventory.service');
+              const varInvService = new VariantInventoryService();
+              await varInvService.adjustStock(tenantId, {
+                variantId: variant.id,
+                warehouseId: item.warehouseId || 1,
+                adjustmentQty: -Number(item.quantity || 1),
+                movementType: 'stock_out',
+                notes: `Deducted for Order #${orderNumber}`,
+              });
+            }
+          }
+
           const qty = Number(item.quantity || 1);
           const itemDiscount = Number(item.discount || 0);
           const itemTax = Number(item.tax || 0);
@@ -160,8 +195,12 @@ export class OrderService extends BaseService {
 
           itemRecords.push({
             productId: item.productId,
-            productVariantId: item.productVariantId || null,
-            sku: product.sku,
+            productVariantId: variantIdVal,
+            variantId: variantIdVal,
+            variantSku: variantSkuVal,
+            variantAttributes: item.variantAttributes || item.selectedAttributes || null,
+            warehouseId: item.warehouseId || 1,
+            sku: itemSku,
             productName: product.name,
             quantity: qty,
             unitPrice,

@@ -55,3 +55,93 @@ export const createAuditLog = async (
     console.warn('[AuditLog] Non-fatal audit log insertion warning:', auditErr);
   }
 };
+
+export const logVariantCreated = async (
+  variant: any,
+  context?: RequestContext
+): Promise<void> => {
+  await createAuditLog(
+    {
+      tenantId: variant.tenantId || variant.tenant_id,
+      action: 'VARIANT_CREATED',
+      entityType: 'ProductVariant',
+      entityId: String(variant.id),
+      newValues: variant,
+    },
+    context
+  );
+};
+
+export const logVariantUpdated = async (
+  oldVariant: any,
+  newVariant: any,
+  context?: RequestContext
+): Promise<void> => {
+  await createAuditLog(
+    {
+      tenantId: newVariant.tenantId || newVariant.tenant_id,
+      action: 'VARIANT_UPDATED',
+      entityType: 'ProductVariant',
+      entityId: String(newVariant.id),
+      previousValues: oldVariant,
+      newValues: newVariant,
+    },
+    context
+  );
+};
+
+export const logVariantDeleted = async (
+  variant: any,
+  context?: RequestContext
+): Promise<void> => {
+  await createAuditLog(
+    {
+      tenantId: variant.tenantId || variant.tenant_id,
+      action: 'VARIANT_DELETED',
+      entityType: 'ProductVariant',
+      entityId: String(variant.id),
+      previousValues: variant,
+    },
+    context
+  );
+};
+
+export const logVariantPriceChanged = async (
+  variantId: number | string,
+  tenantId: number | null,
+  oldPrice: number,
+  newPrice: number,
+  context?: RequestContext
+): Promise<void> => {
+  await createAuditLog(
+    {
+      tenantId,
+      action: 'VARIANT_PRICE_CHANGED',
+      entityType: 'ProductVariant',
+      entityId: String(variantId),
+      previousValues: { price: oldPrice },
+      newValues: { price: newPrice },
+    },
+    context
+  );
+};
+
+export const logVariantStockChanged = async (
+  variantId: number | string,
+  tenantId: number | null,
+  oldQuantity: number,
+  newQuantity: number,
+  context?: RequestContext
+): Promise<void> => {
+  await createAuditLog(
+    {
+      tenantId,
+      action: 'VARIANT_STOCK_CHANGED',
+      entityType: 'VariantInventory',
+      entityId: String(variantId),
+      previousValues: { quantityOnHand: oldQuantity },
+      newValues: { quantityOnHand: newQuantity },
+    },
+    context
+  );
+};

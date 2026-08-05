@@ -937,11 +937,42 @@ Tenant.hasMany(ShipmentPackage, { foreignKey: 'tenant_id', as: 'shipmentPackages
 ShipmentPackage.belongsTo(Tenant, { foreignKey: 'tenant_id', as: 'tenant' });
 
 Tenant.hasMany(Shipment, { foreignKey: 'tenant_id', as: 'shipments' });
-Shipment.belongsTo(Tenant, { foreignKey: 'tenant_id', as: 'tenant' });
+import {
+  VariantAttribute,
+  VariantImage,
+  VariantInventory,
+} from './productVariant';
 
-Shipment.hasMany(ShipmentTracking, { foreignKey: 'shipment_id', as: 'trackingLogs' });
-ShipmentTracking.belongsTo(Shipment, { foreignKey: 'shipment_id', as: 'shipment' });
+import {
+  AttributeGroup,
+  CategoryAttribute,
+  AttributeValue,
+} from './categoryAttributeEngine';
 
-Shipment.hasOne(ShippingLabel, { foreignKey: 'shipment_id', as: 'label' });
-ShippingLabel.belongsTo(Shipment, { foreignKey: 'shipment_id', as: 'shipment' });
+export {
+  VariantAttribute,
+  VariantImage,
+  VariantInventory,
+  CategoryAttribute,
+  AttributeGroup,
+  AttributeValue,
+};
+
+// Product Variant Associations
+ProductVariant.hasMany(VariantAttribute, { foreignKey: 'variant_id', as: 'attributes' });
+VariantAttribute.belongsTo(ProductVariant, { foreignKey: 'variant_id', as: 'variant' });
+
+ProductVariant.hasMany(VariantImage, { foreignKey: 'variant_id', as: 'images' });
+VariantImage.belongsTo(ProductVariant, { foreignKey: 'variant_id', as: 'variant' });
+
+ProductVariant.hasMany(VariantInventory, { foreignKey: 'variant_id', as: 'inventories' });
+VariantInventory.belongsTo(ProductVariant, { foreignKey: 'variant_id', as: 'variant' });
+VariantInventory.belongsTo(Warehouse, { foreignKey: 'warehouse_id', as: 'warehouse' });
+
+// Category Attribute Engine Associations
+AttributeGroup.hasMany(AttributeValue, { foreignKey: 'attribute_group_id', as: 'values' });
+AttributeValue.belongsTo(AttributeGroup, { foreignKey: 'attribute_group_id', as: 'group' });
+
+AttributeGroup.hasMany(CategoryAttribute, { foreignKey: 'attribute_group_id', as: 'categoryAttributes' });
+CategoryAttribute.belongsTo(AttributeGroup, { foreignKey: 'attribute_group_id', as: 'group' });
 

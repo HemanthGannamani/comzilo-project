@@ -9,6 +9,8 @@ export interface StockMovementAttributes {
   warehouseId: number;
   warehouseLocationId: number;
   productId: number;
+  variantId?: number | null;
+  variantSku?: string | null;
   movementType:
     | 'opening_stock'
     | 'stock_in'
@@ -45,6 +47,8 @@ export type StockMovementCreationAttributes = Optional<
   StockMovementAttributes,
   | 'id'
   | 'uuid'
+  | 'variantId'
+  | 'variantSku'
   | 'referenceType'
   | 'referenceId'
   | 'reason'
@@ -64,6 +68,8 @@ export class StockMovement
   declare warehouseId: number;
   declare warehouseLocationId: number;
   declare productId: number;
+  declare variantId: number | null;
+  declare variantSku: string | null;
   declare movementType:
     | 'opening_stock'
     | 'stock_in'

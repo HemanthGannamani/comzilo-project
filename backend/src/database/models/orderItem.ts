@@ -9,6 +9,10 @@ export interface OrderItemAttributes {
   orderId: number;
   productId: number;
   productVariantId: number | null;
+  variantId?: number | null;
+  variantSku?: string | null;
+  variantAttributes?: any;
+  warehouseId?: number | null;
   sku: string;
   productName: string;
   quantity: number;
@@ -23,7 +27,7 @@ export interface OrderItemAttributes {
 
 export type OrderItemCreationAttributes = Optional<
   OrderItemAttributes,
-  'id' | 'uuid' | 'productVariantId' | 'discount' | 'tax' | 'subtotal' | 'total'
+  'id' | 'uuid' | 'productVariantId' | 'variantId' | 'variantSku' | 'variantAttributes' | 'warehouseId' | 'discount' | 'tax' | 'subtotal' | 'total'
 >;
 
 export class OrderItem
@@ -37,6 +41,10 @@ export class OrderItem
   declare orderId: number;
   declare productId: number;
   declare productVariantId: number | null;
+  declare variantId: number | null;
+  declare variantSku: string | null;
+  declare variantAttributes: any;
+  declare warehouseId: number | null;
   declare sku: string;
   declare productName: string;
   declare quantity: number;
@@ -88,6 +96,26 @@ OrderItem.init(
       type: DataTypes.BIGINT.UNSIGNED,
       allowNull: true,
       field: 'product_variant_id',
+    },
+    variantId: {
+      type: DataTypes.BIGINT.UNSIGNED,
+      allowNull: true,
+      field: 'variant_id',
+    },
+    variantSku: {
+      type: DataTypes.STRING(255),
+      allowNull: true,
+      field: 'variant_sku',
+    },
+    variantAttributes: {
+      type: DataTypes.JSON,
+      allowNull: true,
+      field: 'variant_attributes',
+    },
+    warehouseId: {
+      type: DataTypes.BIGINT.UNSIGNED,
+      allowNull: true,
+      field: 'warehouse_id',
     },
     sku: {
       type: DataTypes.STRING(255),

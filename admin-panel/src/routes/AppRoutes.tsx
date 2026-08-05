@@ -30,17 +30,20 @@ import { SellerDetailsPage } from '../pages/SellerDetailsPage';
 import { NotificationsPage } from '../pages/notifications/NotificationsPage';
 import { AdminShippingProvidersPage } from '../pages/AdminShippingProvidersPage';
 import { AdminInventoryPage } from '../pages/AdminInventoryPage';
+import { AdminAttributeManagementPage } from '../pages/AdminAttributeManagementPage';
+import { AdminCategoryPage } from '../pages/categories/AdminCategoryPage';
 
 export const AppRoutes: React.FC = () => {
   return (
     <Suspense fallback={<PageLoader />}>
       <Routes>
-        {/* Public Login Route */}
+        {/* Public Route */}
         <Route path="/login" element={<AdminLoginPage />} />
 
-        {/* Protected Super Admin Routes */}
+        {/* Protected Routes inside AdminLayout */}
         <Route element={<ProtectedRoute />}>
           <Route element={<AdminLayout />}>
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<AdminDashboardPage />} />
             <Route path="/tenants" element={<TenantsPage />} />
             <Route path="/seller-applications" element={<SellerApplicationsPage />} />
@@ -48,7 +51,9 @@ export const AppRoutes: React.FC = () => {
             <Route path="/sellers/add" element={<AddSellerPage />} />
             <Route path="/sellers/:id" element={<SellerDetailsPage />} />
             <Route path="/stores" element={<StoresPage />} />
+            <Route path="/categories" element={<AdminCategoryPage />} />
             <Route path="/inventory-management" element={<AdminInventoryPage />} />
+            <Route path="/attributes" element={<AdminAttributeManagementPage />} />
             <Route path="/shipping-providers" element={<AdminShippingProvidersPage />} />
             <Route path="/subscriptions" element={<SubscriptionPlansPage />} />
             <Route path="/users" element={<PlatformUsersPage />} />

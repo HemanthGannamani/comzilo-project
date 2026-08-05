@@ -39,7 +39,7 @@ export class InventoryManagementService {
       else if (current <= Number(item.reorderPoint || 10)) lowStockCount++;
     }
 
-    const pendingPOs = await PurchaseOrder.count({ where: { status: ['pending', 'approved'] } });
+    const pendingPOs = await PurchaseOrder.count();
     const recentMovements = await StockMovement.findAll({
       order: [['id', 'DESC']],
       limit: 10,
@@ -55,6 +55,16 @@ export class InventoryManagementService {
       todaysStockMovement: recentMovements.length,
       recentMovements,
     };
+  }
+
+  public async getGlobalPurchaseOrders() {
+    return await PurchaseOrder.findAll({
+      include: [
+        { model: Supplier, as: 'supplier' },
+        { model: PurchaseOrderItem, as: 'items' },
+      ],
+      order: [['id', 'DESC']],
+    });
   }
 
   public async getDashboardStats(tenantId: number) {
@@ -410,7 +420,7 @@ export class InventoryManagementService {
       poNumber,
       supplierId: data.supplierId,
       warehouseId: data.warehouseId || 1,
-      status: 'approved',
+      status: data.status || 'pending',
       subtotal: data.subtotal || data.totalAmount || 0,
       totalAmount: data.totalAmount || 0,
       expectedDeliveryDate: data.expectedDeliveryDate || new Date(Date.now() + 864000000),
@@ -434,6 +444,13 @@ export class InventoryManagementService {
         { model: PurchaseOrderItem, as: 'items' },
       ],
     });
+  }
+
+  public async updateGlobalPurchaseOrderStatus(id: number, status: string) {
+    const po = await PurchaseOrder.findByPk(id);
+    if (!po) throw new NotFoundError('Purchase order not found');
+    await po.update({ status });
+    return po;
   }
 
   public async updatePurchaseOrder(tenantId: number, id: number, data: any) {

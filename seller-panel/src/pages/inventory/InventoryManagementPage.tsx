@@ -1016,7 +1016,18 @@ export const InventoryManagementPage: React.FC<InventoryManagementPageProps> = (
                       <TableCell><Chip label={po.poNumber || `PO-${po.id}`} size="small" color="primary" sx={{ fontWeight: 700 }} /></TableCell>
                       <TableCell sx={{ fontWeight: 600 }}>{po.supplier?.name || `Supplier #${po.supplierId}`}</TableCell>
                       <TableCell sx={{ fontWeight: 700 }}>₹{Number(po.totalAmount || po.subtotal || 0).toLocaleString()}</TableCell>
-                      <TableCell><Chip label="APPROVED" color="info" size="small" /></TableCell>
+                      <TableCell>
+                        <Chip
+                          label={(po.status || 'PENDING').toUpperCase()}
+                          color={
+                            po.status === 'received' ? 'info' :
+                            po.status === 'approved' ? 'success' :
+                            po.status === 'rejected' ? 'error' : 'warning'
+                          }
+                          size="small"
+                          sx={{ fontWeight: 700 }}
+                        />
+                      </TableCell>
                       <TableCell align="right">
                         <IconButton size="small" onClick={() => handleDeletePo(po.id)} color="error">
                           <Trash2 size={16} />

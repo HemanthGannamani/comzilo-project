@@ -23,4 +23,24 @@ export class AdminInventoryController {
       next(error);
     }
   };
+
+  public getPurchaseOrders = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const pos = await inventoryService.getGlobalPurchaseOrders();
+      success(res, 'Global purchase orders retrieved successfully', pos);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public updatePurchaseOrderStatus = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { id } = req.params;
+      const { status } = req.body;
+      const updated = await inventoryService.updateGlobalPurchaseOrderStatus(Number(id), status);
+      success(res, `Purchase order status updated to ${status}`, updated);
+    } catch (error) {
+      next(error);
+    }
+  };
 }

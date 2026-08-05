@@ -222,10 +222,155 @@ export const ProductsPage: React.FC = () => {
   const [imageUrlInput, setImageUrlInput] = useState('');
   const [isDragging, setIsDragging] = useState(false);
 
+  // Dynamic Category & Attribute State
+  const [categoriesList, setCategoriesList] = useState<any[]>([]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
+  const [attributeGroups, setAttributeGroups] = useState<any[]>([]);
+  const [selectedAttrValues, setSelectedAttrValues] = useState<{ [groupId: number]: string[] }>({});
+
   // Variant Matrix State
   const [variantsList, setVariantsList] = useState<
-    { id?: number; sku: string; barcode: string; price: number; compareAtPrice: number; stockQuantity: number; status: string }[]
+    { id?: number; sku: string; barcode: string; price: number; compareAtPrice: number; stockQuantity: number; status: string; attributes?: any[]; comboText?: string }[]
   >([]);
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  const fetchCategories = async () => {
+    try {
+      const res = await axiosInstance.get('/catalog/categories');
+      const tree = res.data?.data || [];
+      const flat: any[] = [];
+      const flatten = (nodes: any[], depth = 0) => {
+        if (!Array.isArray(nodes)) return;
+        nodes.forEach((node) => {
+          flat.push({
+            id: node.id,
+            name: node.name,
+            displayName: (depth > 0 ? '— '.repeat(depth) : '') + node.name,
+            parentId: node.parentId,
+          });
+          if (node.children && node.children.length > 0) {
+            flatten(node.children, depth + 1);
+          }
+        });
+      };
+      if (Array.isArray(tree)) {
+        flatten(tree);
+        setCategoriesList(flat);
+      } else if (tree.rows && Array.isArray(tree.rows)) {
+        setCategoriesList(tree.rows);
+      }
+    } catch {
+      console.warn('Failed to load categories list');
+    }
+  };
+
+  const handleCategoryChange = async (catId: string) => {
+    setSelectedCategoryId(catId);
+    if (!catId) {
+      setAttributeGroups([]);
+      setSelectedAttrValues({});
+      return;
+    }
+
+    try {
+      // 1. Fetch mapped category attributes
+      const mappedRes = await axiosInstance.get(`/admin/attributes/category-attributes?categoryId=${catId}`);
+      let groupsData = mappedRes.data?.data || [];
+
+      // 2. Fallback to all groups if no specific mapping exists
+      if (!groupsData || groupsData.length === 0) {
+        const allGroupsRes = await axiosInstance.get('/admin/attributes/groups');
+        groupsData = allGroupsRes.data?.data || [];
+      }
+
+      // 3. Ensure values are loaded for each group
+      const enrichedGroups = await Promise.all(
+        groupsData.map(async (g: any) => {
+          const groupObj = g.group || g;
+          if (!groupObj.values || groupObj.values.length === 0) {
+            try {
+              const valsRes = await axiosInstance.get(`/admin/attributes/groups/${groupObj.id}/values`);
+              return { ...groupObj, values: valsRes.data?.data || [] };
+            } catch {
+              return groupObj;
+            }
+          }
+          return groupObj;
+        })
+      );
+
+      setAttributeGroups(enrichedGroups);
+    } catch {
+      toast.error('Failed to load category attributes');
+    }
+  };
+
+  const handleToggleAttrValue = (groupId: number, valueStr: string) => {
+    setSelectedAttrValues((prev) => {
+      const currentVals = prev[groupId] || [];
+      const updated = currentVals.includes(valueStr)
+        ? currentVals.filter((v) => v !== valueStr)
+        : [...currentVals, valueStr];
+      return { ...prev, [groupId]: updated };
+    });
+  };
+
+  const handleGenerateCartesianVariants = () => {
+    const activeGroups = attributeGroups.filter(
+      (g) => selectedAttrValues[g.id] && selectedAttrValues[g.id].length > 0
+    );
+
+    if (activeGroups.length === 0) {
+      toast.error('Select at least one value for an attribute group (e.g. Size or Color)');
+      return;
+    }
+
+    const cartesian = (args: any[][]): any[][] =>
+      args.reduce((a, b) => a.flatMap((d) => b.map((e) => [d, e].flat())));
+
+    const groupValueArrays = activeGroups.map((g) =>
+      selectedAttrValues[g.id].map((valStr) => ({
+        groupId: g.id,
+        groupName: g.name,
+        value: valStr,
+      }))
+    );
+
+    let combinations: any[][] = [];
+    if (groupValueArrays.length === 1) {
+      combinations = groupValueArrays[0].map((item) => [item]);
+    } else {
+      combinations = cartesian(groupValueArrays);
+    }
+
+    const generated = combinations.map((combo, idx) => {
+      const comboArray = Array.isArray(combo) ? combo : [combo];
+      const skuSuffix = comboArray.map((c) => c.value.replace(/\s+/g, '-').toUpperCase()).join('-');
+      const sku = `${productForm.sku || 'SKU'}-${skuSuffix}`;
+
+      const variantAttrs = comboArray.map((c) => ({
+        attributeName: c.groupName,
+        attributeValue: c.value,
+      }));
+
+      return {
+        sku,
+        barcode: `BAR-${Date.now().toString().slice(-6)}-${idx + 1}`,
+        price: Number(productForm.price) || 0,
+        compareAtPrice: Number(productForm.price) ? Math.round(Number(productForm.price) * 1.2 * 100) / 100 : 0,
+        stockQuantity: 10,
+        status: 'active',
+        attributes: variantAttrs,
+        comboText: comboArray.map((c) => `${c.groupName}: ${c.value}`).join(' / '),
+      };
+    });
+
+    setVariantsList(generated);
+    toast.success(`Generated ${generated.length} variant combinations!`);
+  };
 
   // Dynamic Product Form Payload State
   const [productForm, setProductForm] = useState<any>({
@@ -280,10 +425,12 @@ export const ProductsPage: React.FC = () => {
   const [restoreProduct] = useRestoreProductMutation();
 
   const handleOpenTypeSelection = () => {
+    fetchCategories();
     setTypeSelectionModalOpen(true);
   };
 
   const handleSelectProductType = (typeObj: ProductTypeMaster) => {
+    fetchCategories();
     setSelectedType(typeObj);
     setTypeSelectionModalOpen(false);
     setUploadedImages([]);
@@ -404,6 +551,7 @@ export const ProductsPage: React.FC = () => {
       price: parseFloat(productForm.price) || 0,
       costPrice: parseFloat(productForm.costPrice) || 0,
       productType: productForm.productType,
+      categoryId: selectedCategoryId ? Number(selectedCategoryId) : undefined,
       status: 'published',
       visibility: 'public',
       description: productForm.description,
@@ -708,7 +856,7 @@ export const ProductsPage: React.FC = () => {
         <DialogContent dividers>
           <Grid container spacing={2.5} sx={{ pt: 1 }}>
             {/* COMMON FIELDS */}
-            <Grid item xs={12} sm={8}>
+            <Grid item xs={12} sm={6}>
               <TextField
                 label="Product Name"
                 fullWidth
@@ -717,7 +865,7 @@ export const ProductsPage: React.FC = () => {
                 onChange={(e) => setProductForm({ ...productForm, name: e.target.value })}
               />
             </Grid>
-            <Grid item xs={12} sm={4}>
+            <Grid item xs={12} sm={3}>
               <TextField
                 label="SKU Code"
                 fullWidth
@@ -725,6 +873,23 @@ export const ProductsPage: React.FC = () => {
                 value={productForm.sku}
                 onChange={(e) => setProductForm({ ...productForm, sku: e.target.value })}
               />
+            </Grid>
+            <Grid item xs={12} sm={3}>
+              <TextField
+                select
+                label="Category"
+                fullWidth
+                value={selectedCategoryId}
+                onChange={(e) => handleCategoryChange(e.target.value)}
+                helperText="Select to load dynamic attributes"
+              >
+                <MenuItem value="">-- Select Category --</MenuItem>
+                {categoriesList.map((cat) => (
+                  <MenuItem key={cat.id} value={String(cat.id)}>
+                    {cat.displayName || cat.name}
+                  </MenuItem>
+                ))}
+              </TextField>
             </Grid>
 
             <Grid item xs={12} sm={6}>
@@ -907,17 +1072,79 @@ export const ProductsPage: React.FC = () => {
               <>
                 <Grid item xs={12}>
                   <Divider sx={{ my: 1 }}>
-                    <Chip label="DYNAMIC PRODUCT VARIANT BUILDER (SKU, PRICE & STOCK MATRIX)" color="secondary" size="small" icon={<Layers size={14} />} />
+                    <Chip label="DYNAMIC PRODUCT VARIANT BUILDER (CATEGORICAL ATTRIBUTE MATRIX)" color="secondary" size="small" icon={<Layers size={14} />} />
                   </Divider>
+                </Grid>
+
+                {/* DYNAMIC CATEGORY ATTRIBUTE SELECTION CONTROLS */}
+                <Grid item xs={12}>
+                  <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 3, bgcolor: '#F8FAFC', mb: 2 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 1, color: '#0F172A' }}>
+                      Category Attribute Options & Values:
+                    </Typography>
+                    {attributeGroups.length === 0 ? (
+                      <Typography variant="body2" color="text.secondary">
+                        {selectedCategoryId
+                          ? 'No attribute groups mapped to this category. Go to Admin -> Category Attributes to link groups.'
+                          : 'Select a Category above to load mapped attribute groups (e.g. Size, Color, RAM, Storage).'}
+                      </Typography>
+                    ) : (
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        {attributeGroups.map((group) => {
+                          const selectedVals = selectedAttrValues[group.id] || [];
+                          const groupValuesList = group.values || [];
+                          return (
+                            <Box key={group.id} sx={{ bgcolor: '#FFFFFF', p: 2, borderRadius: 2, border: '1px solid #E2E8F0' }}>
+                              <Typography variant="body2" sx={{ fontWeight: 700, color: '#1E293B', mb: 1 }}>
+                                {group.name} ({selectedVals.length} selected):
+                              </Typography>
+                              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                                {groupValuesList.length === 0 ? (
+                                  <Typography variant="caption" color="text.secondary">No preset values configured for group</Typography>
+                                ) : (
+                                  groupValuesList.map((valObj: any) => {
+                                    const valStr = typeof valObj === 'string' ? valObj : valObj.value;
+                                    const isSelected = selectedVals.includes(valStr);
+                                    return (
+                                      <Chip
+                                        key={valObj.id || valStr}
+                                        label={valStr}
+                                        color={isSelected ? 'primary' : 'default'}
+                                        variant={isSelected ? 'filled' : 'outlined'}
+                                        onClick={() => handleToggleAttrValue(group.id, valStr)}
+                                        sx={{ fontWeight: 700, cursor: 'pointer' }}
+                                      />
+                                    );
+                                  })
+                                )}
+                              </Box>
+                            </Box>
+                          );
+                        })}
+                        
+                        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
+                          <Button
+                            variant="contained"
+                            color="secondary"
+                            startIcon={<Zap size={16} />}
+                            onClick={handleGenerateCartesianVariants}
+                            sx={{ fontWeight: 800, textTransform: 'none', borderRadius: 2 }}
+                          >
+                            Generate Variant Combinations
+                          </Button>
+                        </Box>
+                      </Box>
+                    )}
+                  </Paper>
                 </Grid>
 
                 <Grid item xs={12}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                     <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
-                      Product Variants ({variantsList.length})
+                      Generated Product Variant Matrix ({variantsList.length})
                     </Typography>
                     <Button
-                      variant="contained"
+                      variant="outlined"
                       size="small"
                       color="secondary"
                       startIcon={<Plus size={16} />}
@@ -927,7 +1154,7 @@ export const ProductsPage: React.FC = () => {
                           ...variantsList,
                           {
                             sku: newSku,
-                            barcode: '',
+                            barcode: `BAR-${Date.now().toString().slice(-6)}`,
                             price: Number(productForm.price) || 0,
                             compareAtPrice: 0,
                             stockQuantity: 10,
@@ -935,16 +1162,16 @@ export const ProductsPage: React.FC = () => {
                           },
                         ]);
                       }}
-                      sx={{ fontWeight: 700 }}
+                      sx={{ fontWeight: 700, textTransform: 'none' }}
                     >
-                      Add Variant Option
+                      Add Manual Variant Row
                     </Button>
                   </Box>
 
                   {variantsList.length === 0 ? (
                     <Paper sx={{ p: 3, textAlign: 'center', bgcolor: '#F8FAFC', border: '1px dashed #CBD5E1', borderRadius: 2 }}>
                       <Typography variant="body2" color="text.secondary">
-                        No variants added yet. Click <strong>Add Variant Option</strong> to configure SKUs, prices, and stock balances for each size/color option.
+                        No variants generated yet. Select category attribute options above and click <strong>Generate Variant Combinations</strong>.
                       </Typography>
                     </Paper>
                   ) : (
@@ -953,6 +1180,7 @@ export const ProductsPage: React.FC = () => {
                         <TableHead sx={{ bgcolor: '#F8FAFC' }}>
                           <TableRow>
                             <TableCell sx={{ fontWeight: 800 }}>Variant SKU</TableCell>
+                            <TableCell sx={{ fontWeight: 800 }}>Attribute Options</TableCell>
                             <TableCell sx={{ fontWeight: 800 }}>Retail Price (₹)</TableCell>
                             <TableCell sx={{ fontWeight: 800 }}>Compare Price (₹)</TableCell>
                             <TableCell sx={{ fontWeight: 800 }}>Stock Qty</TableCell>
@@ -973,6 +1201,13 @@ export const ProductsPage: React.FC = () => {
                                     setVariantsList(updated);
                                   }}
                                 />
+                              </TableCell>
+                              <TableCell>
+                                {v.comboText ? (
+                                  <Chip label={v.comboText} size="small" color="info" sx={{ fontWeight: 700 }} />
+                                ) : (
+                                  <Typography variant="caption" color="text.secondary">Default</Typography>
+                                )}
                               </TableCell>
                               <TableCell>
                                 <TextField

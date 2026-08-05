@@ -394,13 +394,13 @@ ProductMedia.belongsTo(Media, { foreignKey: 'media_id', as: 'media' });
 // --- STEP 11 ASSOCIATIONS ---
 
 // Category
-Category.belongsTo(Tenant, { foreignKey: 'tenant_id', as: 'tenant' });
-Category.belongsTo(Store, { foreignKey: 'store_id', as: 'store' });
-Category.belongsTo(Category, { foreignKey: 'parent_id', as: 'parent' });
-Category.hasMany(Category, { foreignKey: 'parent_id', as: 'children' });
-Category.belongsTo(Media, { foreignKey: 'image_media_id', as: 'image' });
-Category.belongsTo(User, { foreignKey: 'created_by', as: 'creator' });
-Category.belongsTo(User, { foreignKey: 'updated_by', as: 'updater' });
+Category.belongsTo(Tenant, { foreignKey: 'tenantId', as: 'tenant' });
+Category.belongsTo(Store, { foreignKey: 'storeId', as: 'store' });
+Category.belongsTo(Category, { foreignKey: 'parentId', as: 'parent' });
+Category.hasMany(Category, { foreignKey: 'parentId', as: 'children' });
+Category.belongsTo(Media, { foreignKey: 'imageMediaId', as: 'image' });
+Category.belongsTo(User, { foreignKey: 'createdBy', as: 'creator' });
+Category.belongsTo(User, { foreignKey: 'updatedBy', as: 'updater' });
 Category.hasOne(CategorySeo, { foreignKey: 'category_id', as: 'seoRecord' });
 CategorySeo.belongsTo(Category, { foreignKey: 'category_id', as: 'category' });
 ProductAttribute.hasMany(ProductAttributeValue, { foreignKey: 'attribute_id', as: 'values' });
@@ -975,4 +975,5 @@ AttributeValue.belongsTo(AttributeGroup, { foreignKey: 'attribute_group_id', as:
 
 AttributeGroup.hasMany(CategoryAttribute, { foreignKey: 'attribute_group_id', as: 'categoryAttributes' });
 CategoryAttribute.belongsTo(AttributeGroup, { foreignKey: 'attribute_group_id', as: 'group' });
+
 

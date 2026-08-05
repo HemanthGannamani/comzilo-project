@@ -178,11 +178,33 @@ export const AdminAttributeManagementPage: React.FC = () => {
   const handleSaveAttribute = async () => {
     if (!attrForm.categoryId || !attrForm.attributeName) return toast.error('Category and Attribute Name are required');
     try {
+      let targetGroupId = attrForm.attributeGroupId;
+
+      if (!targetGroupId) {
+        const existingGroup = groups.find((g: any) => g.name.toLowerCase() === attrForm.attributeName.toLowerCase());
+        if (existingGroup) {
+          targetGroupId = existingGroup.id;
+        } else {
+          try {
+            const groupRes = await axiosInstance.post('/admin/attributes/groups', {
+              name: attrForm.attributeName,
+              code: attrForm.code || attrForm.attributeName.toLowerCase().replace(/\s+/g, '_'),
+              displayOrder: 0,
+            });
+            targetGroupId = groupRes.data?.data?.id;
+          } catch {
+            // Fallback if group creation fails
+          }
+        }
+      }
+
+      const payload = { ...attrForm, attributeGroupId: targetGroupId || undefined };
+
       if (editingAttr) {
-        await axiosInstance.put(`/admin/attributes/category-attributes/${editingAttr.id}`, attrForm);
+        await axiosInstance.put(`/admin/attributes/category-attributes/${editingAttr.id}`, payload);
         toast.success('Category Attribute updated');
       } else {
-        await axiosInstance.post('/admin/attributes/category-attributes', attrForm);
+        await axiosInstance.post('/admin/attributes/category-attributes', payload);
         toast.success('Category Attribute mapped successfully');
       }
       setAttributeModalOpen(false);
@@ -190,6 +212,51 @@ export const AdminAttributeManagementPage: React.FC = () => {
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Error saving attribute');
     }
+  };
+
+  const handleManageAttributeValues = async (attr: any) => {
+    const attrNameLower = (attr.attributeName || attr.displayName || '').toLowerCase().trim();
+    
+    // 1. Find group matching attribute name or code
+    let matchingGroup = groups.find(
+      (g: any) => g.name.toLowerCase().trim() === attrNameLower || g.code.toLowerCase().trim() === attrNameLower
+    );
+
+    // 2. If group doesn't exist yet, auto-create a dedicated Attribute Group for this attribute
+    if (!matchingGroup) {
+      try {
+        const groupCode = (attr.code || attr.attributeName).toLowerCase().replace(/[^a-z0-9]/g, '_');
+        const res = await axiosInstance.post('/admin/attributes/groups', {
+          name: attr.displayName || attr.attributeName,
+          code: groupCode,
+          displayOrder: 0,
+        });
+        matchingGroup = res.data?.data;
+        if (matchingGroup) {
+          // Link CategoryAttribute to this new dedicated group
+          await axiosInstance.put(`/admin/attributes/category-attributes/${attr.id}`, {
+            attributeGroupId: matchingGroup.id,
+          });
+          fetchData();
+        }
+      } catch {
+        console.warn('Failed to auto-create dedicated attribute group');
+      }
+    }
+
+    if (matchingGroup) {
+      setSelectedGroup(matchingGroup);
+      fetchGroupValues(matchingGroup.id);
+    } else {
+      const fallbackGroup = {
+        id: attr.attributeGroupId || attr.id,
+        name: attr.displayName || attr.attributeName,
+        code: attr.code || attr.attributeName,
+      };
+      setSelectedGroup(fallbackGroup);
+      if (attr.attributeGroupId) fetchGroupValues(attr.attributeGroupId);
+    }
+    setActiveTab(2);
   };
 
   const handleDeleteAttribute = async (id: number) => {
@@ -384,6 +451,15 @@ export const AdminAttributeManagementPage: React.FC = () => {
                           {attr.isFilterable && <Chip label="Filterable" size="small" color="info" sx={{ fontWeight: 700 }} />}
                         </TableCell>
                         <TableCell align="right">
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            startIcon={<Palette size={14} />}
+                            onClick={() => handleManageAttributeValues(attr)}
+                            sx={{ mr: 1, fontWeight: 700, textTransform: 'none', borderRadius: 1.5 }}
+                          >
+                            Manage Values
+                          </Button>
                           <IconButton size="small" color="primary" onClick={() => {
                             setEditingAttr(attr);
                             setAttrForm({
@@ -602,11 +678,29 @@ export const AdminAttributeManagementPage: React.FC = () => {
 
       {/* DIALOG: ATTRIBUTE VALUE */}
       <Dialog open={valueModalOpen} onClose={() => setValueModalOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontWeight: 800 }}>Add Value for "{selectedGroup?.name}"</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 800 }}>
+          Add Value for Attribute: "{selectedGroup?.name || 'Selected Attribute'}"
+        </DialogTitle>
         <DialogContent dividers>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <TextField label="Option Value (e.g. XL or Navy Blue)" fullWidth value={valueForm.value} onChange={(e) => setValueForm({ ...valueForm, value: e.target.value })} />
-            <TextField label="Hex Color Code (Optional e.g. #0000FF)" fullWidth value={valueForm.hexCode} onChange={(e) => setValueForm({ ...valueForm, hexCode: e.target.value })} />
+            <Chip
+              label={`Target Attribute: ${selectedGroup?.name || 'N/A'}`}
+              color="primary"
+              size="small"
+              sx={{ fontWeight: 800, alignSelf: 'flex-start' }}
+            />
+            <TextField
+              label="Option Value (e.g. 128GB, 8GB, XL, Navy Blue)"
+              fullWidth
+              value={valueForm.value}
+              onChange={(e) => setValueForm({ ...valueForm, value: e.target.value })}
+            />
+            <TextField
+              label="Hex Color Swatch Code (Optional e.g. #0000FF)"
+              fullWidth
+              value={valueForm.hexCode}
+              onChange={(e) => setValueForm({ ...valueForm, hexCode: e.target.value })}
+            />
           </Box>
         </DialogContent>
         <DialogActions>

@@ -208,10 +208,28 @@ export class AttributeManagementService {
       throw new ValidationError(`Attribute "${data.attributeName}" is already assigned to this category`);
     }
 
+    let groupId = data.attributeGroupId || null;
+    if (!groupId) {
+      const groupName = data.displayName || data.attributeName;
+      let group = await AttributeGroup.findOne({
+        where: { code: attrCode, ...(tenantId ? { tenantId } : {}) },
+      });
+      if (!group) {
+        group = await AttributeGroup.create({
+          tenantId,
+          name: groupName,
+          code: attrCode,
+          displayOrder: 0,
+          status: 'active',
+        });
+      }
+      groupId = group.id;
+    }
+
     const attr = await CategoryAttribute.create({
       tenantId,
       categoryId: data.categoryId,
-      attributeGroupId: data.attributeGroupId || null,
+      attributeGroupId: groupId,
       attributeName: data.attributeName,
       displayName: data.displayName || data.attributeName,
       code: attrCode,

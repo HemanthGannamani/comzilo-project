@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 import { BaseRepository } from '../core/BaseRepository';
-import { Category } from '../database/models/category';
+import { Category } from '../database/models';
 
 export class CategoryRepository extends BaseRepository<Category> {
   constructor() {
@@ -11,8 +11,8 @@ export class CategoryRepository extends BaseRepository<Category> {
     const opts = { ...options };
     opts.where = {
       ...opts.where,
-      tenant_id: tenantId,
-      store_id: storeId,
+      tenantId,
+      storeId,
     };
     return opts;
   }
@@ -49,7 +49,10 @@ export class CategoryRepository extends BaseRepository<Category> {
     storeId: number,
     options: any = {}
   ): Promise<{ rows: Category[]; count: number }> {
-    return this.model.findAndCountAll(this.applyStoreScope(tenantId, storeId, options));
+    const opts = this.applyStoreScope(tenantId, storeId, options);
+    if (opts.limit !== undefined) opts.limit = Number(opts.limit);
+    if (opts.offset !== undefined) opts.offset = Number(opts.offset);
+    return this.model.findAndCountAll(opts);
   }
 
   public async createScoped(tenantId: number, storeId: number, data: any): Promise<Category> {

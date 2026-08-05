@@ -24,6 +24,7 @@ import {
 } from '@mui/material';
 import { Plus, Edit2, Trash2, FolderTree, RefreshCw, Layers } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { axiosInstance } from '../../api/axiosInstance';
 
 export const AdminCategoryPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
@@ -44,10 +45,11 @@ export const AdminCategoryPage: React.FC = () => {
   const fetchCategories = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/v1/categories').then((r) => r.json());
-      if (res.success || Array.isArray(res)) {
-        const list = res.data || res;
-        setCategories(Array.isArray(list) ? list : []);
+      const res = await axiosInstance.get('/categories');
+      const data = res.data;
+      if (data.success || Array.isArray(data)) {
+        const list = data.data || data;
+        setCategories(Array.isArray(list) ? list : list?.rows || []);
       }
     } catch (e) {
       toast.error('Failed to load categories');
@@ -87,24 +89,22 @@ export const AdminCategoryPage: React.FC = () => {
         description,
       };
 
-      const url = editingCategory ? `/api/v1/categories/${editingCategory.id}` : '/api/v1/categories';
-      const method = editingCategory ? 'PUT' : 'POST';
+      let res;
+      if (editingCategory) {
+        res = await axiosInstance.put(`/categories/${editingCategory.id}`, payload);
+      } else {
+        res = await axiosInstance.post('/categories', payload);
+      }
 
-      const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      }).then((r) => r.json());
-
-      if (res.success || res.id) {
+      if (res.data?.success || res.data?.id) {
         toast.success(`Category ${editingCategory ? 'updated' : 'created'} successfully`);
         setDialogOpen(false);
         fetchCategories();
       } else {
-        toast.error(res.message || 'Operation failed');
+        toast.error(res.data?.message || 'Operation failed');
       }
-    } catch (e) {
-      toast.error('Failed to save category');
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || 'Failed to save category');
     }
   };
 
@@ -112,13 +112,13 @@ export const AdminCategoryPage: React.FC = () => {
     if (!window.confirm('Are you sure you want to archive this category?')) return;
 
     try {
-      const res = await fetch(`/api/v1/categories/${id}`, { method: 'DELETE' }).then((r) => r.json());
-      if (res.success) {
+      const res = await axiosInstance.delete(`/categories/${id}`);
+      if (res.data?.success) {
         toast.success('Category archived successfully');
         fetchCategories();
       }
-    } catch (e) {
-      toast.error('Failed to archive category');
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || 'Failed to archive category');
     }
   };
 

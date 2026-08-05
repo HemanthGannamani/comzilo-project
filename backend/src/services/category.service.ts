@@ -159,8 +159,10 @@ export class CategoryService {
     storeId: number,
     filters: any = {}
   ): Promise<{ rows: Category[]; count: number }> {
-    const { page = 1, limit = 10, search, status, visibility, parentId } = filters;
-    const offset = (page - 1) * limit;
+    const pageNum = Math.max(1, parseInt(String(filters.page || 1), 10));
+    const limitNum = Math.max(1, Math.min(100, parseInt(String(filters.limit || 10), 10)));
+    const offset = (pageNum - 1) * limitNum;
+    const { search, status, visibility, parentId } = filters;
 
     const where: any = {};
     if (status) where.status = status;
@@ -176,7 +178,7 @@ export class CategoryService {
 
     return this.categoryRepo.findAndCountAllScoped(tenantId, storeId, {
       where,
-      limit,
+      limit: limitNum,
       offset,
       order: [
         ['sortOrder', 'ASC'],

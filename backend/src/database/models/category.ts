@@ -116,7 +116,7 @@ Category.init(
     status: {
       type: DataTypes.ENUM('draft', 'active', 'inactive', 'archived'),
       allowNull: false,
-      defaultValue: 'draft',
+      defaultValue: 'active',
     },
     visibility: {
       type: DataTypes.ENUM('public', 'private', 'hidden'),

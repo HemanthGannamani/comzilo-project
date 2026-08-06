@@ -20,8 +20,15 @@ const loadInitialCart = (): CartItem[] => {
     if (!stored) return [];
     const parsed = JSON.parse(stored);
     if (!Array.isArray(parsed)) return [];
-    // Sanitize any stale mock cart items from previous testing sessions
-    return parsed.filter((item: any) => item && item.id && item.sku !== 'PROD-0074' && item.name !== 'QA Verified Physical Product');
+    // Sanitize any stale mock cart items or stale test products from previous testing sessions
+    return parsed
+      .filter((item: any) => item && item.id && item.sku !== 'PROD-0074' && item.name !== 'QA Verified Physical Product' && item.name !== 'HTTP Variable Product 7132')
+      .map((item: any) => {
+        if (item.image && typeof item.image === 'string' && item.image.includes('523275335684')) {
+          return { ...item, image: '' };
+        }
+        return item;
+      });
   } catch {
     return [];
   }

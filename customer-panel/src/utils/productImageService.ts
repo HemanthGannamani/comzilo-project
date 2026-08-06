@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:5000';
+export const API_BASE_URL = 'http://localhost:5000';
 
 const PRODUCT_TYPE_DEFAULT_IMAGES: Record<string, string> = {
   physical: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500',
@@ -47,31 +47,44 @@ const SKU_IMAGE_MAP: Record<string, string> = {
  * 4. General fallback product image
  */
 export const getProductImage = (prod: any): string => {
-  const images = prod?.images || prod?.media || [];
-  const validImg = images.find((img: any) => {
-    const url = img?.imageUrl || img?.url;
-    return url && typeof url === 'string' && !url.startsWith('blob:');
+  if (!prod) {
+    return 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500';
+  }
+
+  // 1. Gather all potential image sources
+  const images = Array.isArray(prod?.images) ? prod.images : Array.isArray(prod?.media) ? prod.media : [];
+
+  // Find real server upload URLs first (/uploads/... or http://...)
+  const serverImg = images.find((img: any) => {
+    const u = img?.imageUrl || img?.url || (typeof img === 'string' ? img : '');
+    return u && typeof u === 'string' && (u.includes('/uploads/') || (u.startsWith('http') && !u.startsWith('blob:')));
   });
 
-  let rawUrl = validImg?.imageUrl || validImg?.url || prod?.image;
+  // Next fallback to any non-blob image entry
+  const anyNonBlobImg = images.find((img: any) => {
+    const u = img?.imageUrl || img?.url || (typeof img === 'string' ? img : '');
+    return u && typeof u === 'string' && !u.startsWith('blob:');
+  });
 
-  if (rawUrl && typeof rawUrl === 'string' && !rawUrl.startsWith('blob:')) {
-    if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) {
-      return rawUrl;
+  // Next fallback to any image entry including single image property
+  const fallbackSingleImg = typeof prod?.image === 'string' ? prod.image : prod?.image?.imageUrl || prod?.image?.url;
+
+  const targetImgObj = serverImg || anyNonBlobImg;
+  let rawUrl = targetImgObj ? targetImgObj.imageUrl || targetImgObj.url || (typeof targetImgObj === 'string' ? targetImgObj : '') : fallbackSingleImg;
+
+  if (rawUrl && typeof rawUrl === 'string' && rawUrl.trim().length > 0) {
+    const trimmed = rawUrl.trim();
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+      return trimmed;
     }
-    return `${API_BASE_URL}${rawUrl.startsWith('/') ? '' : '/'}${rawUrl}`;
+    if (trimmed.startsWith('blob:')) {
+      return trimmed;
+    }
+    const cleanPath = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+    return `${API_BASE_URL}${cleanPath}`;
   }
 
-  if (prod?.sku && SKU_IMAGE_MAP[prod.sku]) {
-    return SKU_IMAGE_MAP[prod.sku];
-  }
-
-  const pType = (prod?.productType || prod?.type || '').toLowerCase();
-  if (pType && PRODUCT_TYPE_DEFAULT_IMAGES[pType]) {
-    return PRODUCT_TYPE_DEFAULT_IMAGES[pType];
-  }
-
-  // Generate deterministic unsplash image index based on product ID/name so distinct products don't all look identical
+  // Fallback placeholder image list if no image was uploaded for this product
   const fallbackList = [
     'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500',
     'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500',

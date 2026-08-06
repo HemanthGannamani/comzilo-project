@@ -34,35 +34,11 @@ export class OrderService extends BaseService {
   private async generateOrderNumber(
     tenantId: number,
     storeId: number,
-    transaction: any
+    transaction?: any
   ): Promise<string> {
-    const year = new Date().getFullYear();
-    const prefix = `ORD-${year}-`;
-
-    // Row-level lock on the latest order for this tenant/store to avoid race conditions
-    const latestOrder = await this.orderRepo.findScopedOne(tenantId, storeId, {
-      where: {
-        orderNumber: {
-          [Op.like]: `${prefix}%`,
-        },
-      },
-      order: [['id', 'DESC']],
-      lock: transaction.LOCK.UPDATE,
-      transaction,
-      paranoid: false,
-    });
-
-    let sequence = 1;
-    if (latestOrder) {
-      const match = latestOrder.orderNumber.substring(prefix.length);
-      const parsed = parseInt(match, 10);
-      if (!isNaN(parsed)) {
-        sequence = parsed + 1;
-      }
-    }
-
-    const padded = String(sequence).padStart(6, '0');
-    return `${prefix}${padded}`;
+    const timestamp = Date.now();
+    const randomSuffix = Math.floor(100 + Math.random() * 900);
+    return `ORD-${timestamp}-${randomSuffix}`;
   }
 
   /**
@@ -114,12 +90,13 @@ export class OrderService extends BaseService {
     userId: number,
     data: any,
     ip?: string,
-    userAgent?: string
+    userAgent?: string,
+    options?: any
   ): Promise<Order> {
     // 1. Validate customer
-    let customer = await this.customerRepo.findScopedById(tenantId, storeId, data.customerId);
+    let customer = await this.customerRepo.findScopedById(tenantId, storeId, data.customerId, options);
     if (!customer) {
-      customer = await Customer.findByPk(data.customerId);
+      customer = await Customer.findByPk(data.customerId, options);
     }
     if (!customer) {
       throw new NotFoundError(`Customer with ID ${data.customerId} not found.`);
@@ -128,8 +105,7 @@ export class OrderService extends BaseService {
       throw new ValidationError(`Cannot create order: customer is currently '${customer.status}'.`);
     }
 
-    // 2. Start database transaction
-    const order = await sequelize.transaction(async (t) => {
+    const runOrderLogic = async (t: any) => {
       // Generate Order Number with Lock
       const orderNumber = await this.generateOrderNumber(tenantId, storeId, t);
 
@@ -174,13 +150,18 @@ export class OrderService extends BaseService {
               // Deduct Variant Inventory stock
               const { VariantInventoryService } = require('./variantInventory.service');
               const varInvService = new VariantInventoryService();
-              await varInvService.adjustStock(tenantId, {
-                variantId: variant.id,
-                warehouseId: item.warehouseId || 1,
-                adjustmentQty: -Number(item.quantity || 1),
-                movementType: 'stock_out',
-                notes: `Deducted for Order #${orderNumber}`,
-              });
+              await varInvService.adjustStock(
+                tenantId,
+                {
+                  variantId: variant.id,
+                  warehouseId: item.warehouseId || 1,
+                  adjustmentQty: -Number(item.quantity || 1),
+                  movementType: 'stock_out',
+                  notes: `Deducted for Order #${orderNumber}`,
+                },
+                null,
+                { transaction: t }
+              );
             }
           }
 
@@ -223,8 +204,8 @@ export class OrderService extends BaseService {
         {
           orderNumber,
           customerId: data.customerId,
-          status: 'draft',
-          paymentStatus: 'unpaid',
+          status: data.status || 'draft',
+          paymentStatus: data.paymentStatus || 'unpaid',
           fulfillmentStatus: 'pending',
           subtotal,
           discountAmount,
@@ -252,7 +233,10 @@ export class OrderService extends BaseService {
       }
 
       return newOrder;
-    });
+    };
+
+    const parentTx = options?.transaction;
+    const order = parentTx ? await runOrderLogic(parentTx) : await sequelize.transaction(runOrderLogic);
 
     await createAuditLog(
       {
@@ -277,21 +261,33 @@ export class OrderService extends BaseService {
       { ipAddress: ip } as any
     );
 
-    return this.getOrder(tenantId, storeId, order.id);
+    return order;
   }
 
   /**
    * Retrieves an Order.
    */
-  public async getOrder(tenantId: number, storeId: number, id: number): Promise<Order> {
+  public async getOrder(tenantId: number, storeId: number, id: number, options: any = {}): Promise<Order> {
+    const { transaction } = options;
     const order = await this.orderRepo.findScopedById(tenantId, storeId, id, {
       include: [
         { model: Customer, as: 'customer' },
         { model: OrderItem, as: 'items' },
       ],
+      ...(transaction ? { transaction } : {}),
     });
     if (!order) {
-      throw new NotFoundError(`Order with ID ${id} not found.`);
+      const fallbackOrder = await Order.findByPk(id, {
+        include: [
+          { model: Customer, as: 'customer' },
+          { model: OrderItem, as: 'items' },
+        ],
+        ...(transaction ? { transaction } : {}),
+      });
+      if (!fallbackOrder) {
+        throw new NotFoundError(`Order with ID ${id} not found.`);
+      }
+      return fallbackOrder;
     }
     return order;
   }

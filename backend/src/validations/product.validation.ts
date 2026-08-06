@@ -34,6 +34,28 @@ export const productValidation = {
         isPrimary: Joi.boolean().optional(),
       })
     ).optional(),
+    categoryId: Joi.number().integer().positive().allow(null).optional(),
+    category_id: Joi.number().integer().positive().allow(null).optional(),
+    variants: Joi.array().items(
+      Joi.object({
+        sku: Joi.string().required(),
+        barcode: Joi.string().allow('', null).optional(),
+        price: Joi.number().min(0).required(),
+        compareAtPrice: Joi.number().min(0).allow(null).optional(),
+        costPrice: Joi.number().min(0).allow(null).optional(),
+        stockQuantity: Joi.number().integer().min(0).optional(),
+        status: Joi.string().optional(),
+        attributes: Joi.array().items(
+          Joi.object({
+            name: Joi.string().optional(),
+            attributeName: Joi.string().optional(),
+            value: Joi.string().optional(),
+            attributeValue: Joi.string().optional(),
+          })
+        ).optional(),
+        images: Joi.array().optional(),
+      })
+    ).optional(),
     dynamicAttributes: Joi.object().optional(),
     subscription: Joi.object().optional(),
     rental: Joi.object().optional(),

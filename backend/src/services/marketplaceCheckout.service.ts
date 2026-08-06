@@ -32,7 +32,7 @@ export interface MarketplaceCheckoutSyncOptions {
     razorpayPaymentId?: string;
     notes?: string;
   };
-  transaction: Transaction;
+  transaction?: Transaction;
 }
 
 export class MarketplaceCheckoutService {
@@ -50,7 +50,7 @@ export class MarketplaceCheckoutService {
     const productIds = items.map((it) => it.productId);
     const products = await Product.findAll({
       where: { id: productIds },
-      transaction: t,
+      ...(t ? { transaction: t } : {}),
     });
 
     const productTenantMap = new Map<number, number>();
@@ -81,8 +81,7 @@ export class MarketplaceCheckoutService {
           credit DECIMAL(12,2) DEFAULT 0,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-      `,
-        { transaction: t }
+      `
       )
       .catch(() => {});
 

@@ -537,6 +537,14 @@ export const ProductsPage: React.FC = () => {
       return;
     }
 
+    const currentProductType = selectedType?.code || productForm.productType || 'physical';
+    const isVariable = currentProductType === 'variable';
+
+    if (isVariable && (!variantsList || variantsList.length === 0)) {
+      toast.error('Generate variant combinations before publishing.');
+      return;
+    }
+
     const imagePayload = uploadedImages
       .filter((img) => img.url && img.url.trim().length > 0)
       .map((img, idx) => ({
@@ -550,7 +558,7 @@ export const ProductsPage: React.FC = () => {
       sku: productForm.sku,
       price: parseFloat(productForm.price) || 0,
       costPrice: parseFloat(productForm.costPrice) || 0,
-      productType: productForm.productType,
+      productType: currentProductType,
       categoryId: selectedCategoryId ? Number(selectedCategoryId) : undefined,
       status: 'published',
       visibility: 'public',
@@ -558,7 +566,7 @@ export const ProductsPage: React.FC = () => {
       seoTitle: productForm.metaTitle || productForm.name,
       seoDescription: productForm.metaDescription,
       images: imagePayload,
-      variants: productForm.productType === 'variable' ? variantsList : undefined,
+      variants: isVariable ? variantsList : undefined,
       dynamicAttributes: {
         weight: productForm.weight,
         dimensions: `${productForm.length}x${productForm.width}x${productForm.height} cm`,
@@ -572,6 +580,8 @@ export const ProductsPage: React.FC = () => {
         serviceDurationMinutes: productForm.durationMinutes,
       },
     };
+
+    console.log('[CREATE PRODUCT PAYLOAD]:', JSON.stringify(payload, null, 2));
 
     try {
       const res = await axiosInstance.post('/products', payload);

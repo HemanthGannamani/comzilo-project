@@ -76,15 +76,15 @@ export class VariantInventoryService {
     return inventory;
   }
 
-  public async adjustStock(tenantId: number | null, data: any, context?: any) {
+  public async adjustStock(tenantId: number | null, data: any, context?: any, options: any = {}) {
     const { variantId, warehouseId, adjustmentQty, movementType, notes } = data;
     if (!variantId || !warehouseId || adjustmentQty === undefined) {
       throw new ValidationError('Variant ID, Warehouse ID, and Adjustment Quantity are required');
     }
 
-    let inventory = await VariantInventory.findOne({ where: { variantId, warehouseId } });
+    let inventory = await VariantInventory.findOne({ where: { variantId, warehouseId }, ...options });
     if (!inventory) {
-      inventory = await this.allocateWarehouse(tenantId, null, { variantId, warehouseId, quantityOnHand: 0 });
+      inventory = await this.allocateWarehouse(tenantId, null, { variantId, warehouseId, quantityOnHand: 0 }, context);
     }
 
     const currentStock = inventory.quantityOnHand || 0;
@@ -106,23 +106,54 @@ export class VariantInventoryService {
     if (available === 0) newStatus = 'out_of_stock';
     else if (available <= lowThreshold) newStatus = 'low_stock';
 
-    await inventory.update({
-      quantityOnHand: newStock,
-      quantityAvailable: available,
-      status: newStatus,
-      notes: notes || inventory.notes,
-    });
+    await inventory.update(
+      {
+        quantityOnHand: newStock,
+        quantityAvailable: available,
+        status: newStatus,
+        notes: notes || inventory.notes,
+      },
+      options
+    );
 
-    await this.recalculateTotalVariantStock(variantId);
+    // Record Stock Movement Log
+    try {
+      const models = require('../database/models');
+      if (models && models.StockMovementLog) {
+        await models.StockMovementLog.create(
+          {
+            tenantId: tenantId || 1,
+            variantInventoryId: inventory.id,
+            variantId,
+            warehouseId,
+            movementType: movementType || 'manual_adjustment',
+            quantityBefore: currentStock,
+            quantityAfter: newStock,
+            quantityChanged: Number(adjustmentQty),
+            notes: notes || 'Stock adjustment',
+            createdBy: context?.authenticatedUserId || null,
+          },
+          options
+        );
+      }
+    } catch (e) {
+      // safe fallback if StockMovementLog table/model does not exist
+    }
 
-    await createAuditLog({
-      tenantId,
-      action: 'VARIANT_STOCK_ADJUSTED',
-      entityType: 'VariantInventory',
-      entityId: String(inventory.id),
-      previousValues: oldValues,
-      newValues: inventory.get({ plain: true }),
-    }, context);
+    // Update ProductVariant total stock quantity
+    await this.recalculateTotalVariantStock(variantId, options);
+
+    await createAuditLog(
+      {
+        tenantId: tenantId || 1,
+        action: 'VARIANT_STOCK_ADJUSTED',
+        entityType: 'VariantInventory',
+        entityId: String(inventory.id),
+        previousValues: oldValues,
+        newValues: inventory.get({ plain: true }),
+      },
+      context
+    );
 
     return inventory;
   }
@@ -224,13 +255,13 @@ export class VariantInventoryService {
     return true;
   }
 
-  private async recalculateTotalVariantStock(variantId: number) {
-    const balances = await VariantInventory.findAll({ where: { variantId } });
+  private async recalculateTotalVariantStock(variantId: number, options: any = {}) {
+    const balances = await VariantInventory.findAll({ where: { variantId }, ...options });
     const totalStock = balances.reduce((sum, b) => sum + (b.quantityOnHand || 0), 0);
 
-    const variant = await ProductVariant.findByPk(variantId);
+    const variant = await ProductVariant.findByPk(variantId, options);
     if (variant) {
-      await variant.update({ stockQuantity: totalStock });
+      await variant.update({ stockQuantity: totalStock }, options);
     }
   }
 }

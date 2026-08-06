@@ -24,83 +24,101 @@ export class ProductVariantService {
     });
   }
 
-  public async getVariantById(variantId: number, tenantId?: number | null) {
+  public async getVariantById(variantId: number, tenantId?: number | null, options: any = {}) {
     const whereClause: any = { id: variantId };
     if (tenantId) whereClause.tenantId = tenantId;
 
-    const variant = await ProductVariant.findOne({
+    const queryOpts: any = {
       where: whereClause,
       include: [
         { model: VariantAttribute, as: 'attributes' },
         { model: VariantImage, as: 'images' },
         { model: VariantInventory, as: 'inventories' },
       ],
-    });
+    };
+
+    if (options && options.transaction) {
+      queryOpts.transaction = options.transaction;
+    }
+
+    const variant = await ProductVariant.findOne(queryOpts);
 
     if (!variant) throw new NotFoundError('Product variant not found');
     return variant;
   }
 
-  public async createVariant(tenantId: number | null, data: any) {
+  public async createVariant(tenantId: number | null, data: any, options: any = {}) {
     if (!data.productId || !data.sku || data.price === undefined) {
       throw new ValidationError('Product ID, SKU, and Price are required for a variant');
     }
 
-    const existingSku = await ProductVariant.findOne({ where: { sku: data.sku } });
+    const existingSku = await ProductVariant.findOne({ where: { sku: data.sku }, ...options });
     if (existingSku) {
       throw new ValidationError(`Variant SKU "${data.sku}" already exists`);
     }
 
-    const variant = await ProductVariant.create({
-      tenantId,
-      storeId: data.storeId || 1,
-      productId: data.productId,
-      sku: data.sku,
-      barcode: data.barcode || null,
-      price: data.price,
-      compareAtPrice: data.compareAtPrice || null,
-      costPrice: data.costPrice || null,
-      stockQuantity: data.stockQuantity || 0,
-      status: data.status || 'active',
-    });
+    const variant: any = await ProductVariant.create(
+      {
+        tenantId,
+        storeId: data.storeId || 1,
+        productId: data.productId,
+        sku: data.sku,
+        barcode: data.barcode || null,
+        price: data.price,
+        compareAtPrice: data.compareAtPrice || null,
+        costPrice: data.costPrice || null,
+        stockQuantity: data.stockQuantity || 0,
+        status: data.status || 'active',
+      },
+      options
+    );
 
     if (data.attributes && Array.isArray(data.attributes)) {
       for (const attr of data.attributes) {
-        await VariantAttribute.create({
-          variantId: variant.id,
-          attributeName: attr.name || attr.attributeName,
-          attributeValue: attr.value || attr.attributeValue,
-        });
+        await VariantAttribute.create(
+          {
+            variantId: variant.id,
+            attributeName: attr.name || attr.attributeName,
+            attributeValue: attr.value || attr.attributeValue,
+          },
+          options
+        );
       }
     }
 
     if (data.images && Array.isArray(data.images)) {
       for (let i = 0; i < data.images.length; i++) {
         const img = data.images[i];
-        await VariantImage.create({
-          variantId: variant.id,
-          imageUrl: typeof img === 'string' ? img : img.imageUrl,
-          displayOrder: i,
-          isPrimary: i === 0,
-        });
+        await VariantImage.create(
+          {
+            variantId: variant.id,
+            imageUrl: typeof img === 'string' ? img : img.imageUrl,
+            displayOrder: i,
+            isPrimary: i === 0,
+          },
+          options
+        );
       }
     }
 
     if (data.stockQuantity !== undefined) {
-      await VariantInventory.create({
-        tenantId,
-        storeId: data.storeId || 1,
-        variantId: variant.id,
-        warehouseId: data.warehouseId || 1,
-        quantityOnHand: data.stockQuantity || 0,
-        quantityAvailable: data.stockQuantity || 0,
-        quantityReserved: 0,
-      });
+      await VariantInventory.create(
+        {
+          tenantId,
+          storeId: data.storeId || 1,
+          variantId: variant.id,
+          warehouseId: data.warehouseId || 1,
+          quantityOnHand: data.stockQuantity || 0,
+          quantityAvailable: data.stockQuantity || 0,
+          quantityReserved: 0,
+        },
+        options
+      );
     }
 
     await logVariantCreated(variant);
 
-    return await this.getVariantById(variant.id, tenantId);
+    return await this.getVariantById(variant.id, tenantId, options);
   }
 
   public async updateVariant(variantId: number, tenantId: number | null, data: any) {

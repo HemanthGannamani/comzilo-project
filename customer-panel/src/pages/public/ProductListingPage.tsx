@@ -121,7 +121,7 @@ export const ProductListingPage: React.FC = () => {
         id: prod.id,
         name: prod.name,
         price: Number(prod.price),
-        image: prod.media?.[0]?.url || prod.image || '',
+        image: getProductImage(prod),
         quantity: 1,
       })
     );

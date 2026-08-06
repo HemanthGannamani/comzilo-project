@@ -138,11 +138,15 @@ export class ProductService {
         const { ProductVariantService } = require('./productVariant.service');
         const variantService = new ProductVariantService();
         for (const vData of data.variants) {
-          await variantService.createVariant(tenantId, {
-            ...vData,
-            productId: product.id,
-            storeId,
-          });
+          await variantService.createVariant(
+            tenantId,
+            {
+              ...vData,
+              productId: product.id,
+              storeId,
+            },
+            { transaction: t }
+          );
         }
       }
 
@@ -229,14 +233,27 @@ export class ProductService {
   }
 
   public async getProduct(tenantId: number | null, storeId: number, productId: number): Promise<Product> {
-    const { ProductImage } = require('../database/models');
-    const effectiveTenant = tenantId === 0 ? null : tenantId;
-    const product = await this.productRepo.findOne(effectiveTenant, {
+    const { ProductImage, ProductVariant, VariantAttribute, VariantImage } = require('../database/models');
+    const product = await this.productRepo.findOne(null, {
       where: { id: productId },
       include: [
         {
           model: ProductImage,
           as: 'images',
+        },
+        {
+          model: ProductVariant,
+          as: 'variants',
+          include: [
+            {
+              model: VariantAttribute,
+              as: 'attributes',
+            },
+            {
+              model: VariantImage,
+              as: 'images',
+            },
+          ],
         },
       ],
     });

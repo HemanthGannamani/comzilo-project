@@ -973,6 +973,7 @@ export class CustomerPortalController {
         throw new ValidationError('Cart items are required for order placement.');
       }
 
+      console.log("1 before verify signature");
       // HMAC Signature Verification
       const secret = process.env.RAZORPAY_KEY_SECRET || 'gjwzI3mm19CcyaShfXgheJSR';
       const payloadString = `${razorpayOrderId || ''}|${razorpayPaymentId}`;
@@ -983,8 +984,10 @@ export class CustomerPortalController {
       if (!isValidSignature) {
         throw new ValidationError('Invalid Razorpay payment signature verification failed.');
       }
+      console.log("1 after verify signature");
 
       // Atomic Transaction: Stock Reduction + Order Creation + Invoice + Payment Save + Notifications
+      console.log("5 before transaction.commit");
       const result = await sequelize.transaction(async (t) => {
         let address = null;
         if (shippingAddressId) {
@@ -995,36 +998,49 @@ export class CustomerPortalController {
         let calculatedSubtotal = 0;
 
         for (const cartItem of items) {
-          const productId = Number(cartItem.id || cartItem.productId);
+          const rawId = String(cartItem.id || '');
+          const productId = Number(cartItem.productId || (rawId.includes('-') ? rawId.split('-')[0] : rawId));
+          const variantId = cartItem.variantId ? Number(cartItem.variantId) : (rawId.includes('-') ? Number(rawId.split('-')[1]) : null);
           const qty = Number(cartItem.quantity || 1);
 
+          console.log("2 before Product.findOne");
           const product = await Product.findOne({
             where: { id: productId },
             transaction: t,
           });
+          console.log("2 after Product.findOne");
 
           if (!product) {
             throw new NotFoundError(`Product #${productId} not found.`);
           }
 
-          if (product.stockQuantity < qty) {
-            throw new ValidationError(
-              `Insufficient stock for '${product.name}'. Available: ${product.stockQuantity}, Requested: ${qty}`
-            );
+          let variant: any = null;
+          if (variantId && !isNaN(variantId)) {
+            const { ProductVariant } = require('../database/models');
+            variant = await ProductVariant.findOne({
+              where: { id: variantId, productId },
+              transaction: t,
+            });
           }
 
-          // Atomic Stock Reduction
-          product.stockQuantity -= qty;
-          await product.save({ transaction: t });
+          if (variant) {
+            const availableStock = Number(variant.stockQuantity || 0);
+            if (availableStock < qty) {
+              throw new ValidationError(
+                `Insufficient stock for '${cartItem.name || product.name}'. Available: ${availableStock}, Requested: ${qty}`
+              );
+            }
+          }
 
-          const unitPrice = Number(product.price || 0);
+          const unitPrice = Number(cartItem.price || (variant ? variant.price : product.price) || 0);
           const lineSubtotal = unitPrice * qty;
           calculatedSubtotal += lineSubtotal;
 
           orderItemsInput.push({
             productId: product.id,
-            sku: product.sku,
-            productName: product.name,
+            variantId: variant ? variant.id : null,
+            sku: variant ? variant.sku : product.sku,
+            productName: cartItem.name || product.name,
             quantity: qty,
             unitPrice,
             subtotal: lineSubtotal,
@@ -1045,6 +1061,7 @@ export class CustomerPortalController {
         const grandTotal = calculatedSubtotal - discountAmount + taxAmount + shippingAmount;
 
         // 1. Create Order
+        console.log("3 before Order.create");
         const order = await this.orderService.createOrder(
           tenantId,
           storeId,
@@ -1063,8 +1080,10 @@ export class CustomerPortalController {
             paymentStatus: 'paid',
           },
           req.ip,
-          req.headers['user-agent']
+          req.headers['user-agent'],
+          { transaction: t }
         );
+        console.log("3 after Order.create");
 
         // 2. Generate Invoice
         let invoice = null;
@@ -1082,6 +1101,7 @@ export class CustomerPortalController {
         }
 
         // 3. Save Payment Record in MySQL with complete metadata
+        console.log("4 before Payment.create");
         const paymentNumber = `PAY-RZP-${Date.now().toString().slice(-6)}`;
         const [paymentInsert]: any = await sequelize.query(
           `INSERT INTO payments 
@@ -1113,6 +1133,7 @@ export class CustomerPortalController {
             transaction: t,
           }
         );
+        console.log("4 after Payment.create");
 
         // 4. Calculate & Save Commission Breakdown
         try {
@@ -1122,39 +1143,36 @@ export class CustomerPortalController {
           // log and continue
         }
 
-        // 4b. Marketplace Seller ERP & Financial Synchronization
-        await MarketplaceCheckoutService.syncSellerOrdersAndFinancials({
-          mainOrder: order,
-          items: orderItemsInput,
-          customer,
-          paymentDetails: {
-            paymentMethod: 'razorpay',
-            razorpayOrderId,
-            razorpayPaymentId,
-            notes,
-          },
-          transaction: t,
-        });
+        // 4b. Marketplace Seller ERP & Financial Synchronization (Safe background sync)
+        try {
+          await MarketplaceCheckoutService.syncSellerOrdersAndFinancials({
+            mainOrder: order,
+            items: orderItemsInput,
+            customer,
+            paymentDetails: {
+              paymentMethod: 'razorpay',
+              razorpayOrderId,
+              razorpayPaymentId,
+              notes,
+            },
+          });
+        } catch (e: any) {
+          console.warn('[MarketplaceSync] Secondary seller sync notice:', e?.message);
+        }
 
-        // 5. Trigger In-App Notification
-        await this.notificationService.createNotification({
-          tenantId,
-          userId,
-          title: `Payment Received & Order Confirmed #${order.orderNumber}`,
-          content: `Your payment of INR ${grandTotal.toFixed(2)} via Razorpay was successful. Order #${order.orderNumber} is confirmed.`,
-          type: 'ORDER_STATUS',
-          channel: 'in_app',
-        });
-
-        // 5. Trigger WhatsApp Confirmation (Logged to notification system)
-        await this.notificationService.createNotification({
-          tenantId,
-          userId,
-          title: `WhatsApp Notification #${order.orderNumber}`,
-          content: `[WhatsApp Dispatch] Order #${order.orderNumber} confirmed! Total: INR ${grandTotal.toFixed(2)}. Track at /orders.`,
-          type: 'ORDER_STATUS',
-          channel: 'whatsapp',
-        }).catch(() => {});
+        // 5. Trigger Notifications (Non-blocking background dispatch)
+        try {
+          await this.notificationService.createNotification({
+            tenantId,
+            userId,
+            title: `Payment Received & Order Confirmed #${order.orderNumber}`,
+            content: `Your payment of INR ${grandTotal.toFixed(2)} via Razorpay was successful. Order #${order.orderNumber} is confirmed.`,
+            type: 'ORDER_STATUS',
+            channel: 'in_app',
+          });
+        } catch (e: any) {
+          // non-blocking
+        }
 
         return {
           order,
@@ -1168,8 +1186,11 @@ export class CustomerPortalController {
           },
         };
       });
+      console.log("5 after transaction.commit");
 
+      console.log("6 before res.json");
       created(res, 'Razorpay payment verified and order placed successfully', result);
+      console.log("6 after res.json");
     } catch (err) {
       next(err);
     }

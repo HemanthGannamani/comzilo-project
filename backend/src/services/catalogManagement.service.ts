@@ -15,7 +15,7 @@ export class CatalogManagementService {
   // ==========================================
 
   public async getCategoryTree(tenantId: number | null, storeId: number): Promise<any[]> {
-    const where: any = { status: 'active' };
+    const where: any = { status: { [Op.ne]: 'archived' } };
     if (tenantId !== null) {
       where.tenantId = tenantId;
     }

@@ -7,7 +7,7 @@ import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { addToCart } from '../../store/cartSlice';
 import { toggleWishlist } from '../../store/wishlistSlice';
 import { formatPrice } from '../../utils/currencyService';
-import { getProductImage } from '../../utils/productImageService';
+import { getProductImage, API_BASE_URL } from '../../utils/productImageService';
 import { VariantSelector, VariantItem } from '../../components/products/VariantSelector';
 import toast from 'react-hot-toast';
 
@@ -16,7 +16,8 @@ export const ProductDetailPage: React.FC = () => {
   const [quantity, setQuantity] = useState(1);
   const [selectedVariant, setSelectedVariant] = useState<VariantItem | null>(null);
 
-  const { data } = useGetProductByIdQuery(id || 1);
+  const validId = id && id !== 'undefined' && id !== 'null' ? id : 1;
+  const { data } = useGetProductByIdQuery(validId);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { items: wishlistItems } = useAppSelector((state) => state.wishlist);
@@ -27,12 +28,13 @@ export const ProductDetailPage: React.FC = () => {
   const hasVariants = product?.variants && Array.isArray(product.variants) && product.variants.length > 0;
 
   // Live Price and Image updates based on Selected Variant vs Simple Product
-  const currentPrice = selectedVariant ? selectedVariant.price : product?.price || 0;
-  const comparePrice = selectedVariant ? selectedVariant.compareAtPrice : product?.compareAtPrice;
+  const currentPrice = selectedVariant ? Number(selectedVariant.price) : Number(product?.price) || 0;
+  const comparePrice = selectedVariant ? (selectedVariant.compareAtPrice ? Number(selectedVariant.compareAtPrice) : undefined) : (product?.compareAtPrice ? Number(product.compareAtPrice) : undefined);
   const currentSku = selectedVariant ? selectedVariant.sku : product?.sku || 'SKU-MAIN-01';
-  const currentStock = selectedVariant ? selectedVariant.stockQuantity : product?.stockQuantity ?? 50;
+  const currentStock = selectedVariant ? Number(selectedVariant.stockQuantity) : Number(product?.stockQuantity ?? 50);
 
-  const primaryVariantImage = selectedVariant?.images?.[0]?.imageUrl;
+  const rawVariantImg = selectedVariant?.images?.[0]?.imageUrl || (selectedVariant?.images?.[0] as any)?.url;
+  const primaryVariantImage = rawVariantImg ? (rawVariantImg.startsWith('http') || rawVariantImg.startsWith('blob:') ? rawVariantImg : `${API_BASE_URL}${rawVariantImg.startsWith('/') ? '' : '/'}${rawVariantImg}`) : null;
   const displayImage = primaryVariantImage || getProductImage(product);
 
   const handleAddToCart = () => {

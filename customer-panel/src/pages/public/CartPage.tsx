@@ -18,6 +18,7 @@ import { updateQuantity, removeFromCart, applyCoupon, removeCoupon } from '../..
 import { toggleWishlist } from '../../store/wishlistSlice';
 import { useValidateCouponMutation } from '../../api/customerPortalApi';
 import { formatPrice } from '../../utils/currencyService';
+import { getProductImage } from '../../utils/productImageService';
 import toast from 'react-hot-toast';
 
 const AVAILABLE_OFFERS = [
@@ -146,7 +147,7 @@ export const CartPage: React.FC = () => {
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: { xs: 'wrap', sm: 'nowrap' } }}>
                   <Box
                     component="img"
-                    src={item.image || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=200'}
+                    src={getProductImage(item)}
                     alt={item.name}
                     sx={{ width: 90, height: 90, objectFit: 'cover', borderRadius: 2, border: '1px solid #F1F5F9' }}
                   />

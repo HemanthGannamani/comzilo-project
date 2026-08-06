@@ -64,6 +64,7 @@ export class CategoryService {
 
     return this.categoryRepo.createScoped(tenantId, storeId, {
       ...data,
+      status: data.status || 'active',
       slug,
       createdBy: userId,
       updatedBy: userId,

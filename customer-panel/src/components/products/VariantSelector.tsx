@@ -25,16 +25,24 @@ export const VariantSelector: React.FC<Props> = ({ variants, onSelectVariant }) 
 
   if (!variants || variants.length === 0) return null;
 
+  // Helper to extract attribute name and value cleanly
+  const getAttrName = (attr: any) => attr?.name || attr?.attributeName || attr?.attribute_name || '';
+  const getAttrValue = (attr: any) => attr?.value || attr?.attributeValue || attr?.attribute_value || '';
+
   // Extract all distinct attribute keys across variants
   const attributeKeysMap: Record<string, Set<string>> = {};
 
   variants.forEach((v) => {
     if (v.attributes && Array.isArray(v.attributes)) {
       v.attributes.forEach((attr) => {
-        if (!attributeKeysMap[attr.name]) {
-          attributeKeysMap[attr.name] = new Set();
+        const key = getAttrName(attr);
+        const val = getAttrValue(attr);
+        if (key && val) {
+          if (!attributeKeysMap[key]) {
+            attributeKeysMap[key] = new Set();
+          }
+          attributeKeysMap[key].add(val);
         }
-        attributeKeysMap[attr.name].add(attr.value);
       });
     }
   });
@@ -44,11 +52,13 @@ export const VariantSelector: React.FC<Props> = ({ variants, onSelectVariant }) 
   // Default selection to first available active variant
   useEffect(() => {
     if (variants.length > 0) {
-      const activeVar = variants.find((v) => v.stockQuantity > 0 && v.status === 'active') || variants[0];
+      const activeVar = variants.find((v) => Number(v.stockQuantity) > 0) || variants[0];
       if (activeVar && activeVar.attributes) {
         const initialOpts: Record<string, string> = {};
         activeVar.attributes.forEach((attr) => {
-          initialOpts[attr.name] = attr.value;
+          const key = getAttrName(attr);
+          const val = getAttrValue(attr);
+          if (key && val) initialOpts[key] = val;
         });
         setSelectedOptions(initialOpts);
         onSelectVariant(activeVar);
@@ -63,7 +73,7 @@ export const VariantSelector: React.FC<Props> = ({ variants, onSelectVariant }) 
     return variants.find((v) => {
       if (!v.attributes) return false;
       return Object.entries(opts).every(([key, val]) =>
-        v.attributes?.some((a) => a.name === key && a.value === val)
+        v.attributes?.some((a) => getAttrName(a) === key && getAttrValue(a) === val)
       );
     });
   };

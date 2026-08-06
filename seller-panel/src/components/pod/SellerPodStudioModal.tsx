@@ -263,22 +263,22 @@ export const SellerPodStudioModal: React.FC<SellerPodStudioModalProps> = ({
   };
 
   return (
-    <Dialog open={isOpen} onClose={onClose} maxWidth="lg" fullWidth>
-      <DialogTitle sx={{ fontWeight: 800, bgcolor: '#0F172A', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+    <Dialog open={isOpen} onClose={onClose} maxWidth="xl" fullWidth PaperProps={{ sx: { borderRadius: 4, maxHeight: '92vh' } }}>
+      <DialogTitle sx={{ fontWeight: 800, bgcolor: '#0F172A', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 3, py: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <Sparkles size={22} color="#818CF8" />
+          <Sparkles size={24} color="#818CF8" />
           <Typography variant="h6" sx={{ fontWeight: 800 }}>
             Interactive Seller Template Designer — {productName || 'Print On Demand Item'}
           </Typography>
         </Box>
         <IconButton onClick={onClose} sx={{ color: '#94A3B8' }}>
-          <X size={20} />
+          <X size={22} />
         </IconButton>
       </DialogTitle>
 
       <DialogContent sx={{ p: 3, bgcolor: '#F8FAFC' }}>
         {/* TOP TOOLBAR: VIEW SIDE SWITCHER */}
-        <Paper sx={{ p: 1.5, mb: 3, borderRadius: 3, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+        <Paper sx={{ p: 1.5, mb: 3, borderRadius: 3, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, border: '1px solid #E2E8F0', boxShadow: 'none' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#334155', mr: 1 }}>
               Canvas View Side:
@@ -334,7 +334,7 @@ export const SellerPodStudioModal: React.FC<SellerPodStudioModalProps> = ({
         <Grid container spacing={3}>
           {/* LEFT PANEL: SELLER DESIGN TOOLS */}
           <Grid item xs={12} md={4}>
-            <Paper sx={{ p: 2.5, borderRadius: 3, border: '1px solid #E2E8F0', height: '100%' }}>
+            <Paper sx={{ p: 2.5, borderRadius: 3, border: '1px solid #E2E8F0', height: '100%', boxShadow: 'none' }}>
               <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#0F172A', mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Layers size={18} color="#4F46E5" /> Add Starter Design Elements
               </Typography>
@@ -492,33 +492,35 @@ export const SellerPodStudioModal: React.FC<SellerPodStudioModalProps> = ({
           <Grid item xs={12} md={8}>
             <Paper
               sx={{
-                p: 3,
+                p: 4,
+                pt: 6,
                 borderRadius: 3,
                 border: '2px dashed #CBD5E1',
                 bgcolor: '#FFFFFF',
-                minHeight: 480,
+                minHeight: 520,
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
                 justify: 'center',
                 position: 'relative',
+                boxShadow: 'none',
               }}
             >
-              <Typography variant="caption" sx={{ position: 'absolute', top: 12, left: 16, fontWeight: 800, color: '#64748B' }}>
-                PRINTABLE AREA CANVAS ({activeSide.toUpperCase()} VIEW)
+              <Typography variant="caption" sx={{ position: 'absolute', top: 18, left: 24, fontWeight: 800, color: '#475569', letterSpacing: 1.5 }}>
+                PRINTABLE AREA CANVAS ({(activeSide || 'front').toUpperCase()} VIEW)
               </Typography>
 
               {/* MOCKUP CANVAS CONTAINER */}
               <Box
                 sx={{
-                  width: 380,
-                  height: 440,
+                  width: 400,
+                  height: 460,
                   bgcolor: '#F8FAFC',
                   borderRadius: 3,
-                  border: '1px solid #E2E8F0',
+                  border: '2px solid #E2E8F0',
                   position: 'relative',
                   overflow: 'hidden',
-                  boxShadow: '0 10px 25px rgba(0,0,0,0.05)',
+                  boxShadow: '0 12px 30px rgba(0,0,0,0.06)',
                 }}
               >
                 {/* RENDER DESIGN LAYERS */}

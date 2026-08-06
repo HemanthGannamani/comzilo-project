@@ -3,7 +3,7 @@ import { useState, useCallback, useRef } from 'react';
 export interface CanvasElement {
   id: string;
   type: 'text' | 'image' | 'clipart' | 'qr' | 'shape';
-  content: string; // text string, SVG content, or image URL
+  content: string; // text string, SVG path/content, or image URL
   x: number;
   y: number;
   width: number;
@@ -96,8 +96,8 @@ export function usePodCanvas() {
 
         // Auto-Snap Logic (snap to center or grid)
         if (autoSnap) {
-          const centerX = 200; // Canvas Center X (400px width / 2)
-          const centerY = 250; // Canvas Center Y (500px height / 2)
+          const centerX = 150; // Canvas center
+          const centerY = 200;
           if (Math.abs(newX - centerX) < 10) newX = centerX;
           if (Math.abs(newY - centerY) < 10) newY = centerY;
         }
@@ -128,6 +128,53 @@ export function usePodCanvas() {
       return updated;
     });
     setSelectedElementId(null);
+  }, [activeSide, saveHistory]);
+
+  const duplicateElement = useCallback((id: string) => {
+    setSides((prev) => {
+      const currentSide = prev[activeSide] || { elements: [], backgroundColor: '#ffffff' };
+      const target = currentSide.elements.find((el) => el.id === id);
+      if (!target) return prev;
+      const dupId = `el_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
+      const duplicated: CanvasElement = {
+        ...target,
+        id: dupId,
+        x: target.x + 20,
+        y: target.y + 20,
+      };
+      const updated = {
+        ...prev,
+        [activeSide]: {
+          ...currentSide,
+          elements: [...currentSide.elements, duplicated],
+        },
+      };
+      saveHistory(updated);
+      setSelectedElementId(dupId);
+      return updated;
+    });
+  }, [activeSide, saveHistory]);
+
+  const moveElementLayer = useCallback((id: string, direction: 'up' | 'down') => {
+    setSides((prev) => {
+      const currentSide = prev[activeSide] || { elements: [], backgroundColor: '#ffffff' };
+      const index = currentSide.elements.findIndex((el) => el.id === id);
+      if (index < 0) return prev;
+      const targetIndex = direction === 'up' ? index + 1 : index - 1;
+      if (targetIndex < 0 || targetIndex >= currentSide.elements.length) return prev;
+
+      const newElements = [...currentSide.elements];
+      const temp = newElements[index];
+      newElements[index] = newElements[targetIndex];
+      newElements[targetIndex] = temp;
+
+      const updated = {
+        ...prev,
+        [activeSide]: { ...currentSide, elements: newElements },
+      };
+      saveHistory(updated);
+      return updated;
+    });
   }, [activeSide, saveHistory]);
 
   const clearCanvas = useCallback(() => {
@@ -170,6 +217,8 @@ export function usePodCanvas() {
     addElement,
     updateElement,
     deleteElement,
+    duplicateElement,
+    moveElementLayer,
     clearCanvas,
     setBackgroundColor,
     undo,

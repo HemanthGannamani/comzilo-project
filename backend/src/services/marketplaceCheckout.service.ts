@@ -24,6 +24,8 @@ export interface MarketplaceCheckoutSyncOptions {
     total: number;
     sku?: string;
     productName?: string;
+    customization?: any;
+    customDesign?: any;
   }>;
   customer: any;
   paymentDetails: {
@@ -173,6 +175,7 @@ export class MarketplaceCheckoutService {
             quantity: sItem.quantity,
             subtotal: sItem.subtotal,
             total: sItem.total || sItem.subtotal,
+            customization: sItem.customization || sItem.customDesign || null,
           } as any,
           { transaction: t }
         );

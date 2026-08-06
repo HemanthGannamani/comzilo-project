@@ -148,9 +148,9 @@ export const CartPage: React.FC = () => {
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: { xs: 'wrap', sm: 'nowrap' } }}>
                   <Box
                     component="img"
-                    src={getProductImage(item)}
+                    src={item.image || (item as any).customization?.previewImage || getProductImage(item)}
                     alt={item.name}
-                    sx={{ width: 90, height: 90, objectFit: 'cover', borderRadius: 2, border: '1px solid #F1F5F9' }}
+                    sx={{ width: 90, height: 90, objectFit: 'contain', borderRadius: 2, border: '1px solid #E2E8F0', bgcolor: '#F8FAFC' }}
                   />
                   <Box sx={{ flexGrow: 1 }}>
                     <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#0F172A' }}>

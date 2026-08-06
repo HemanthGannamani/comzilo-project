@@ -43,11 +43,12 @@ export const ProductDetailPage: React.FC = () => {
         id: customizedItem.productId,
         name: customizedItem.name,
         price: customizedItem.price,
-        image: getProductImage(product),
+        image: customizedItem.image || customizedItem.customization?.previewImage || getProductImage(product),
         quantity: 1,
         customization: customizedItem.customization,
       } as any)
     );
+    toast.success('🎨 Custom design added to cart!');
   };
 
   const handleBuyNow = () => {
@@ -72,6 +73,9 @@ export const ProductDetailPage: React.FC = () => {
               component="img"
               src={product ? getProductImage(product) : ''}
               alt={product?.name || 'Product'}
+              onError={(e: any) => {
+                e.currentTarget.src = 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500';
+              }}
               sx={{ width: '100%', height: 400, objectFit: 'cover', borderRadius: 3 }}
             />
           </Paper>
@@ -79,7 +83,17 @@ export const ProductDetailPage: React.FC = () => {
 
         {/* Product Specs & Purchase Options */}
         <Grid item xs={12} md={6}>
-          <Chip label={product?.category || 'Retail Product'} color="primary" size="small" sx={{ fontWeight: 700, mb: 1.5 }} />
+          {(() => {
+            const rawType = product?.product_type || product?.productType || (product?.pod_template_id ? 'print_on_demand' : 'physical');
+            const isPod = rawType === 'print_on_demand' || Boolean(product?.pod_template_id);
+            return (
+              <Chip
+                label={isPod ? 'PRINT ON DEMAND' : (product?.category || 'Retail Product').toUpperCase()}
+                size="small"
+                sx={{ fontWeight: 800, mb: 1.5, bgcolor: isPod ? '#7C3AED' : '#2563EB', color: '#FFFFFF' }}
+              />
+            );
+          })()}
           <Typography variant="h3" sx={{ fontWeight: 800, color: '#0F172A', mb: 1 }}>
             {product?.name}
           </Typography>

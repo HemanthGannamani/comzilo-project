@@ -798,11 +798,12 @@ export class CustomerPortalController {
           orderItemsInput.push({
             productId: product.id,
             sku: product.sku,
-            productName: product.name,
+            productName: cartItem.name || product.name,
             quantity: qty,
             unitPrice,
             subtotal: lineSubtotal,
             total: lineSubtotal,
+            customization: cartItem.customization || cartItem.customDesign || null,
           });
         }
 
@@ -1024,11 +1025,12 @@ export class CustomerPortalController {
           orderItemsInput.push({
             productId: product.id,
             sku: product.sku,
-            productName: product.name,
+            productName: cartItem.name || product.name,
             quantity: qty,
             unitPrice,
             subtotal: lineSubtotal,
             total: lineSubtotal,
+            customization: cartItem.customization || cartItem.customDesign || null,
           });
         }
 

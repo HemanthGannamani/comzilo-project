@@ -287,6 +287,10 @@ export const ProductListingPage: React.FC = () => {
                           height="200"
                           image={getProductImage(prod)}
                           alt={prod.name}
+                          onError={(e: any) => {
+                            e.currentTarget.src = 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500';
+                          }}
+                          sx={{ objectFit: 'cover' }}
                         />
                         <Button
                           onClick={() => {
@@ -298,14 +302,25 @@ export const ProductListingPage: React.FC = () => {
                         >
                           <Heart size={18} color="#DC2626" fill={wishlisted ? '#DC2626' : 'none'} />
                         </Button>
-                      {prod.productType && (
-                        <Chip
-                          label={prod.productType.toUpperCase().replace(/_/g, ' ')}
-                          size="small"
-                          color="primary"
-                          sx={{ position: 'absolute', top: 8, left: 8, fontWeight: 800, fontSize: 10 }}
-                        />
-                      )}
+                      {(() => {
+                        const rawType = prod.product_type || prod.productType || (prod.pod_template_id ? 'print_on_demand' : 'physical');
+                        const isPod = rawType === 'print_on_demand' || Boolean(prod.pod_template_id);
+                        return (
+                          <Chip
+                            label={isPod ? 'PRINT ON DEMAND' : rawType.toUpperCase().replace(/_/g, ' ')}
+                            size="small"
+                            sx={{
+                              position: 'absolute',
+                              top: 8,
+                              left: 8,
+                              fontWeight: 800,
+                              fontSize: 10,
+                              bgcolor: isPod ? '#7C3AED' : '#2563EB',
+                              color: '#FFFFFF',
+                            }}
+                          />
+                        );
+                      })()}
                     </Box>
                     <CardContent sx={{ flexGrow: 1 }}>
                       <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>

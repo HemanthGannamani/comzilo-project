@@ -162,13 +162,14 @@ export class OrderService extends BaseService {
             productId: item.productId,
             productVariantId: item.productVariantId || null,
             sku: product.sku,
-            productName: product.name,
+            productName: item.name || product.name,
             quantity: qty,
             unitPrice,
             discount: itemDiscount,
             tax: itemTax,
             subtotal: itemSubtotal,
             total: itemTotal,
+            customization: item.customization || item.customDesign || null,
           });
         }
       }
@@ -306,7 +307,12 @@ export class OrderService extends BaseService {
     const orderField = sortWhitelist.includes(sortBy) ? sortBy : 'createdAt';
     const orderDirection = sortOrder.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
 
-    return this.orderRepo.findAndCountAllScoped(tenantId, storeId, {
+    where.tenantId = tenantId;
+    if (storeId && storeId !== 1) {
+      where.storeId = storeId;
+    }
+
+    return Order.findAndCountAll({
       where,
       limit: Number(limit),
       offset,

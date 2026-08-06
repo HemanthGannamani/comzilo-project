@@ -1,38 +1,86 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useEffect } from 'react';
-import { usePodCanvas } from '../../hooks/usePodCanvas';
-import { Packdora3DViewer } from './Packdora3DViewer';
-import axios from 'axios';
-import toast from 'react-hot-toast';
+import React, { useState, useEffect, useRef } from 'react';
 import {
-  Type,
-  Image as ImageIcon,
-  Sparkles,
-  QrCode,
-  Square,
-  Layers,
+  Dialog,
   Box,
-  RotateCcw,
-  RotateCw,
+  Typography,
+  IconButton,
+  Button,
+  TextField,
+  Divider,
+  Paper,
+  Chip,
   Grid,
-  Download,
-  Upload,
-  Globe,
-  Trash2,
-  Lock,
-  Plus,
+  Slider,
+  Select,
+  MenuItem,
+  Tooltip,
+} from '@mui/material';
+import {
   X,
-  ShoppingCart,
-  Printer,
-  CheckCircle,
+  Shirt,
+  Image as ImageIcon,
+  Type as TypeIcon,
+  Layers as LayersIcon,
+  Palette,
+  Upload,
+  RotateCw,
+  Trash2,
+  Copy,
+  ChevronUp,
+  ChevronDown,
+  Lock,
+  Unlock,
+  Shapes,
+  Smile,
+  QrCode,
+  Sliders,
+  ZoomIn,
+  ZoomOut,
+  Maximize2,
+  Undo,
+  Redo,
 } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { usePodCanvas, CanvasElement } from '../../hooks/usePodCanvas';
+import { getProductImage } from '../../utils/productImageService';
 
 interface PodStudioModalProps {
   isOpen: boolean;
   onClose: () => void;
   product: any;
-  onAddToCartCustomized?: (customizedItem: any) => void;
+  onAddToCartCustomized: (customizedItem: any) => void;
 }
+
+const PRESET_GARMENT_COLORS = [
+  { name: 'Pure White', hex: '#FFFFFF' },
+  { name: 'Jet Black', hex: '#111827' },
+  { name: 'Royal Blue', hex: '#1D4ED8' },
+  { name: 'Heather Gray', hex: '#64748B' },
+  { name: 'Crimson Red', hex: '#DC2626' },
+  { name: 'Cyan Blue', hex: '#0891B2' },
+  { name: 'Blush Pink', hex: '#DB2777' },
+  { name: 'Forest Green', hex: '#15803D' },
+];
+
+const PRESET_SAMPLE_ARTWORKS = [
+  { name: 'Retro Sunset', url: 'https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=300' },
+  { name: 'Urban Graphic', url: 'https://images.unsplash.com/photo-1541701494587-cb58502866ab?w=300' },
+  { name: 'Minimalist Wave', url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=300' },
+];
+
+const PRESET_SHAPES = [
+  { name: 'Square', type: 'square', path: 'M10 10 H90 V90 H10 Z' },
+  { name: 'Circle', type: 'circle', path: 'M50 10 A40 40 0 1 0 50 90 A40 40 0 1 0 50 10 Z' },
+  { name: 'Triangle', type: 'triangle', path: 'M50 10 L90 90 L10 90 Z' },
+  { name: 'Star', type: 'star', path: 'M50 5 L63 38 L98 38 L70 59 L81 93 L50 72 L19 93 L30 59 L2 38 L37 38 Z' },
+  { name: 'Heart', type: 'heart', path: 'M50 88 C20 60 5 45 5 28 A20 20 0 0 1 45 15 L50 22 L55 15 A20 20 0 0 1 95 28 C95 45 80 60 50 88 Z' },
+];
+
+const PRESET_CLIPARTS = [
+  { name: 'Crown Badge', svg: '<path fill="currentColor" d="M12 2L15 9L22 9L16.5 13.5L18.5 20.5L12 16L5.5 20.5L7.5 13.5L2 9L9 9Z"/>' },
+  { name: 'Lightning Spark', svg: '<path fill="currentColor" d="M13 2L3 14H12L11 22L21 10H12L13 2Z"/>' },
+  { name: 'Flame Energy', svg: '<path fill="currentColor" d="M12 2C12 2 7 7 7 12C7 14.76 9.24 17 12 17C14.76 17 17 14.76 17 12C17 7 12 2 12 2Z"/>' },
+];
 
 export const PodStudioModal: React.FC<PodStudioModalProps> = ({
   isOpen,
@@ -44,747 +92,836 @@ export const PodStudioModal: React.FC<PodStudioModalProps> = ({
     activeSide,
     setActiveSide,
     sides,
+    setSides,
     selectedElementId,
     setSelectedElementId,
-    autoSnap,
-    setAutoSnap,
-    showGrid,
-    setShowGrid,
-    lang,
-    setLang,
     addElement,
     updateElement,
     deleteElement,
-    clearCanvas,
-    setBackgroundColor,
+    duplicateElement,
+    moveElementLayer,
     undo,
     redo,
     canUndo,
     canRedo,
   } = usePodCanvas();
 
-  const [activeTab, setActiveTab] = useState<'templates' | 'text' | 'cliparts' | 'images' | 'qr' | 'shapes' | 'layers' | '3d'>('text');
-  const [templates, setTemplates] = useState<any[]>([]);
-  const [cliparts, setCliparts] = useState<any[]>([]);
-  const [clipartSearch, setClipartSearch] = useState<string>('');
-  
-  // Form inputs for tools
-  const [textInput, setTextInput] = useState<string>('Custom Print Text');
-  const [textColor, setTextColor] = useState<string>('#6366f1');
-  const [fontSize, setFontSize] = useState<number>(32);
+  const [activeNav, setActiveNav] = useState<'product' | 'images' | 'text' | 'layers' | 'shapes' | 'cliparts'>('product');
+  const [productColor, setProductColor] = useState<string>('#FFFFFF');
+  const [sizeQty, setSizeQty] = useState<{ S: number; M: number; L: number; XL: number }>({ S: 1, M: 0, L: 0, XL: 0 });
+  const [textInput, setTextInput] = useState<string>('Custom Lumise Text');
+  const [textColor, setTextColor] = useState<string>('#111827');
+  const [fontSize, setFontSize] = useState<number>(28);
+  const [fontFamily, setFontFamily] = useState<string>('Inter');
   const [isCurved, setIsCurved] = useState<boolean>(false);
-  const [curveRadius, setCurveRadius] = useState<number>(100);
-  const [qrValue, setQrValue] = useState<string>('https://comzilo.com');
-  const [qrColor, setQrColor] = useState<string>('#000000');
-  const [uploadedImageUrl, setUploadedImageUrl] = useState<string>('');
-  const [filterPreset, setFilterPreset] = useState<'none' | 'sepia' | 'grayscale' | 'vintage' | 'contrast'>('none');
+  const [zoomLevel, setZoomLevel] = useState<number>(100);
 
-  const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1';
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [podBundle, setPodBundle] = useState<any>(null);
 
-  // Load Templates & Cliparts from Backend API
+  // Dragging State
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+  const [dragStart, setDragStart] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [elementStart, setElementStart] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+
   useEffect(() => {
-    if (isOpen) {
-      axios
-        .get(`${API_BASE}/pod/templates?productId=${product?.id || 1}`)
-        .then((res) => setTemplates(res.data?.data || []))
-        .catch(() => {});
-
-      axios
-        .get(`${API_BASE}/pod/cliparts`)
-        .then((res) => setCliparts(res.data?.data || []))
-        .catch(() => {});
+    if (isOpen && product?.id) {
+      fetch(`http://localhost:5000/api/v1/pod/engine/product/${product.id}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success && data.hasPodTemplate) {
+            setPodBundle(data.bundle);
+          } else {
+            setPodBundle(null);
+          }
+        })
+        .catch(() => setPodBundle(null));
     }
-  }, [isOpen, product?.id, API_BASE]);
+  }, [isOpen, product]);
 
   if (!isOpen) return null;
 
-  const currentElements = sides[activeSide]?.elements || [];
-  const selectedEl = currentElements.find((el) => el.id === selectedElementId);
-
-  // Filter cliparts by search query
-  const filteredCliparts = cliparts.filter(
-    (c) =>
-      c.title?.toLowerCase().includes(clipartSearch.toLowerCase()) ||
-      c.category?.toLowerCase().includes(clipartSearch.toLowerCase())
-  );
+  const currentElements = (sides && sides[activeSide]?.elements) || [];
+  const selectedEl = currentElements.find((e: any) => e.id === selectedElementId);
 
   const handleAddText = () => {
     if (!textInput.trim()) return;
     addElement({
       type: 'text',
       content: textInput,
-      x: 200,
-      y: 200,
-      width: 200,
+      x: 80,
+      y: 120 + currentElements.length * 25,
+      width: 240,
       height: 60,
       rotation: 0,
       color: textColor,
       fontSize,
+      fontFamily,
       isCurved,
-      curveRadius,
+      opacity: 1,
+      filter: 'none',
     });
-    toast.success('Text added to canvas');
   };
 
-  const handleAddClipart = (svgContent: string, title: string) => {
-    addElement({
-      type: 'clipart',
-      content: svgContent,
-      x: 200,
-      y: 200,
-      width: 120,
-      height: 120,
-      rotation: 0,
-      color: textColor,
-    });
-    toast.success(`Clipart "${title}" added`);
-  };
-
-  const handleAddQr = () => {
-    if (!qrValue.trim()) return;
-    addElement({
-      type: 'qr',
-      content: qrValue,
-      x: 200,
-      y: 200,
-      width: 100,
-      height: 100,
-      rotation: 0,
-      color: qrColor,
-    });
-    toast.success('QR Code vector added');
-  };
-
-  const handleAddShape = (shapeType: string, color: string) => {
-    addElement({
-      type: 'shape',
-      content: shapeType,
-      x: 200,
-      y: 200,
-      width: 100,
-      height: 100,
-      rotation: 0,
-      color,
-    });
-    toast.success('Shape added');
-  };
-
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const url = event.target?.result as string;
-        setUploadedImageUrl(url);
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    const file = e.target.files[0];
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const imgUrl = event.target?.result as string;
+      if (imgUrl) {
         addElement({
           type: 'image',
-          content: url,
-          x: 200,
-          y: 200,
-          width: 160,
-          height: 160,
+          content: imgUrl,
+          x: 70,
+          y: 90,
+          width: 220,
+          height: 200,
           rotation: 0,
           color: '#ffffff',
-          filter: filterPreset,
+          opacity: 1,
+          filter: 'none',
         });
-        toast.success('Image uploaded');
-      };
-      reader.readAsDataURL(file);
+      }
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const handleAddShape = (shape: (typeof PRESET_SHAPES)[0]) => {
+    addElement({
+      type: 'shape',
+      content: shape.path,
+      x: 100,
+      y: 100,
+      width: 140,
+      height: 140,
+      rotation: 0,
+      color: textColor,
+      opacity: 1,
+      filter: 'none',
+    });
+  };
+
+  const handleAddClipart = (clip: (typeof PRESET_CLIPARTS)[0]) => {
+    addElement({
+      type: 'clipart',
+      content: clip.svg,
+      x: 100,
+      y: 100,
+      width: 140,
+      height: 140,
+      rotation: 0,
+      color: textColor,
+      opacity: 1,
+      filter: 'none',
+    });
+  };
+
+  const handleMouseDown = (e: React.MouseEvent, el: CanvasElement) => {
+    if (el.isLocked) return;
+    e.stopPropagation();
+    setSelectedElementId(el.id);
+    setIsDragging(true);
+    setDragStart({ x: e.clientX, y: e.clientY });
+    setElementStart({ x: el.x, y: el.y });
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging || !selectedElementId) return;
+    const dx = e.clientX - dragStart.x;
+    const dy = e.clientY - dragStart.y;
+    updateElement(selectedElementId, {
+      x: Math.max(-50, Math.min(350, elementStart.x + dx)),
+      y: Math.max(-50, Math.min(450, elementStart.y + dy)),
+    });
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  const getFilterCss = (filter?: string) => {
+    switch (filter) {
+      case 'grayscale': return 'grayscale(100%)';
+      case 'sepia': return 'sepia(100%)';
+      case 'vintage': return 'contrast(120%) sepia(40%) hue-rotate(-20deg)';
+      case 'contrast': return 'contrast(180%)';
+      case 'blur': return 'blur(2px)';
+      default: return 'none';
     }
   };
 
-  const handleApplyTemplate = (tmpl: any) => {
-    if (tmpl.canvasJson?.sides) {
-      toast.success(`Applied "${tmpl.title}" template`);
+  const generateCustomizedPreviewImage = async (): Promise<string> => {
+    try {
+      const transparentGarmentImg = 'http://localhost:5000/uploads/pod_assets/photo_tshirt_base_front.png';
+      const transparentMaskImg = 'http://localhost:5000/uploads/pod_assets/photo_tshirt_mask_front.png';
+      const currentViewElements = (sides && sides[activeSide]?.elements) || [];
+
+      const textElementsSvg = currentViewElements
+        .filter((el: any) => el.type === 'text')
+        .map((el: any) => `<text x="${el.x || 50}" y="${(el.y || 50) + 24}" fill="${el.color || '#111827'}" font-size="${el.fontSize || 24}" font-family="Inter, sans-serif" font-weight="bold">${el.content || ''}</text>`)
+        .join('\n');
+
+      const svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="500" height="500" viewBox="0 0 500 500">
+        <rect width="500" height="500" fill="#F8FAFC"/>
+        <image href="${transparentGarmentImg}" width="500" height="500" preserveAspectRatio="xMidYMid meet"/>
+        ${productColor !== '#FFFFFF' ? `<rect width="500" height="500" fill="${productColor}" opacity="0.85" style="mask-image: url(${transparentMaskImg}); -webkit-mask-image: url(${transparentMaskImg}); mask-size: contain; -webkit-mask-size: contain; mix-blend-mode: multiply;"/>` : ''}
+        ${textElementsSvg}
+      </svg>`;
+
+      return `data:image/svg+xml;utf8,${encodeURIComponent(svgContent)}`;
+    } catch {
+      return getProductImage(product);
     }
   };
 
-  const handleExportJson = () => {
-    const jsonStr = JSON.stringify(sides, null, 2);
-    const blob = new Blob([jsonStr], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `comzilo-design-${Date.now()}.json`;
-    a.click();
-    toast.success('Exported design JSON');
-  };
+  const handleAddToCart = async () => {
+    const previewImage = await generateCustomizedPreviewImage();
+    const colorObj = PRESET_GARMENT_COLORS.find((c) => c.hex.toUpperCase() === productColor.toUpperCase());
+    const productColorName = colorObj ? colorObj.name : 'Custom Color';
 
-  const handleImportJson = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (evt) => {
-        try {
-          const imported = JSON.parse(evt.target?.result as string);
-          if (imported) {
-            toast.success('Imported design JSON successfully');
-          }
-        } catch {
-          toast.error('Invalid design JSON file');
-        }
-      };
-      reader.readAsText(file);
-    }
-  };
-
-  const handleAddToCart = () => {
-    axios
-      .post(`${API_BASE}/pod/calculate-price`, { productId: product?.id || 1, sides })
-      .then((res) => {
-        const calc = res.data?.data;
-        const item = {
-          productId: product?.id || 1,
-          name: `${product?.name || 'Custom Product'} (Custom Print Design)`,
-          price: calc?.totalPrice || product?.price || 35.0,
-          customization: {
-            sides,
-            totalPrice: calc?.totalPrice,
-            designTitle: 'Lumise POD Custom Design',
-          },
-        };
-        if (onAddToCartCustomized) {
-          onAddToCartCustomized(item);
-        }
-        toast.success(`Customized product added to cart! ($${calc?.totalPrice || product?.price})`);
-        onClose();
-      })
-      .catch(() => {
-        toast.success('Customized product added to cart!');
-        onClose();
-      });
+    const customizedItem = {
+      productId: product?.id || 1,
+      name: `${product?.name || 'Lumise POD Item'} (${productColorName})`,
+      price: Number(product?.price || 0),
+      image: previewImage,
+      customization: {
+        productColor,
+        productColorName,
+        sizeQty,
+        sides,
+        previewImage,
+        createdAt: new Date().toISOString(),
+      },
+    };
+    onAddToCartCustomized(customizedItem);
+    onClose();
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-2 md:p-6 overflow-hidden">
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl w-full max-w-7xl h-[92vh] flex flex-col overflow-hidden text-slate-100">
+    <Dialog open={isOpen} onClose={onClose} maxWidth="xl" fullWidth PaperProps={{ sx: { height: '96vh', borderRadius: 2, overflow: 'hidden' } }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', bgcolor: '#0D9488' }}>
         
-        {/* TOP TOOLBAR */}
-        <div className="px-6 py-3 bg-slate-950 border-b border-slate-800 flex items-center justify-between gap-4 flex-wrap">
-          <div className="flex items-center gap-3">
-            <h2 className="font-bold text-lg text-indigo-400 flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-amber-400" />
-              Lumise POD & Packdora 3D Studio
-            </h2>
-            <span className="text-xs px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 font-mono">
-              {product?.name || 'Print On Demand Item'}
-            </span>
-          </div>
+        {/* 1. TOP LUMISE TEAL HEADER BAR */}
+        <Box sx={{ height: 52, px: 2.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.15)', color: '#FFFFFF' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <Box sx={{ p: 0.6, bgcolor: '#FFFFFF', borderRadius: 1.5, display: 'flex', color: '#0D9488' }}>
+              <Shirt size={20} />
+            </Box>
+            <Typography variant="h6" sx={{ fontWeight: 900, letterSpacing: '-0.02em', fontSize: '1.1rem' }}>
+              Lumise POD Engine — <span style={{ fontWeight: 500, opacity: 0.9 }}>{product?.name}</span>
+            </Typography>
+          </Box>
 
-          {/* PRINT SIDE TABS */}
-          <div className="flex items-center bg-slate-900 p-1 rounded-lg border border-slate-800 text-xs font-medium gap-1">
-            <button
-              onClick={() => { setActiveSide('front'); setActiveTab('text'); }}
-              className={`px-3 py-1.5 rounded-md transition-all ${
-                activeSide === 'front' && activeTab !== '3d' ? 'bg-indigo-600 text-white font-semibold shadow' : 'text-slate-400 hover:text-white'
-              }`}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <Tooltip title="Undo">
+              <span>
+                <IconButton disabled={!canUndo} onClick={undo} sx={{ color: '#FFF' }}>
+                  <Undo size={18} />
+                </IconButton>
+              </span>
+            </Tooltip>
+            <Tooltip title="Redo">
+              <span>
+                <IconButton disabled={!canRedo} onClick={redo} sx={{ color: '#FFF' }}>
+                  <Redo size={18} />
+                </IconButton>
+              </span>
+            </Tooltip>
+            <Button
+              variant="contained"
+              onClick={handleAddToCart}
+              sx={{ bgcolor: '#FFFFFF', color: '#0D9488', fontWeight: 800, px: 3, py: 0.8, borderRadius: 2, '&:hover': { bgcolor: '#F0FDFA' } }}
             >
-              Front Side
-            </button>
-            <button
-              onClick={() => { setActiveSide('back'); setActiveTab('text'); }}
-              className={`px-3 py-1.5 rounded-md transition-all ${
-                activeSide === 'back' && activeTab !== '3d' ? 'bg-indigo-600 text-white font-semibold shadow' : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              Back Side
-            </button>
-            <button
-              onClick={() => { setActiveSide('left'); setActiveTab('text'); }}
-              className={`px-3 py-1.5 rounded-md transition-all ${
-                activeSide === 'left' && activeTab !== '3d' ? 'bg-indigo-600 text-white font-semibold shadow' : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              Left Side
-            </button>
-            <button
-              onClick={() => { setActiveSide('right'); setActiveTab('text'); }}
-              className={`px-3 py-1.5 rounded-md transition-all ${
-                activeSide === 'right' && activeTab !== '3d' ? 'bg-indigo-600 text-white font-semibold shadow' : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              Right Side
-            </button>
-            <button
-              onClick={() => setActiveTab('3d')}
-              className={`px-3 py-1.5 rounded-md flex items-center gap-1.5 transition-all ${
-                activeTab === '3d' ? 'bg-amber-600 text-white font-bold shadow' : 'text-amber-400 hover:text-amber-300'
-              }`}
-            >
-              <Box className="w-3.5 h-3.5" />
-              Packdora 3D Packaging
-            </button>
-          </div>
+              🛒 Save & Add to Cart
+            </Button>
+            <IconButton onClick={onClose} sx={{ color: '#FFF' }}>
+              <X size={22} />
+            </IconButton>
+          </Box>
+        </Box>
 
-          {/* UTILITY ACTION CONTROLS */}
-          <div className="flex items-center gap-2">
-            <button
-              disabled={!canUndo}
-              onClick={undo}
-              className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-30 transition-all"
-              title="Undo Action"
-            >
-              <RotateCcw className="w-4 h-4 text-slate-300" />
-            </button>
-            <button
-              disabled={!canRedo}
-              onClick={redo}
-              className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-30 transition-all"
-              title="Redo Action"
-            >
-              <RotateCw className="w-4 h-4 text-slate-300" />
-            </button>
-            <button
-              onClick={() => setAutoSnap(!autoSnap)}
-              className={`p-2 rounded-lg transition-all ${autoSnap ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-400'}`}
-              title="Auto-Snap Guides"
-            >
-              <CheckCircle className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setShowGrid(!showGrid)}
-              className={`p-2 rounded-lg transition-all ${showGrid ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-400'}`}
-              title="Toggle Grid Lines"
-            >
-              <Grid className="w-4 h-4" />
-            </button>
-
-            <button
-              onClick={handleExportJson}
-              className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-all"
-              title="Export Design JSON"
-            >
-              <Download className="w-4 h-4" />
-            </button>
-
-            <label
-              className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 cursor-pointer transition-all"
-              title="Import Design JSON"
-            >
-              <Upload className="w-4 h-4" />
-              <input type="file" accept=".json" onChange={handleImportJson} className="hidden" />
-            </label>
-
-            {/* i18n Language Switcher */}
-            <button
-              onClick={() => setLang(lang === 'en' ? 'es' : lang === 'es' ? 'fr' : lang === 'fr' ? 'hi' : 'en')}
-              className="px-2.5 py-1.5 rounded-lg bg-slate-800 text-xs font-semibold text-indigo-300 flex items-center gap-1 uppercase"
-            >
-              <Globe className="w-3.5 h-3.5" />
-              {lang}
-            </button>
-
-            <button
-              onClick={onClose}
-              className="p-2 rounded-lg bg-slate-800 hover:bg-red-600 text-slate-300 hover:text-white transition-all ml-2"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
-
-        {/* MAIN BODY LAYOUT */}
-        <div className="flex-1 flex overflow-hidden">
+        {/* 2. MAIN THREE-COLUMN WORKSPACE */}
+        <Box sx={{ display: 'flex', flexGrow: 1, overflow: 'hidden', bgcolor: '#F8FAFC' }}>
           
-          {/* LEFT TOOLBAR ICON NAV */}
-          <div className="w-16 bg-slate-950 border-r border-slate-800 flex flex-col items-center py-4 gap-3 text-slate-400">
+          {/* LEFT ICON SIDEBAR (LUMISE TOOLKIT NAV) */}
+          <Paper square elevation={0} sx={{ width: 72, bgcolor: '#0F172A', display: 'flex', flexDirection: 'column', alignItems: 'center', py: 2, gap: 2, borderRight: '1px solid #1E293B', zIndex: 10 }}>
             {[
-              { id: 'templates', label: 'Templates', icon: Sparkles },
-              { id: 'text', label: 'Text', icon: Type },
-              { id: 'cliparts', label: 'Cliparts', icon: Sparkles },
-              { id: 'images', label: 'Photos', icon: ImageIcon },
-              { id: 'qr', label: 'QR Code', icon: QrCode },
-              { id: 'shapes', label: 'Shapes', icon: Square },
-              { id: 'layers', label: 'Layers', icon: Layers },
-              { id: '3d', label: '3D Box', icon: Box },
-            ].map((tool) => {
-              const IconComp = tool.icon;
+              { id: 'product', label: 'Product', icon: Shirt },
+              { id: 'images', label: 'Images', icon: ImageIcon },
+              { id: 'text', label: 'Text', icon: TypeIcon },
+              { id: 'shapes', label: 'Shapes', icon: Shapes },
+              { id: 'cliparts', label: 'Cliparts', icon: Smile },
+              { id: 'layers', label: 'Layers', icon: LayersIcon },
+            ].map((nav) => {
+              const IconComp = nav.icon;
+              const isActive = activeNav === nav.id;
               return (
-                <button
-                  key={tool.id}
-                  onClick={() => setActiveTab(tool.id as any)}
-                  className={`w-12 h-12 rounded-xl flex flex-col items-center justify-center text-[10px] gap-1 transition-all ${
-                    activeTab === tool.id
-                      ? 'bg-indigo-600 text-white font-bold shadow-lg shadow-indigo-600/30'
-                      : 'hover:bg-slate-800 hover:text-slate-200'
-                  }`}
+                <Box
+                  key={nav.id}
+                  onClick={() => setActiveNav(nav.id as any)}
+                  sx={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justify: 'center',
+                    width: 56,
+                    height: 56,
+                    borderRadius: 2,
+                    cursor: 'pointer',
+                    bgcolor: isActive ? '#0D9488' : 'transparent',
+                    color: isActive ? '#FFFFFF' : '#94A3B8',
+                    transition: 'all 0.2s ease',
+                    '&:hover': { bgcolor: isActive ? '#0D9488' : '#1E293B', color: '#FFFFFF' },
+                  }}
                 >
-                  <IconComp className="w-5 h-5" />
-                  {tool.label}
-                </button>
+                  <IconComp size={20} />
+                  <Typography variant="caption" sx={{ fontSize: '0.65rem', fontWeight: 700, mt: 0.5 }}>
+                    {nav.label}
+                  </Typography>
+                </Box>
               );
             })}
-          </div>
+          </Paper>
 
-          {/* SECONDARY TOOLBAR PANEL */}
-          <div className="w-72 bg-slate-900 border-r border-slate-800 p-4 flex flex-col overflow-y-auto">
-            {activeTab === 'templates' && (
-              <div>
-                <h3 className="font-bold text-sm text-slate-200 mb-3">Pre-built Templates</h3>
-                <div className="space-y-3">
-                  {templates.length > 0 ? (
-                    templates.map((tmpl) => (
-                      <div
-                        key={tmpl.id}
-                        onClick={() => handleApplyTemplate(tmpl)}
-                        className="p-3 bg-slate-800 rounded-xl border border-slate-700 hover:border-indigo-500 cursor-pointer transition-all"
-                      >
-                        <div className="font-semibold text-xs text-white">{tmpl.title}</div>
-                        <div className="text-[11px] text-indigo-400 font-mono mt-1">${tmpl.price}</div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="p-4 bg-slate-800/50 rounded-xl text-xs text-slate-400 text-center">
-                      Select 1-click template preset to instantly apply.
-                    </div>
-                  )}
-                </div>
-              </div>
+          {/* SECONDARY TOOL PANELS */}
+          <Paper square elevation={0} sx={{ width: 310, bgcolor: '#1E293B', color: '#F8FAFC', p: 2.5, overflowY: 'auto', borderRight: '1px solid #334155' }}>
+            
+            {/* NAV 1: PRODUCT GARMENT CONFIGURATOR */}
+            {activeNav === 'product' && (
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                <Box>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#94A3B8', textTransform: 'uppercase', fontSize: '0.75rem', mb: 1.5 }}>
+                    Garment Colors
+                  </Typography>
+                  <Grid container spacing={1.2}>
+                    {PRESET_GARMENT_COLORS.map((clr) => (
+                      <Grid key={clr.hex} item xs={3}>
+                        <Box
+                          onClick={() => setProductColor(clr.hex)}
+                          sx={{
+                            width: '100%',
+                            height: 38,
+                            borderRadius: 2,
+                            bgcolor: clr.hex,
+                            border: productColor === clr.hex ? '3px solid #0D9488' : '1px solid #475569',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease',
+                            '&:hover': { transform: 'scale(1.08)' },
+                          }}
+                        />
+                      </Grid>
+                    ))}
+                  </Grid>
+                </Box>
+
+                <Divider sx={{ bgcolor: '#334155' }} />
+
+                <Box>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#94A3B8', mb: 1.5 }}>
+                    Quantity & Sizes
+                  </Typography>
+                  <Grid container spacing={1.5}>
+                    {(['S', 'M', 'L', 'XL'] as const).map((sz) => (
+                      <Grid key={sz} item xs={6}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <TextField
+                            size="small"
+                            type="number"
+                            value={sizeQty[sz]}
+                            onChange={(e) => setSizeQty({ ...sizeQty, [sz]: Math.max(0, parseInt(e.target.value) || 0) })}
+                            sx={{ width: 60, bgcolor: '#0F172A', borderRadius: 1, input: { color: '#FFF', textAlign: 'center', p: 1 } }}
+                          />
+                          <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#94A3B8' }}>{sz}</Typography>
+                        </Box>
+                      </Grid>
+                    ))}
+                  </Grid>
+                </Box>
+              </Box>
             )}
 
-            {activeTab === 'text' && (
-              <div className="space-y-4 text-xs">
-                <h3 className="font-bold text-sm text-slate-200">Text Effects & Typography</h3>
-                <div>
-                  <label className="text-slate-400 block mb-1">Enter Text</label>
-                  <input
-                    type="text"
-                    value={textInput}
-                    onChange={(e) => setTextInput(e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="text-slate-400 block mb-1">Text Color</label>
-                    <input
-                      type="color"
-                      value={textColor}
-                      onChange={(e) => setTextColor(e.target.value)}
-                      className="w-full h-9 bg-slate-800 border border-slate-700 rounded-lg p-1 cursor-pointer"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-slate-400 block mb-1">Font Size ({fontSize}px)</label>
-                    <input
-                      type="range"
-                      min="14"
-                      max="72"
-                      value={fontSize}
-                      onChange={(e) => setFontSize(Number(e.target.value))}
-                      className="w-full mt-2"
-                    />
-                  </div>
-                </div>
-
-                {/* Curved Text Toggle */}
-                <div className="bg-slate-800 p-3 rounded-xl border border-slate-700 space-y-2">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={isCurved}
-                      onChange={(e) => setIsCurved(e.target.checked)}
-                      className="rounded border-slate-600 text-indigo-600 focus:ring-indigo-500"
-                    />
-                    <span className="font-semibold text-slate-200">Curved / Arc Text Effect</span>
-                  </label>
-
-                  {isCurved && (
-                    <div>
-                      <label className="text-slate-400 block mb-1 text-[11px]">Curve Radius ({curveRadius})</label>
-                      <input
-                        type="range"
-                        min="40"
-                        max="200"
-                        value={curveRadius}
-                        onChange={(e) => setCurveRadius(Number(e.target.value))}
-                        className="w-full"
-                      />
-                    </div>
-                  )}
-                </div>
-
-                <button
-                  onClick={handleAddText}
-                  className="w-full bg-indigo-600 hover:bg-indigo-500 font-bold text-white py-2.5 rounded-xl shadow-lg shadow-indigo-600/30 transition-all flex items-center justify-center gap-2"
+            {/* NAV 2: IMAGES UPLOAD TOOL */}
+            {activeNav === 'images' && (
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#FFF' }}>
+                  Upload Custom Artwork
+                </Typography>
+                <input type="file" ref={fileInputRef} accept="image/*" style={{ display: 'none' }} onChange={handleFileUpload} />
+                <Button
+                  variant="contained"
+                  fullWidth
+                  startIcon={<Upload size={18} />}
+                  onClick={() => fileInputRef.current?.click()}
+                  sx={{ py: 1.5, fontWeight: 800, borderRadius: 2, bgcolor: '#0D9488', '&:hover': { bgcolor: '#0F766E' } }}
                 >
-                  <Plus className="w-4 h-4" /> Add Text to Canvas
-                </button>
-              </div>
+                  📁 Upload Device Image
+                </Button>
+
+                <Typography variant="caption" sx={{ color: '#94A3B8', fontWeight: 600, mt: 1 }}>
+                  Preset Sample Artworks:
+                </Typography>
+                <Grid container spacing={1}>
+                  {PRESET_SAMPLE_ARTWORKS.map((art) => (
+                    <Grid key={art.name} item xs={6}>
+                      <Paper
+                        onClick={() => addElement({ type: 'image', content: art.url, x: 80, y: 80, width: 180, height: 180, rotation: 0, color: '#ffffff', opacity: 1, filter: 'none' })}
+                        sx={{ p: 1, bgcolor: '#0F172A', border: '1px solid #334155', cursor: 'pointer', borderRadius: 2, '&:hover': { border: '1px solid #0D9488' } }}
+                      >
+                        <Box component="img" src={art.url} sx={{ width: '100%', height: 70, objectFit: 'cover', borderRadius: 1 }} />
+                        <Typography variant="caption" sx={{ fontSize: '0.65rem', color: '#FFF', display: 'block', mt: 0.5, textAlign: 'center' }}>
+                          {art.name}
+                        </Typography>
+                      </Paper>
+                    </Grid>
+                  ))}
+                </Grid>
+              </Box>
             )}
 
-            {activeTab === 'cliparts' && (
-              <div className="space-y-3">
-                <h3 className="font-bold text-sm text-slate-200">120k+ Stock Cliparts</h3>
-                <input
-                  type="text"
-                  placeholder="Search cliparts (Pixabay / OpenClipart)..."
-                  value={clipartSearch}
-                  onChange={(e) => setClipartSearch(e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white"
+            {/* NAV 3: TEXT TYPOGRAPHY TOOL */}
+            {activeNav === 'text' && (
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#FFF' }}>Add Custom Typography</Typography>
+                <TextField
+                  fullWidth
+                  multiline
+                  rows={2}
+                  value={textInput}
+                  onChange={(e) => setTextInput(e.target.value)}
+                  sx={{ bgcolor: '#0F172A', borderRadius: 1, textarea: { color: '#FFF' } }}
                 />
 
-                <div className="grid grid-cols-2 gap-2 mt-2">
-                  {filteredCliparts.map((clip) => (
-                    <div
-                      key={clip.id}
-                      onClick={() => handleAddClipart(clip.svgContent, clip.title)}
-                      className="p-3 bg-slate-800 rounded-xl border border-slate-700 hover:border-indigo-500 cursor-pointer flex flex-col items-center gap-2 group transition-all"
-                    >
-                      <div
-                        className="w-12 h-12 flex items-center justify-center text-indigo-400 group-hover:scale-110 transition-transform"
-                        dangerouslySetInnerHTML={{ __html: clip.svgContent }}
-                      />
-                      <span className="text-[11px] text-slate-300 font-medium truncate w-full text-center">
-                        {clip.title}
-                      </span>
-                    </div>
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <Box sx={{ flexGrow: 1 }}>
+                    <Typography variant="caption" sx={{ color: '#94A3B8', fontWeight: 700 }}>Font Size</Typography>
+                    <Slider value={fontSize} min={12} max={72} onChange={(_, v) => setFontSize(v as number)} sx={{ color: '#0D9488' }} />
+                  </Box>
+                  <Box sx={{ width: 45, height: 38, bgcolor: textColor, borderRadius: 1.5, border: '2px solid #FFF', cursor: 'pointer', mt: 2 }} />
+                </Box>
+
+                <Button variant="contained" onClick={handleAddText} sx={{ py: 1.2, fontWeight: 800, borderRadius: 2, bgcolor: '#0D9488', '&:hover': { bgcolor: '#0F766E' } }}>
+                  ➕ Add Text to {activeSide.toUpperCase()}
+                </Button>
+              </Box>
+            )}
+
+            {/* NAV 4: SHAPES TOOL */}
+            {activeNav === 'shapes' && (
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#FFF' }}>Add Geometric Shapes</Typography>
+                <Grid container spacing={1}>
+                  {PRESET_SHAPES.map((shp) => (
+                    <Grid key={shp.name} item xs={4}>
+                      <Paper
+                        onClick={() => handleAddShape(shp)}
+                        sx={{ p: 1.5, bgcolor: '#0F172A', border: '1px solid #334155', borderRadius: 2, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', '&:hover': { border: '1px solid #0D9488' } }}
+                      >
+                        <svg width="36" height="36" viewBox="0 0 100 100">
+                          <path d={shp.path} fill={textColor} />
+                        </svg>
+                        <Typography variant="caption" sx={{ fontSize: '0.65rem', color: '#FFF', mt: 0.5 }}>{shp.name}</Typography>
+                      </Paper>
+                    </Grid>
                   ))}
-                </div>
-              </div>
+                </Grid>
+              </Box>
             )}
 
-            {activeTab === 'images' && (
-              <div className="space-y-4 text-xs">
-                <h3 className="font-bold text-sm text-slate-200">Upload & Photo Filters</h3>
-                <label className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 font-bold text-white rounded-xl shadow-lg flex items-center justify-center gap-2 cursor-pointer transition-all">
-                  <Upload className="w-4 h-4" /> Upload Image
-                  <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
-                </label>
-
-                {uploadedImageUrl && (
-                  <div className="space-y-2">
-                    <label className="text-slate-400 block">Apply Photo Filter</label>
-                    <div className="grid grid-cols-2 gap-1.5">
-                      {(['none', 'sepia', 'grayscale', 'vintage', 'contrast'] as const).map((filter) => (
-                        <button
-                          key={filter}
-                          onClick={() => setFilterPreset(filter)}
-                          className={`px-2.5 py-1.5 rounded-lg capitalize border ${
-                            filterPreset === filter ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-slate-800 border-slate-700 text-slate-300'
-                          }`}
-                        >
-                          {filter}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
+            {/* NAV 5: CLIPARTS TOOL */}
+            {activeNav === 'cliparts' && (
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#FFF' }}>Add Clipart Badges</Typography>
+                <Grid container spacing={1}>
+                  {PRESET_CLIPARTS.map((clip) => (
+                    <Grid key={clip.name} item xs={4}>
+                      <Paper
+                        onClick={() => handleAddClipart(clip)}
+                        sx={{ p: 1.5, bgcolor: '#0F172A', border: '1px solid #334155', borderRadius: 2, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', '&:hover': { border: '1px solid #0D9488' } }}
+                      >
+                        <svg width="36" height="36" viewBox="0 0 24 24" dangerouslySetInnerHTML={{ __html: clip.svg }} style={{ color: textColor }} />
+                        <Typography variant="caption" sx={{ fontSize: '0.65rem', color: '#FFF', mt: 0.5 }}>{clip.name}</Typography>
+                      </Paper>
+                    </Grid>
+                  ))}
+                </Grid>
+              </Box>
             )}
 
-            {activeTab === 'qr' && (
-              <div className="space-y-3 text-xs">
-                <h3 className="font-bold text-sm text-slate-200">QR Code Vector Generator</h3>
-                <div>
-                  <label className="text-slate-400 block mb-1">QR Value / URL</label>
-                  <input
-                    type="text"
-                    value={qrValue}
-                    onChange={(e) => setQrValue(e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white"
-                  />
-                </div>
-                <div>
-                  <label className="text-slate-400 block mb-1">QR Color</label>
-                  <input
-                    type="color"
-                    value={qrColor}
-                    onChange={(e) => setQrColor(e.target.value)}
-                    className="w-full h-8 bg-slate-800 border border-slate-700 rounded-lg p-1 cursor-pointer"
-                  />
-                </div>
-                <button
-                  onClick={handleAddQr}
-                  className="w-full bg-indigo-600 hover:bg-indigo-500 font-bold text-white py-2 rounded-xl"
-                >
-                  Generate QR to Canvas
-                </button>
-              </div>
-            )}
-
-            {activeTab === 'shapes' && (
-              <div className="space-y-3 text-xs">
-                <h3 className="font-bold text-sm text-slate-200">Vector Shapes</h3>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => handleAddShape('circle', textColor)}
-                    className="p-3 bg-slate-800 rounded-xl border border-slate-700 hover:border-indigo-500 text-slate-200 font-semibold"
-                  >
-                    Circle
-                  </button>
-                  <button
-                    onClick={() => handleAddShape('star', textColor)}
-                    className="p-3 bg-slate-800 rounded-xl border border-slate-700 hover:border-indigo-500 text-slate-200 font-semibold"
-                  >
-                    Star
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'layers' && (
-              <div className="space-y-2 text-xs">
-                <h3 className="font-bold text-sm text-slate-200">Layers Manager</h3>
-                {currentElements.map((el) => (
-                  <div
-                    key={el.id}
-                    onClick={() => setSelectedElementId(el.id)}
-                    className={`p-2.5 rounded-lg flex items-center justify-between border cursor-pointer ${
-                      selectedElementId === el.id ? 'bg-indigo-900/50 border-indigo-500 text-white' : 'bg-slate-800 border-slate-700 text-slate-300'
-                    }`}
-                  >
-                    <span className="capitalize font-medium truncate w-32">{el.type}: {el.content}</span>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); deleteElement(el.id); }}
-                      className="text-red-400 hover:text-red-300"
+            {/* NAV 6: LAYERS MANAGER */}
+            {activeNav === 'layers' && (
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#FFF' }}>
+                  {activeSide.toUpperCase()} Canvas Layers ({currentElements.length})
+                </Typography>
+                {currentElements.length === 0 ? (
+                  <Typography variant="caption" sx={{ color: '#94A3B8' }}>No design elements on this view.</Typography>
+                ) : (
+                  currentElements.map((el: any, idx: number) => (
+                    <Paper
+                      key={el.id}
+                      onClick={() => setSelectedElementId(el.id)}
+                      sx={{ p: 1.2, bgcolor: el.id === selectedElementId ? '#0D9488' : '#0F172A', color: '#FFF', borderRadius: 2, border: '1px solid #334155', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                ))}
-              </div>
+                      <Typography variant="caption" sx={{ fontWeight: 800 }}>
+                        {idx + 1}. {el.type.toUpperCase()} ({el.content.substring(0, 10)})
+                      </Typography>
+                      <Box sx={{ display: 'flex', gap: 0.5 }}>
+                        <IconButton size="small" onClick={(e) => { e.stopPropagation(); moveElementLayer(el.id, 'up'); }} sx={{ color: '#FFF' }}>
+                          <ChevronUp size={14} />
+                        </IconButton>
+                        <IconButton size="small" onClick={(e) => { e.stopPropagation(); deleteElement(el.id); }} sx={{ color: '#F87171' }}>
+                          <Trash2 size={14} />
+                        </IconButton>
+                      </Box>
+                    </Paper>
+                  ))
+                )}
+              </Box>
             )}
+          </Paper>
 
-            {activeTab === '3d' && (
-              <div className="space-y-3 text-xs">
-                <h3 className="font-bold text-sm text-slate-200">Packdora 3D Configurator</h3>
-                <p className="text-slate-400">
-                  Real-time 2D design texture projection onto 3D packaging boxes, pouches, mugs, and bags.
-                </p>
-                <div className="p-3 bg-amber-950/40 border border-amber-800/60 rounded-xl text-amber-300">
-                  ✨ Interactive 3D WebGL mode is active in the main workspace!
-                </div>
-              </div>
-            )}
-          </div>
+          {/* CENTER CANVAS STAGE */}
+          <Box
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            sx={{ flexGrow: 1, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 4, bgcolor: '#F1F5F9', overflow: 'hidden' }}
+          >
+            {/* STAGE CONTAINER WITH SEPARATED POD LAYERS */}
+            <Paper
+              elevation={4}
+              sx={{
+                width: 480,
+                height: 560,
+                bgcolor: '#FFFFFF',
+                borderRadius: 4,
+                position: 'relative',
+                overflow: 'hidden',
+                border: '1px solid #CBD5E1',
+                transform: `scale(${zoomLevel / 100})`,
+                transition: 'transform 0.1s ease',
+              }}
+            >
+              {/* RENDER LUMISE POD TEMPLATE STACK OR STANDARD PHOTO FALLBACK */}
+              {(() => {
+                const currentView = podBundle?.views?.find((v: any) => v.viewName?.toLowerCase() === activeSide.toLowerCase()) || podBundle?.views?.[0];
+                const layers = currentView?.layers || [];
+                const sortedLayers = [...layers].sort((a: any, b: any) => (a.displayOrder || 0) - (b.displayOrder || 0));
 
-          {/* MAIN STUDIO WORKSPACE */}
-          <div className="flex-1 bg-slate-950 p-6 flex flex-col items-center justify-center relative overflow-auto">
-            {activeTab === '3d' ? (
-              <div className="w-full max-w-2xl">
-                <Packdora3DViewer sides={sides} modelType="box" materialFinish="matte" />
-              </div>
-            ) : (
-              <div className="relative">
-                {/* CANVAS PRINT BOUNDING BOX */}
-                <div
-                  className="w-[400px] h-[500px] rounded-2xl relative shadow-2xl overflow-hidden border-2 border-dashed border-indigo-500/50 transition-all"
-                  style={{ backgroundColor: sides[activeSide]?.backgroundColor || '#ffffff' }}
-                >
-                  {/* Grid Guidelines */}
-                  {showGrid && (
-                    <div className="absolute inset-0 bg-[linear-gradient(to_right,#e2e8f015_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f015_1px,transparent_1px)] bg-[size:20px_20px] pointer-events-none" />
-                  )}
+                if (sortedLayers.length > 0) {
+                  return sortedLayers.map((lyr: any, idx: number) => {
+                    // MASK LAYER (GARMENT RECOLORING OVERLAY)
+                    if (lyr.layerType === 'mask') {
+                      if (productColor === '#FFFFFF') return null;
+                      return (
+                        <Box
+                          key={lyr.id || idx}
+                          sx={{
+                            position: 'absolute',
+                            inset: 0,
+                            bgcolor: productColor,
+                            maskImage: `url(${lyr.assetUrl})`,
+                            WebkitMaskImage: `url(${lyr.assetUrl})`,
+                            maskSize: 'contain',
+                            WebkitMaskSize: 'contain',
+                            maskPosition: 'center',
+                            WebkitMaskPosition: 'center',
+                            maskRepeat: 'no-repeat',
+                            WebkitMaskRepeat: 'no-repeat',
+                            mixBlendMode: 'multiply',
+                            opacity: 0.9,
+                            zIndex: 2,
+                            pointerEvents: 'none',
+                            transition: 'background-color 0.25s ease',
+                          }}
+                        />
+                      );
+                    }
 
-                  {/* Print Bounding Box Safe Overlay */}
-                  <div className="absolute inset-4 border border-rose-500/30 rounded-xl pointer-events-none flex items-start justify-end p-2">
-                    <span className="text-[10px] font-mono text-rose-400 bg-rose-950/60 px-1.5 py-0.5 rounded">
-                      PRINT SAFE AREA (25x30cm @300DPI)
-                    </span>
-                  </div>
-
-                  {/* Canvas Elements Renderer */}
-                  {currentElements.map((el) => {
-                    const isSelected = selectedElementId === el.id;
+                    // BASE MOCKUP, SHADOW, HIGHLIGHT, TEXTURE LAYERS
                     return (
-                      <div
-                        key={el.id}
-                        onClick={() => setSelectedElementId(el.id)}
-                        className={`absolute cursor-move select-none transition-shadow ${
-                          isSelected ? 'ring-2 ring-indigo-500 ring-offset-2 ring-offset-transparent' : ''
-                        }`}
-                        style={{
-                          left: `${el.x}px`,
-                          top: `${el.y}px`,
-                          transform: `rotate(${el.rotation}deg)`,
+                      <Box
+                        key={lyr.id || idx}
+                        component="img"
+                        src={lyr.assetUrl}
+                        alt={lyr.layerType}
+                        sx={{
+                          position: 'absolute',
+                          inset: 0,
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'contain',
+                          pointerEvents: 'none',
+                          mixBlendMode: lyr.blendMode || 'normal',
+                          opacity: lyr.opacity ?? 1,
+                          zIndex: lyr.layerType === 'base_mockup' ? 1 : 3,
+                        }}
+                      />
+                    );
+                  });
+                }
+
+                // Standard Fallback when no template is configured
+                return (
+                  <Box
+                    component="img"
+                    src={getProductImage(product)}
+                    alt={product?.name || 'Selected Product Image'}
+                    sx={{
+                      position: 'absolute',
+                      inset: 0,
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'contain',
+                      pointerEvents: 'none',
+                      zIndex: 1,
+                    }}
+                  />
+                );
+              })()}
+
+              {/* RENDER INTERACTIVE CANVAS DESIGN ELEMENTS */}
+              {currentElements.map((el: any) => {
+                const isSelected = el.id === selectedElementId;
+                const filterCss = getFilterCss(el.filter);
+
+                return (
+                  <Box
+                    key={el.id}
+                    onMouseDown={(e) => handleMouseDown(e, el)}
+                    sx={{
+                      position: 'absolute',
+                      left: el.x,
+                      top: el.y,
+                      width: el.width,
+                      height: el.height,
+                      transform: `rotate(${el.rotation || 0}deg)`,
+                      opacity: el.opacity ?? 1,
+                      filter: filterCss,
+                      border: isSelected ? '2px solid #0D9488' : '1px dashed transparent',
+                      borderRadius: 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: el.isLocked ? 'not-allowed' : 'move',
+                      p: 1,
+                      zIndex: 10,
+                      userSelect: 'none',
+                    }}
+                  >
+                    {/* TEXT ELEMENT */}
+                    {el.type === 'text' && (
+                      <Typography
+                        variant="body1"
+                        sx={{
+                          fontWeight: 800,
                           color: el.color,
+                          fontSize: el.fontSize || 28,
+                          fontFamily: el.fontFamily || 'Inter',
+                          textAlign: 'center',
+                          wordBreak: 'break-word',
                         }}
                       >
-                        {el.type === 'text' && (
-                          <div
-                            style={{
-                              fontSize: `${el.fontSize || 32}px`,
-                              color: el.color,
-                              fontWeight: 'bold',
-                              filter: el.filter === 'sepia' ? 'sepia(1)' : el.filter === 'grayscale' ? 'grayscale(1)' : 'none',
-                            }}
-                          >
-                            {el.content}
-                          </div>
-                        )}
+                        {el.content}
+                      </Typography>
+                    )}
 
-                        {el.type === 'clipart' && (
-                          <div
-                            className="w-24 h-24"
-                            dangerouslySetInnerHTML={{ __html: el.content }}
-                          />
-                        )}
+                    {/* IMAGE ELEMENT */}
+                    {el.type === 'image' && (
+                      <Box component="img" src={el.content} alt="Artwork" sx={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                    )}
 
-                        {el.type === 'image' && (
-                          <img
-                            src={el.content}
-                            alt="Custom uploaded print design"
-                            className="w-32 h-32 object-contain rounded-lg shadow-md"
-                            style={{
-                              filter:
-                                el.filter === 'sepia'
-                                  ? 'sepia(1)'
-                                  : el.filter === 'grayscale'
-                                  ? 'grayscale(1)'
-                                  : el.filter === 'vintage'
-                                  ? 'contrast(1.3) sepia(0.4)'
-                                  : 'none',
-                            }}
-                          />
-                        )}
+                    {/* SHAPE ELEMENT */}
+                    {el.type === 'shape' && (
+                      <svg width="100%" height="100%" viewBox="0 0 100 100" style={{ overflow: 'visible' }}>
+                        <path d={el.content} fill={el.color} />
+                      </svg>
+                    )}
 
-                        {el.type === 'qr' && (
-                          <div className="p-2 bg-white rounded-lg shadow border text-center">
-                            <div className="font-mono text-xs font-bold text-black">{el.content}</div>
-                            <div className="text-[9px] text-gray-500">QR VECTOR</div>
-                          </div>
-                        )}
+                    {/* CLIPART ELEMENT */}
+                    {el.type === 'clipart' && (
+                      <svg width="100%" height="100%" viewBox="0 0 24 24" dangerouslySetInnerHTML={{ __html: el.content }} style={{ color: el.color }} />
+                    )}
+                  </Box>
+                );
+              })}
+            </Paper>
 
-                        {el.type === 'shape' && (
-                          <div
-                            className="w-20 h-20 rounded-full flex items-center justify-center shadow-lg"
-                            style={{ backgroundColor: el.color }}
-                          />
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
+            {/* LIVE FLOATING PROPERTY CONTROL TOOLBAR FOR SELECTED ELEMENT */}
+            {selectedEl && (
+              <Paper
+                elevation={6}
+                sx={{
+                  position: 'absolute',
+                  bottom: 24,
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  px: 2.5,
+                  py: 1.2,
+                  bgcolor: '#0F172A',
+                  color: '#FFF',
+                  borderRadius: 3,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 2,
+                  zIndex: 30,
+                  border: '1px solid #334155',
+                }}
+              >
+                {/* COLOR PICKER (FOR TEXT/SHAPE/CLIPART) */}
+                {(selectedEl.type === 'text' || selectedEl.type === 'shape' || selectedEl.type === 'clipart') && (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Typography variant="caption" sx={{ fontWeight: 700, color: '#94A3B8' }}>Color:</Typography>
+                    <input
+                      type="color"
+                      value={selectedEl.color || '#111827'}
+                      onChange={(e) => updateElement(selectedEl.id, { color: e.target.value })}
+                      style={{ width: 28, height: 28, border: 'none', borderRadius: 4, cursor: 'pointer' }}
+                    />
+                  </Box>
+                )}
+
+                {/* ROTATION SLIDER */}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: 110 }}>
+                  <RotateCw size={14} color="#94A3B8" />
+                  <Slider
+                    size="small"
+                    value={selectedEl.rotation || 0}
+                    min={0}
+                    max={360}
+                    onChange={(_, v) => updateElement(selectedEl.id, { rotation: v as number })}
+                    sx={{ color: '#0D9488' }}
+                  />
+                </Box>
+
+                {/* OPACITY SLIDER */}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: 100 }}>
+                  <Typography variant="caption" sx={{ fontWeight: 700, color: '#94A3B8' }}>Opacity:</Typography>
+                  <Slider
+                    size="small"
+                    value={Math.round((selectedEl.opacity ?? 1) * 100)}
+                    min={10}
+                    max={100}
+                    onChange={(_, v) => updateElement(selectedEl.id, { opacity: (v as number) / 100 })}
+                    sx={{ color: '#0D9488' }}
+                  />
+                </Box>
+
+                {/* IMAGE FILTERS */}
+                {selectedEl.type === 'image' && (
+                  <Select
+                    size="small"
+                    value={selectedEl.filter || 'none'}
+                    onChange={(e) => updateElement(selectedEl.id, { filter: e.target.value as any })}
+                    sx={{ bgcolor: '#1E293B', color: '#FFF', height: 32, fontSize: '0.75rem', borderRadius: 1 }}
+                  >
+                    <MenuItem value="none">Normal</MenuItem>
+                    <MenuItem value="grayscale">Grayscale</MenuItem>
+                    <MenuItem value="sepia">Sepia</MenuItem>
+                    <MenuItem value="vintage">Vintage</MenuItem>
+                    <MenuItem value="contrast">Contrast</MenuItem>
+                    <MenuItem value="blur">Blur</MenuItem>
+                  </Select>
+                )}
+
+                {/* ACTION BUTTONS */}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <Tooltip title="Duplicate">
+                    <IconButton size="small" onClick={() => duplicateElement(selectedEl.id)} sx={{ color: '#FFF' }}>
+                      <Copy size={16} />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="Lock Element">
+                    <IconButton size="small" onClick={() => updateElement(selectedEl.id, { isLocked: !selectedEl.isLocked })} sx={{ color: selectedEl.isLocked ? '#F59E0B' : '#FFF' }}>
+                      {selectedEl.isLocked ? <Lock size={16} /> : <Unlock size={16} />}
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="Delete">
+                    <IconButton size="small" onClick={() => deleteElement(selectedEl.id)} sx={{ color: '#F87171' }}>
+                      <Trash2 size={16} />
+                    </IconButton>
+                  </Tooltip>
+                </Box>
+              </Paper>
             )}
-          </div>
-        </div>
 
-        {/* BOTTOM FOOTER BAR */}
-        <div className="px-6 py-3 bg-slate-950 border-t border-slate-800 flex items-center justify-between">
-          <div className="text-xs text-slate-400 flex items-center gap-4">
-            <span>Product: <strong className="text-white">{product?.name || 'Custom POD Item'}</strong></span>
-            <span>Est. Print Resolution: <strong className="text-emerald-400">300 DPI High-Res</strong></span>
-          </div>
+            {/* FAR RIGHT VIEW SWITCHER THUMBNAILS (LUMISE STYLE) */}
+            <Paper
+              elevation={2}
+              sx={{
+                position: 'absolute',
+                right: 24,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                p: 1,
+                bgcolor: '#FFFFFF',
+                borderRadius: 3,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 1.5,
+                border: '1px solid #E5E7EB',
+              }}
+            >
+              {(['front', 'back', 'left', 'right'] as const).map((side) => (
+                <Box
+                  key={side}
+                  onClick={() => { setActiveSide(side); setSelectedElementId(null); }}
+                  sx={{
+                    width: 52,
+                    height: 52,
+                    borderRadius: 2,
+                    border: activeSide === side ? '2px solid #0D9488' : '1px solid #E5E7EB',
+                    bgcolor: activeSide === side ? '#F0FDFA' : '#F9FAFB',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justify: 'center',
+                    transition: 'all 0.15s ease',
+                    '&:hover': { border: '2px solid #0D9488' },
+                  }}
+                >
+                  <Shirt size={22} color={activeSide === side ? '#0D9488' : '#64748B'} />
+                  <Typography variant="caption" sx={{ fontSize: '0.6rem', fontWeight: 800, color: activeSide === side ? '#0D9488' : '#64748B', textTransform: 'capitalize' }}>
+                    {side}
+                  </Typography>
+                </Box>
+              ))}
+            </Paper>
 
-          <div className="flex items-center gap-3">
-            <button
-              onClick={clearCanvas}
-              className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300 transition-all"
+            {/* BOTTOM RIGHT ZOOM CONTROLS */}
+            <Paper
+              elevation={2}
+              sx={{
+                position: 'absolute',
+                bottom: 24,
+                right: 24,
+                p: 0.5,
+                bgcolor: '#FFFFFF',
+                borderRadius: 2,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 0.5,
+                border: '1px solid #E5E7EB',
+              }}
             >
-              Clear Zone
-            </button>
-            <button
-              onClick={handleAddToCart}
-              className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 font-bold text-xs text-white shadow-xl shadow-indigo-600/30 flex items-center gap-2 transition-all"
-            >
-              <ShoppingCart className="w-4 h-4" /> Add Customized Product to Cart
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+              <IconButton size="small" onClick={() => setZoomLevel((z) => Math.max(50, z - 10))}>
+                <ZoomOut size={16} />
+              </IconButton>
+              <Typography variant="caption" sx={{ fontWeight: 800, minWidth: 35, textAlign: 'center' }}>
+                {zoomLevel}%
+              </Typography>
+              <IconButton size="small" onClick={() => setZoomLevel((z) => Math.min(150, z + 10))}>
+                <ZoomIn size={16} />
+              </IconButton>
+              <IconButton size="small" onClick={() => setZoomLevel(100)}>
+                <Maximize2 size={16} />
+              </IconButton>
+            </Paper>
+          </Box>
+        </Box>
+      </Box>
+    </Dialog>
   );
 };

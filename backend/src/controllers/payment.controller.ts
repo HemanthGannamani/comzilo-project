@@ -11,7 +11,7 @@ export class PaymentController {
     if (storeId && !isNaN(storeId)) {
       return storeId;
     }
-    return 1;
+    return req.context?.storeId || 1;
   }
 
   public createPayment = async (req: Request, res: Response, next: NextFunction): Promise<void> => {

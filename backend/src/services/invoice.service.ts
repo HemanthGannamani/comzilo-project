@@ -81,70 +81,84 @@ export class InvoiceService extends BaseService {
     userId: number,
     data: any,
     ip?: string,
-    userAgent?: string
+    userAgent?: string,
+    options?: { transaction?: any }
   ): Promise<Invoice> {
-    const invoice = await this.runWithRetry(async () => {
-      return sequelize.transaction(async (t) => {
-        const order = await this.orderRepo.findScopedById(tenantId, storeId, data.orderId, {
-          transaction: t,
-        });
-        if (!order) {
-          throw new NotFoundError(`Order with ID ${data.orderId} not found.`);
-        }
+    const parentTx = options?.transaction;
 
-        // Check if an active (issued or paid) invoice already exists for this order
-        const existing = await this.invoiceRepo.findScopedOne(tenantId, storeId, {
-          where: {
-            orderId: data.orderId,
-            invoiceStatus: {
-              [Op.in]: ['issued', 'paid'],
-            },
-          },
-          transaction: t,
-        });
-
-        if (existing) {
-          throw new ValidationError(`An active invoice already exists for Order ${data.orderId}.`);
-        }
-
-        const invoiceNumber = await this.generateInvoiceNumber(tenantId, storeId, t);
-
-        return this.invoiceRepo.createScoped(
-          tenantId,
-          storeId,
-          {
-            orderId: data.orderId,
-            invoiceNumber,
-            invoiceStatus: 'draft',
-            subtotal: Number(order.subtotal),
-            tax: Number(order.taxAmount),
-            discount: Number(order.discountAmount),
-            total: Number(order.totalAmount),
-            issuedAt: null,
-            dueDate: data.dueDate
-              ? new Date(data.dueDate)
-              : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // Default 30 days
-            paidAt: null,
-          },
-          { transaction: t }
-        );
+    const execute = async (t: any) => {
+      const order = await this.orderRepo.findScopedById(tenantId, storeId, data.orderId, {
+        transaction: t,
       });
-    });
+      if (!order) {
+        throw new NotFoundError(`Order with ID ${data.orderId} not found.`);
+      }
 
-    await createAuditLog(
-      {
+      // Check if an active (issued or paid) invoice already exists for this order
+      const existing = await this.invoiceRepo.findScopedOne(tenantId, storeId, {
+        where: {
+          orderId: data.orderId,
+          invoiceStatus: {
+            [Op.in]: ['issued', 'paid'],
+          },
+        },
+        transaction: t,
+      });
+
+      if (existing) {
+        return existing;
+      }
+
+      const invoiceNumber = await this.generateInvoiceNumber(tenantId, storeId, t);
+
+      return this.invoiceRepo.createScoped(
         tenantId,
-        actorId: userId,
-        action: 'INVOICE_CREATED',
-        entityType: 'Invoice',
-        entityId: String(invoice.id),
-        previousValues: null,
-        newValues: invoice.toJSON(),
-      },
-      { ipAddress: ip, userAgent } as any
-    );
+        storeId,
+        {
+          orderId: data.orderId,
+          invoiceNumber,
+          invoiceStatus: 'draft',
+          subtotal: Number(order.subtotal),
+          tax: Number(order.taxAmount),
+          discount: Number(order.discountAmount),
+          total: Number(order.totalAmount),
+          issuedAt: data.issuedAt || new Date(),
+          dueDate: data.dueDate
+            ? new Date(data.dueDate)
+            : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // Default 30 days
+          paidAt: data.invoiceStatus === 'paid' ? new Date() : null,
+        },
+        { transaction: t }
+      );
+    };
 
-    return this.getInvoice(tenantId, storeId, invoice.id);
+    let invoice: any;
+    if (parentTx) {
+      invoice = await execute(parentTx);
+    } else {
+      invoice = await this.runWithRetry(async () => {
+        return sequelize.transaction(async (t) => execute(t));
+      });
+    }
+
+    try {
+      await createAuditLog(
+        {
+          tenantId,
+          actorId: userId,
+          action: 'INVOICE_CREATED',
+          entityType: 'Invoice',
+          entityId: String(invoice.id),
+          previousValues: null,
+          newValues: typeof invoice.toJSON === 'function' ? invoice.toJSON() : invoice,
+        },
+        { ipAddress: ip, userAgent } as any
+      );
+    } catch {
+      // ignore non-critical audit log errors
+    }
+
+    return invoice;
   }
 
   /**

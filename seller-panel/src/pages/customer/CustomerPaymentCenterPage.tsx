@@ -291,7 +291,7 @@ export const CustomerPaymentCenterPage: React.FC = () => {
                       <TableCell>{new Date(inv.created_at || inv.createdAt).toLocaleString()}</TableCell>
                       <TableCell sx={{ fontWeight: 700, fontFamily: 'monospace' }}>{inv.invoice_number}</TableCell>
                       <TableCell align="right" sx={{ fontWeight: 800, color: '#2563EB' }}>
-                        INR {Number(inv.amount || 0).toFixed(2)}
+                        INR {Number(inv.total ?? inv.totalAmount ?? inv.amount ?? 0).toFixed(2)}
                       </TableCell>
                       <TableCell>
                         <Chip label={(inv.status || 'PAID').toUpperCase()} size="small" color="success" sx={{ fontWeight: 800 }} />

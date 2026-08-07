@@ -30,14 +30,18 @@ export const CustomerInvoicesPage: React.FC = () => {
   const payments = paymentData?.data?.rows || paymentData?.data || [];
 
   const handleWhatsAppShareInvoice = (inv: any) => {
+    const invTotal = inv.total ?? inv.totalAmount ?? inv.subtotal ?? inv.amount ?? 0;
     const text = encodeURIComponent(
-      `📄 Comzilo Tax Invoice #${inv.invoiceNumber}\nDate: ${new Date(inv.createdAt).toLocaleDateString()}\nTotal Amount: ${formatPrice(inv.total)}\nStatus: ${inv.invoiceStatus?.toUpperCase() || 'PAID'}\nView details: ${window.location.origin}/account/invoices`
+      `📄 Comzilo Tax Invoice #${inv.invoiceNumber}\nDate: ${new Date(inv.createdAt).toLocaleDateString()}\nTotal Amount: ${formatPrice(invTotal)}\nStatus: ${inv.invoiceStatus?.toUpperCase() || 'PAID'}\nView details: ${window.location.origin}/account/invoices`
     );
     window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank', 'noopener,noreferrer');
     toast.success('Opening WhatsApp to share invoice...');
   };
 
   const generateInvoiceHtml = (inv: any) => {
+    const invTotal = inv.total ?? inv.totalAmount ?? inv.subtotal ?? inv.amount ?? 0;
+    const invSubtotal = inv.subtotal ?? inv.subtotalAmount ?? invTotal;
+    const invTax = inv.tax ?? inv.taxAmount ?? inv.taxTotal ?? 0;
     return `<!DOCTYPE html>
 <html>
 <head>
@@ -67,16 +71,16 @@ export const CustomerInvoicesPage: React.FC = () => {
   </div>
   <div class="details">
     <div>Status: <strong>${inv.invoiceStatus?.toUpperCase() || 'PAID'}</strong></div>
-    <div>Order #: ${inv.orderId}</div>
+    <div>Order #: ${inv.orderId || 'N/A'}</div>
   </div>
   <table class="table">
     <thead>
       <tr><th>Description</th><th>Amount</th></tr>
     </thead>
     <tbody>
-      <tr><td>Order #${inv.orderId} Products Subtotal</td><td>${formatPrice(inv.subtotal || inv.total)}</td></tr>
-      <tr><td>Tax Amount</td><td>${formatPrice(inv.taxTotal || 0)}</td></tr>
-      <tr class="total-row"><td>Grand Total</td><td>${formatPrice(inv.total)}</td></tr>
+      <tr><td>Order Subtotal</td><td>${formatPrice(invSubtotal)}</td></tr>
+      <tr><td>Tax Amount</td><td>${formatPrice(invTax)}</td></tr>
+      <tr class="total-row"><td>Grand Total</td><td>${formatPrice(invTotal)}</td></tr>
     </tbody>
   </table>
 </body>
@@ -148,7 +152,9 @@ export const CustomerInvoicesPage: React.FC = () => {
                     <TableRow key={inv.id} hover>
                       <TableCell sx={{ fontWeight: 700 }}>{inv.invoiceNumber}</TableCell>
                       <TableCell>{new Date(inv.createdAt).toLocaleDateString()}</TableCell>
-                      <TableCell sx={{ fontWeight: 800, color: '#2563EB' }}>{formatPrice(inv.total)}</TableCell>
+                      <TableCell sx={{ fontWeight: 800, color: '#2563EB' }}>
+                        {formatPrice(inv.total ?? inv.totalAmount ?? inv.subtotal ?? inv.amount ?? 0)}
+                      </TableCell>
                       <TableCell>
                         <Chip label={inv.invoiceStatus?.toUpperCase() || 'PAID'} color="success" size="small" sx={{ fontWeight: 700 }} />
                       </TableCell>

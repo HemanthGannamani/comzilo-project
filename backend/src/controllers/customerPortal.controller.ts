@@ -582,6 +582,9 @@ export class CustomerPortalController {
       let myInvoices: any[] = await Invoice.findAll({
         where: {
           orderId: { [Op.in]: orderIds },
+          invoiceNumber: {
+            [Op.notLike]: 'INV-SLR-%',
+          },
         },
         order: [['createdAt', 'DESC']],
       });
@@ -769,7 +772,9 @@ export class CustomerPortalController {
         let calculatedSubtotal = 0;
 
         for (const cartItem of items) {
-          const productId = Number(cartItem.id || cartItem.productId);
+          const rawId = String(cartItem.id || '');
+          const productId = Number(cartItem.productId || (rawId.includes('-') ? rawId.split('-')[0] : rawId));
+          const variantId = cartItem.variantId ? Number(cartItem.variantId) : (rawId.includes('-') ? Number(rawId.split('-')[1]) : null);
           const qty = Number(cartItem.quantity || 1);
 
           const product = await Product.findOne({
@@ -781,24 +786,62 @@ export class CustomerPortalController {
             throw new NotFoundError(`Product #${productId} not found.`);
           }
 
-          if (product.stockQuantity < qty) {
-            throw new ValidationError(
-              `Insufficient stock for '${product.name}'. Available: ${product.stockQuantity}, Requested: ${qty}`
-            );
+          let variant: any = null;
+          if (variantId && !isNaN(variantId)) {
+            const { ProductVariant } = require('../database/models');
+            variant = await ProductVariant.findOne({
+              where: { id: variantId, productId },
+              transaction: t,
+            });
           }
 
-          // Reserve Stock
-          product.stockQuantity -= qty;
-          await product.save({ transaction: t });
+          if (variant) {
+            const availableStock = Number(variant.stockQuantity || 0);
+            if (availableStock < qty) {
+              throw new ValidationError(
+                `Insufficient stock for '${cartItem.name || product.name}'. Available: ${availableStock}, Requested: ${qty}`
+              );
+            }
+          } else {
+            const availableStock = Number(product.stockQuantity || 0);
+            if (availableStock < qty) {
+              throw new ValidationError(
+                `Insufficient stock for '${cartItem.name || product.name}'. Available: ${availableStock}, Requested: ${qty}`
+              );
+            }
+          }
 
-          const unitPrice = Number(product.price || 0);
+          const unitPrice = Number(cartItem.price || (variant ? variant.price : product.price) || 0);
           const lineSubtotal = unitPrice * qty;
           calculatedSubtotal += lineSubtotal;
 
+          let formattedItemName = cartItem.name || product.name;
+          if (variant && !formattedItemName.includes('(')) {
+            let variantAttrsText = '';
+            if (variant.attributes && Array.isArray(variant.attributes) && variant.attributes.length > 0) {
+              variantAttrsText = variant.attributes
+                .map((a: any) => `${a.name || a.attributeName || 'Option'}: ${a.value || a.attributeValue || ''}`)
+                .filter((str: string) => !str.endsWith(': '))
+                .join(', ');
+            } else if (variant.sku && variant.sku.includes('-')) {
+              const parts = variant.sku.split('-');
+              if (parts.length >= 4) {
+                variantAttrsText = `RAM: ${parts[parts.length - 3]}, Memory: ${parts[parts.length - 2]}, Colour: ${parts[parts.length - 1]}`;
+              }
+            }
+            if (variantAttrsText) {
+              formattedItemName = `${product.name} (${variantAttrsText})`;
+            }
+          }
+
           orderItemsInput.push({
             productId: product.id,
-            sku: product.sku,
-            productName: product.name,
+            variantId: variant ? variant.id : null,
+            productVariantId: variant ? variant.id : null,
+            sku: variant ? variant.sku : product.sku,
+            variantSku: variant ? variant.sku : product.sku,
+            productName: formattedItemName,
+            variantAttributes: cartItem.selectedAttributes || (variant?.attributes ? variant.attributes : null),
             quantity: qty,
             unitPrice,
             subtotal: lineSubtotal,
@@ -840,7 +883,8 @@ export class CustomerPortalController {
             paymentStatus: paymentMethod === 'cod' ? 'unpaid' : 'paid',
           },
           req.ip,
-          req.headers['user-agent']
+          req.headers['user-agent'],
+          { transaction: t }
         );
 
         // Auto Generate Invoice
@@ -850,35 +894,44 @@ export class CustomerPortalController {
             tenantId,
             storeId,
             userId,
-            { orderId: order.id },
+            { orderId: order.id, invoiceStatus: 'issued' },
             req.ip,
-            req.headers['user-agent']
+            req.headers['user-agent'],
+            { transaction: t }
           );
         } catch (e) {
           // If invoice exists, ignore
         }
 
         // Marketplace Seller ERP & Financial Synchronization
-        await MarketplaceCheckoutService.syncSellerOrdersAndFinancials({
-          mainOrder: order,
-          items: orderItemsInput,
-          customer,
-          paymentDetails: {
-            paymentMethod,
-            notes,
-          },
-          transaction: t,
-        });
+        try {
+          await MarketplaceCheckoutService.syncSellerOrdersAndFinancials({
+            mainOrder: order,
+            items: orderItemsInput,
+            customer,
+            paymentDetails: {
+              paymentMethod,
+              notes,
+            },
+            transaction: t,
+          });
+        } catch (e: any) {
+          console.warn('[MarketplaceSync] Secondary seller sync notice:', e?.message);
+        }
 
         // Trigger Notification
-        await this.notificationService.createNotification({
-          tenantId,
-          userId,
-          title: `Order Confirmed #${order.orderNumber}`,
-          content: `Your order of $${grandTotal.toFixed(2)} has been placed successfully.`,
-          type: 'ORDER_STATUS',
-          channel: 'in_app',
-        });
+        try {
+          await this.notificationService.createNotification({
+            tenantId,
+            userId,
+            title: `Order Confirmed #${order.orderNumber}`,
+            content: `Your order of $${grandTotal.toFixed(2)} has been placed successfully.`,
+            type: 'ORDER_STATUS',
+            channel: 'in_app',
+          });
+        } catch (e: any) {
+          // ignore
+        }
 
         return { order, invoice };
       });
@@ -1092,16 +1145,16 @@ export class CustomerPortalController {
             tenantId,
             storeId,
             userId,
-            { orderId: order.id },
+            { orderId: order.id, invoiceStatus: 'paid' },
             req.ip,
-            req.headers['user-agent']
+            req.headers['user-agent'],
+            { transaction: t }
           );
         } catch (e) {
           // ignore duplicate
         }
 
         // 3. Save Payment Record in MySQL with complete metadata
-        console.log("4 before Payment.create");
         const paymentNumber = `PAY-RZP-${Date.now().toString().slice(-6)}`;
         const [paymentInsert]: any = await sequelize.query(
           `INSERT INTO payments 
@@ -1133,17 +1186,23 @@ export class CustomerPortalController {
             transaction: t,
           }
         );
-        console.log("4 after Payment.create");
 
         // 4. Calculate & Save Commission Breakdown
         try {
           const commService = new CommissionEngineService();
-          await commService.processAndSaveOrderCommission(tenantId, storeId, order.id, grandTotal, calculatedSubtotal);
+          await commService.processAndSaveOrderCommission(
+            tenantId,
+            storeId,
+            order.id,
+            grandTotal,
+            calculatedSubtotal,
+            { transaction: t }
+          );
         } catch (e: any) {
           // log and continue
         }
 
-        // 4b. Marketplace Seller ERP & Financial Synchronization (Safe background sync)
+        // 4b. Marketplace Seller ERP & Financial Synchronization (Safe transaction sync)
         try {
           await MarketplaceCheckoutService.syncSellerOrdersAndFinancials({
             mainOrder: order,
@@ -1155,6 +1214,7 @@ export class CustomerPortalController {
               razorpayPaymentId,
               notes,
             },
+            transaction: t,
           });
         } catch (e: any) {
           console.warn('[MarketplaceSync] Secondary seller sync notice:', e?.message);

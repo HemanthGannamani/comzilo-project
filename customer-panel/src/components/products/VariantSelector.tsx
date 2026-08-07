@@ -25,14 +25,45 @@ export const VariantSelector: React.FC<Props> = ({ variants, onSelectVariant }) 
 
   if (!variants || variants.length === 0) return null;
 
-  // Helper to extract attribute name and value cleanly
-  const getAttrName = (attr: any) => attr?.name || attr?.attributeName || attr?.attribute_name || '';
+  // Helper to extract attribute name and value cleanly with name normalization
+  const normalizeKey = (key: string): string => {
+    const k = key.trim().toLowerCase();
+    if (k === 'ram') return 'RAM';
+    if (k === 'memory' || k === 'storage') return 'Memory';
+    if (k === 'colour' || k === 'color') return 'Colour';
+    if (k === 'size') return 'Size';
+    if (k === 'material') return 'Material';
+    return key.charAt(0).toUpperCase() + key.slice(1);
+  };
+
+  const getAttrName = (attr: any) => normalizeKey(attr?.name || attr?.attributeName || attr?.attribute_value_name || attr?.attribute_name || '');
   const getAttrValue = (attr: any) => attr?.value || attr?.attributeValue || attr?.attribute_value || '';
+
+  // Process variants to guarantee attribute arrays (parse SKU tags as fallback if attributes array is empty)
+  const processedVariants = variants.map((v) => {
+    let attrs = v.attributes ? [...v.attributes] : [];
+
+    // Fallback: If attributes array is empty, attempt parsing SKU tags (e.g. VAR-SKU-8GB-16GB-BLACK)
+    if (attrs.length === 0 && v.sku && v.sku.includes('-')) {
+      const parts = v.sku.split('-');
+      if (parts.length >= 4) {
+        const potentialRam = parts[parts.length - 3];
+        const potentialMem = parts[parts.length - 2];
+        const potentialCol = parts[parts.length - 1];
+
+        if (potentialRam) attrs.push({ name: 'RAM', value: potentialRam });
+        if (potentialMem) attrs.push({ name: 'Memory', value: potentialMem });
+        if (potentialCol) attrs.push({ name: 'Colour', value: potentialCol });
+      }
+    }
+
+    return { ...v, attributes: attrs };
+  });
 
   // Extract all distinct attribute keys across variants
   const attributeKeysMap: Record<string, Set<string>> = {};
 
-  variants.forEach((v) => {
+  processedVariants.forEach((v) => {
     if (v.attributes && Array.isArray(v.attributes)) {
       v.attributes.forEach((attr) => {
         const key = getAttrName(attr);
@@ -51,8 +82,8 @@ export const VariantSelector: React.FC<Props> = ({ variants, onSelectVariant }) 
 
   // Default selection to first available active variant
   useEffect(() => {
-    if (variants.length > 0) {
-      const activeVar = variants.find((v) => Number(v.stockQuantity) > 0) || variants[0];
+    if (processedVariants.length > 0) {
+      const activeVar = processedVariants.find((v) => Number(v.stockQuantity) > 0) || processedVariants[0];
       if (activeVar && activeVar.attributes) {
         const initialOpts: Record<string, string> = {};
         activeVar.attributes.forEach((attr) => {
@@ -70,10 +101,10 @@ export const VariantSelector: React.FC<Props> = ({ variants, onSelectVariant }) 
 
   // Find matching variant based on current selectedOptions
   const findMatchingVariant = (opts: Record<string, string>) => {
-    return variants.find((v) => {
+    return processedVariants.find((v) => {
       if (!v.attributes) return false;
       return Object.entries(opts).every(([key, val]) =>
-        v.attributes?.some((a) => getAttrName(a) === key && getAttrValue(a) === val)
+        v.attributes?.some((a) => getAttrName(a) === key && getAttrValue(a).toLowerCase() === val.toLowerCase())
       );
     });
   };

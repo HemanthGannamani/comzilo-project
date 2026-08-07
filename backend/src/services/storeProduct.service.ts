@@ -33,11 +33,28 @@ export class StoreProductService {
     };
 
     if (query.search) {
-      where[Op.or] = [
-        { name: { [Op.like]: `%${query.search}%` } },
-        { sku: { [Op.like]: `%${query.search}%` } },
-        { barcode: { [Op.like]: `%${query.search}%` } },
+      const trimmedSearch = String(query.search).trim();
+      const searchPattern = `%${trimmedSearch}%`;
+
+      const orConditions: any[] = [
+        { name: { [Op.like]: searchPattern } },
+        { category: { [Op.like]: searchPattern } },
+        { brand: { [Op.like]: searchPattern } },
+        { sku: { [Op.like]: searchPattern } },
+        { barcode: { [Op.like]: searchPattern } },
+        { description: { [Op.like]: searchPattern } },
       ];
+
+      const singularTerm = trimmedSearch.toLowerCase().endsWith('s') ? trimmedSearch.slice(0, -1) : trimmedSearch;
+      if (singularTerm && singularTerm.length > 2 && singularTerm !== trimmedSearch) {
+        const singularPattern = `%${singularTerm}%`;
+        orConditions.push(
+          { name: { [Op.like]: singularPattern } },
+          { category: { [Op.like]: singularPattern } }
+        );
+      }
+
+      where[Op.or] = orConditions;
     }
 
     if (query.status) {

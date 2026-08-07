@@ -86,31 +86,7 @@ const PRODUCTS_22_LIST: ProductSeedItem[] = [
     dynamicAttributes: { durationMinutes: 60 },
   },
 
-  // 4. Digital Product
-  {
-    name: 'Figma UI Design Kit Pro',
-    sku: 'DIG-FIGMA-001',
-    productType: 'digital',
-    price: 1499.0,
-    costPrice: 0.0,
-    status: 'published',
-    shortDescription: '250+ Responsive Web & Mobile Components for Designers',
-    imageUrl: 'https://images.unsplash.com/photo-1581291518633-83b4ebd1d83e?w=500',
-    dynamicAttributes: { fileUrl: 'https://cdn.comzilo.com/files/ui-kit.fig', downloadLimit: 10 },
-  },
-  {
-    name: 'WordPress E-Commerce Theme',
-    sku: 'DIG-WP-THEME-002',
-    productType: 'digital',
-    price: 2499.0,
-    costPrice: 0.0,
-    status: 'published',
-    shortDescription: 'Ultra-fast SEO Optimized Multi-Vendor WooCommerce Theme',
-    imageUrl: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=500',
-    dynamicAttributes: { fileUrl: 'https://cdn.comzilo.com/files/wptheme.zip', downloadLimit: 5 },
-  },
-
-  // 5. Downloadable Product
+  // 4. Downloadable Product
   {
     name: 'Java Microservices Architecture Course PDF',
     sku: 'DL-JAVA-PDF-001',
@@ -134,7 +110,7 @@ const PRODUCTS_22_LIST: ProductSeedItem[] = [
     dynamicAttributes: { fileUrl: 'https://cdn.comzilo.com/files/flutter-src.zip', downloadExpiryDays: 60 },
   },
 
-  // 6. Print On Demand
+  // 5. Print On Demand
   {
     name: 'Custom Matte Ceramic Coffee Mug',
     sku: 'POD-MUG-001',
@@ -156,126 +132,6 @@ const PRODUCTS_22_LIST: ProductSeedItem[] = [
     shortDescription: 'Heavyweight Unisex Fleece Hoodie with Front & Back Print',
     imageUrl: 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?w=500',
     dynamicAttributes: { podProvider: 'Printify', templateId: 'HOOD-FL-01' },
-  },
-
-  // 7. Bundle Product
-  {
-    name: 'Executive Office Starter Bundle',
-    sku: 'BNDL-OFFICE-001',
-    productType: 'bundle',
-    price: 3499.0,
-    costPrice: 1500.0,
-    status: 'published',
-    shortDescription: 'Includes Ergonomic Mouse, Desk Pad, Mug & Notebook',
-    imageUrl: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=500',
-    dynamicAttributes: { bundledItemsCount: 4 },
-  },
-  {
-    name: 'Pro Gamer RGB Gear Combo Pack',
-    sku: 'BNDL-GAMER-002',
-    productType: 'bundle',
-    price: 4999.0,
-    costPrice: 2200.0,
-    status: 'published',
-    shortDescription: 'RGB Mechanical Keyboard, Gaming Mouse & Extended Mousepad',
-    imageUrl: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=500',
-    dynamicAttributes: { bundledItemsCount: 3 },
-  },
-
-  // 8. Service Product
-  {
-    name: 'Hardware Repair & Diagnostics Service',
-    sku: 'SRV-REPAIR-001',
-    productType: 'service',
-    price: 999.0,
-    costPrice: 300.0,
-    status: 'published',
-    shortDescription: 'Doorstep Laptop & PC Diagnostic Check and Repair Service',
-    imageUrl: 'https://images.unsplash.com/photo-1588702547919-26089e690ecc?w=500',
-    dynamicAttributes: { durationMinutes: 120, serviceAreaPincodes: '500001, 500002, 500003' },
-  },
-  {
-    name: 'Professional Deep Home Cleaning Service',
-    sku: 'SRV-CLEAN-002',
-    productType: 'service',
-    price: 2499.0,
-    costPrice: 1000.0,
-    status: 'published',
-    shortDescription: 'Full 3BHK Deep Home Sanitization & Steam Cleaning',
-    imageUrl: 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=500',
-    dynamicAttributes: { durationMinutes: 240, serviceAreaPincodes: '500001, 500004' },
-  },
-
-  // 9. Subscription Product
-  {
-    name: 'Monthly SaaS ERP Pro License Plan',
-    sku: 'SUB-ERP-MONTHLY-001',
-    productType: 'subscription',
-    price: 1499.0,
-    costPrice: 0.0,
-    status: 'published',
-    shortDescription: 'Monthly Recurring Multi-Store SaaS ERP Access for Businesses',
-    imageUrl: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=500',
-    dynamicAttributes: { billingCycle: 'monthly', trialDays: 14, renewalPrice: 1499.0 },
-  },
-  {
-    name: 'Annual ERP Enterprise Cloud Plan',
-    sku: 'SUB-ERP-ANNUAL-002',
-    productType: 'subscription',
-    price: 14999.0,
-    costPrice: 0.0,
-    status: 'published',
-    shortDescription: 'Annual Discounted SaaS ERP License with Priority VIP Support',
-    imageUrl: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=500',
-    dynamicAttributes: { billingCycle: 'annual', trialDays: 30, renewalPrice: 14999.0 },
-  },
-
-  // 10. Gift Card
-  {
-    name: '₹500 Store Digital Gift Voucher Card',
-    sku: 'GC-500-001',
-    productType: 'gift_card',
-    price: 500.0,
-    costPrice: 0.0,
-    status: 'published',
-    shortDescription: 'Digital Shopping Gift Card Voucher Code worth ₹500',
-    imageUrl: 'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=500',
-    dynamicAttributes: { voucherAmount: 500, expiryMonths: 12 },
-  },
-  {
-    name: '₹1000 Store Digital Gift Voucher Card',
-    sku: 'GC-1000-002',
-    productType: 'gift_card',
-    price: 1000.0,
-    costPrice: 0.0,
-    status: 'published',
-    shortDescription: 'Digital Shopping Gift Card Voucher Code worth ₹1000',
-    imageUrl: 'https://images.unsplash.com/photo-1513885535751-8b9238bd345a?w=500',
-    dynamicAttributes: { voucherAmount: 1000, expiryMonths: 12 },
-  },
-
-  // 11. Rental Product
-  {
-    name: '4K Cinema Camera Equipment Rental',
-    sku: 'RNT-CAM-4K-001',
-    productType: 'rental',
-    price: 1999.0,
-    costPrice: 0.0,
-    status: 'published',
-    shortDescription: 'Daily 4K Professional Camera Rental with Lens Kit',
-    imageUrl: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=500',
-    dynamicAttributes: { rentalRatePerDay: 1999.0, depositAmount: 5000.0 },
-  },
-  {
-    name: 'High Lumens HD Projector Rental',
-    sku: 'RNT-PROJ-HD-002',
-    productType: 'rental',
-    price: 999.0,
-    costPrice: 0.0,
-    status: 'published',
-    shortDescription: 'HD Conference & Cinema Projector Daily Rental',
-    imageUrl: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=500',
-    dynamicAttributes: { rentalRatePerDay: 999.0, depositAmount: 2500.0 },
   },
 ];
 

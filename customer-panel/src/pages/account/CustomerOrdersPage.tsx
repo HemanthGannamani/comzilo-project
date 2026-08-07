@@ -332,17 +332,56 @@ export const CustomerOrdersPage: React.FC = () => {
                 Order Items ({selectedOrder.items?.length || 0})
               </Typography>
               <List disablePadding>
-                {selectedOrder.items?.map((item: any) => (
-                  <ListItem key={item.id} sx={{ px: 0, py: 1, borderBottom: '1px solid #F1F5F9' }}>
-                    <ListItemText
-                      primary={<Typography variant="subtitle2" sx={{ fontWeight: 700 }}>{item.productName || item.sku}</Typography>}
-                      secondary={`Qty: ${item.quantity} • Unit Price: ${formatPrice(item.unitPrice)}`}
-                    />
-                    <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
-                      {formatPrice(item.total)}
-                    </Typography>
-                  </ListItem>
-                ))}
+                {selectedOrder.items?.map((item: any) => {
+                  const rawAttrs = item.variantAttributes;
+                  let attrsDisplay = '';
+                  if (rawAttrs) {
+                    if (Array.isArray(rawAttrs)) {
+                      attrsDisplay = rawAttrs.map((a: any) => `${a.name || a.attributeName}: ${a.value || a.attributeValue}`).join(' • ');
+                    } else if (typeof rawAttrs === 'object') {
+                      attrsDisplay = Object.entries(rawAttrs).map(([k, v]) => `${k}: ${v}`).join(' • ');
+                    } else if (typeof rawAttrs === 'string' && rawAttrs.startsWith('{')) {
+                      try {
+                        const parsed = JSON.parse(rawAttrs);
+                        attrsDisplay = Object.entries(parsed).map(([k, v]) => `${k}: ${v}`).join(' • ');
+                      } catch {
+                        attrsDisplay = rawAttrs;
+                      }
+                    } else {
+                      attrsDisplay = String(rawAttrs);
+                    }
+                  }
+                  return (
+                    <ListItem key={item.id} sx={{ px: 0, py: 1.5, borderBottom: '1px solid #F1F5F9' }}>
+                      <ListItemText
+                        primary={
+                          <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#0F172A' }}>
+                            {item.productName || item.sku}
+                          </Typography>
+                        }
+                        secondary={
+                          <Box sx={{ mt: 0.5 }}>
+                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                              Qty: {item.quantity} • Unit Price: {formatPrice(item.unitPrice)} • SKU: {item.sku}
+                            </Typography>
+                            {attrsDisplay && (
+                              <Chip
+                                label={`Variant Options: ${attrsDisplay}`}
+                                size="small"
+                                color="primary"
+                                variant="outlined"
+                                sx={{ mt: 0.5, height: 20, fontSize: '0.68rem', fontWeight: 700 }}
+                              />
+                            )}
+                          </Box>
+                        }
+                      />
+                      <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#2563EB' }}>
+                        {formatPrice(item.total)}
+                      </Typography>
+                    </ListItem>
+                  );
+                })}
               </List>
 
               {/* Total Calculation Grid */}

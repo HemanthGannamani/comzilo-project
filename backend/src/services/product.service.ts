@@ -133,10 +133,11 @@ export class ProductService {
         }
       }
 
-      // Handle optional variant payload
+      // Handle variant payload or auto-generate fallback variants for variable products
+      const { ProductVariantService } = require('./productVariant.service');
+      const variantService = new ProductVariantService();
+
       if (data.variants && Array.isArray(data.variants) && data.variants.length > 0) {
-        const { ProductVariantService } = require('./productVariant.service');
-        const variantService = new ProductVariantService();
         for (const vData of data.variants) {
           await variantService.createVariant(
             tenantId,
@@ -147,6 +148,38 @@ export class ProductService {
             },
             { transaction: t }
           );
+        }
+      } else if (productType === 'variable') {
+        const isTech = product.name.toLowerCase().includes('hp') || product.name.toLowerCase().includes('dell') || product.name.toLowerCase().includes('laptop') || product.name.toLowerCase().includes('mac') || product.name.toLowerCase().includes('pc') || product.name.toLowerCase().includes('tech') || product.name.toLowerCase().includes('pro');
+        const rams = isTech ? ['8GB', '16GB'] : ['S', 'M', 'L'];
+        const memories = isTech ? ['12GB', '32GB'] : ['Cotton', 'Polyester'];
+        const colours = ['Black', 'Silver', 'Green'];
+        const ramLabel = isTech ? 'RAM' : 'Size';
+        const memLabel = isTech ? 'Memory' : 'Material';
+
+        for (const ram of rams) {
+          for (const mem of memories) {
+            for (const col of colours) {
+              const sku = `${product.sku}-${ram}-${mem}-${col.toUpperCase()}`;
+              await variantService.createVariant(
+                tenantId,
+                {
+                  productId: product.id,
+                  storeId,
+                  sku,
+                  price: product.price || 199.00,
+                  stockQuantity: 50,
+                  status: 'active',
+                  attributes: [
+                    { attributeName: ramLabel, attributeValue: ram },
+                    { attributeName: memLabel, attributeValue: mem },
+                    { attributeName: 'Colour', attributeValue: col },
+                  ],
+                },
+                { transaction: t }
+              );
+            }
+          }
         }
       }
 
@@ -276,7 +309,7 @@ export class ProductService {
     storeId: number,
     filters: any = {}
   ): Promise<{ rows: Product[]; count: number }> {
-    const { page = 1, limit = 20, search, status, visibility, category, brand, productType, types, minPrice, maxPrice, allStores } = filters;
+    const { page = 1, limit = 20, search, status, visibility, category, brand, productType, types, minPrice, maxPrice, allStores, sortBy, sort } = filters;
     const offset = (page - 1) * limit;
 
     const where: any = {};
@@ -309,12 +342,46 @@ export class ProductService {
     }
 
     if (search) {
-      where[Op.or] = [
-        { name: { [Op.like]: `%${search}%` } },
-        { sku: { [Op.like]: `%${search}%` } },
-        { barcode: { [Op.like]: `%${search}%` } },
-        { slug: { [Op.like]: `%${search}%` } },
+      const trimmedSearch = String(search).trim();
+      const searchPattern = `%${trimmedSearch}%`;
+
+      const orConditions: any[] = [
+        { name: { [Op.like]: searchPattern } },
+        { category: { [Op.like]: searchPattern } },
+        { brand: { [Op.like]: searchPattern } },
+        { sku: { [Op.like]: searchPattern } },
+        { barcode: { [Op.like]: searchPattern } },
+        { slug: { [Op.like]: searchPattern } },
+        { shortDescription: { [Op.like]: searchPattern } },
+        { description: { [Op.like]: searchPattern } },
       ];
+
+      // Singular/plural term fallback (e.g. 'laptop' <-> 'laptops', 'shoe' <-> 'shoes')
+      const singularTerm = trimmedSearch.toLowerCase().endsWith('s') ? trimmedSearch.slice(0, -1) : trimmedSearch;
+      if (singularTerm && singularTerm.length > 2 && singularTerm !== trimmedSearch) {
+        const singularPattern = `%${singularTerm}%`;
+        orConditions.push(
+          { name: { [Op.like]: singularPattern } },
+          { category: { [Op.like]: singularPattern } }
+        );
+      }
+
+      where[Op.or] = orConditions;
+    }
+
+    // Dynamic order clause based on sortBy filter
+    let orderClause: any[] = [['createdAt', 'DESC']];
+    const effectiveSort = sortBy || sort || filters.sort_by;
+    if (effectiveSort === 'price-low' || effectiveSort === 'price_asc' || effectiveSort === 'price-asc') {
+      orderClause = [['price', 'ASC']];
+    } else if (effectiveSort === 'price-high' || effectiveSort === 'price_desc' || effectiveSort === 'price-desc') {
+      orderClause = [['price', 'DESC']];
+    } else if (effectiveSort === 'name-asc' || effectiveSort === 'name_asc') {
+      orderClause = [['name', 'ASC']];
+    } else if (effectiveSort === 'name-desc' || effectiveSort === 'name_desc') {
+      orderClause = [['name', 'DESC']];
+    } else if (effectiveSort === 'newest') {
+      orderClause = [['createdAt', 'DESC']];
     }
 
     // For public storefront requests with allStores, do not restrict query to single tenantId
@@ -326,7 +393,7 @@ export class ProductService {
         where,
         limit: Number(limit),
         offset: Number(offset),
-        order: [['createdAt', 'DESC']],
+        order: orderClause,
         include: [
           {
             model: ProductImage,

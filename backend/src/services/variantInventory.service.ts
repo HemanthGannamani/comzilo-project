@@ -83,8 +83,16 @@ export class VariantInventoryService {
     }
 
     let inventory = await VariantInventory.findOne({ where: { variantId, warehouseId }, ...options });
+    const { ProductVariant } = require('../database/models');
+    const variant = await ProductVariant.findByPk(variantId, options);
+
     if (!inventory) {
-      inventory = await this.allocateWarehouse(tenantId, null, { variantId, warehouseId, quantityOnHand: 0 }, context);
+      const initialStock = variant ? Number(variant.stockQuantity || 0) : 0;
+      inventory = await this.allocateWarehouse(tenantId, null, { variantId, warehouseId, quantityOnHand: initialStock }, context);
+    } else if (inventory && (inventory.quantityOnHand || 0) <= 0 && variant && Number(variant.stockQuantity || 0) > 0) {
+      inventory.quantityOnHand = Number(variant.stockQuantity);
+      inventory.quantityAvailable = Number(variant.stockQuantity) - (inventory.reservedStock || 0);
+      await inventory.save(options);
     }
 
     const currentStock = inventory.quantityOnHand || 0;
@@ -115,6 +123,10 @@ export class VariantInventoryService {
       },
       options
     );
+
+    if (variant) {
+      await variant.update({ stockQuantity: newStock }, options);
+    }
 
     // Record Stock Movement Log
     try {

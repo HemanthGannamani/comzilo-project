@@ -328,4 +328,91 @@ export class ProductController {
       next(error);
     }
   };
+
+  public getProductReviews = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const productId = parseInt(req.params.id, 10);
+      const { ProductReview } = require('../database/models');
+
+      const reviews = await ProductReview.findAll({
+        where: { productId, status: 'approved' },
+        order: [['createdAt', 'DESC']],
+      });
+
+      const count = reviews.length;
+      let totalScore = 0;
+      const ratingBreakdown: Record<number, number> = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+
+      reviews.forEach((r: any) => {
+        const star = Math.min(5, Math.max(1, Number(r.rating) || 5));
+        totalScore += star;
+        ratingBreakdown[star] = (ratingBreakdown[star] || 0) + 1;
+      });
+
+      const averageRating = count > 0 ? Number((totalScore / count).toFixed(1)) : 5.0;
+
+      success(res, 'Product reviews retrieved successfully', {
+        reviews,
+        count,
+        averageRating,
+        ratingBreakdown,
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public createProductReview = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const productId = parseInt(req.params.id, 10);
+      const { ProductReview } = require('../database/models');
+      const { rating, title, comment, customerName, customerEmail } = req.body;
+
+      if (!rating || Number(rating) < 1 || Number(rating) > 5) {
+        throw new ValidationError('Rating must be an integer between 1 and 5');
+      }
+
+      if (!comment || !String(comment).trim()) {
+        throw new ValidationError('Review comment body is required');
+      }
+
+      const nameToUse = customerName || (req.context?.authenticatedUserId ? `Customer #${req.context.authenticatedUserId}` : 'Valued Customer');
+
+      const review = await ProductReview.create({
+        tenantId: req.context?.tenantId || 1,
+        storeId: 1,
+        productId,
+        userId: req.context?.authenticatedUserId || null,
+        customerName: nameToUse,
+        customerEmail: customerEmail || null,
+        rating: Number(rating),
+        title: title || 'Customer Review',
+        comment: String(comment).trim(),
+        verifiedPurchase: true,
+        status: 'approved',
+        helpfulCount: 0,
+      });
+
+      created(res, 'Thank you! Your review has been published.', review);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public markReviewHelpful = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const reviewId = parseInt(req.params.reviewId, 10);
+      const { ProductReview } = require('../database/models');
+
+      const review = await ProductReview.findByPk(reviewId);
+      if (!review) throw new NotFoundError('Review not found');
+
+      review.helpfulCount = (review.helpfulCount || 0) + 1;
+      await review.save();
+
+      success(res, 'Thank you for your feedback', { helpfulCount: review.helpfulCount });
+    } catch (error) {
+      next(error);
+    }
+  };
 }

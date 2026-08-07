@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Box,
   Container,
@@ -42,14 +42,8 @@ const ALL_PRODUCT_TYPES: ProductTypeItem[] = [
   { code: 'physical', name: 'Physical Products' },
   { code: 'variable', name: 'Variable Products' },
   { code: 'virtual', name: 'Virtual Products' },
-  { code: 'digital', name: 'Digital Products' },
   { code: 'downloadable', name: 'Downloadable Products' },
   { code: 'print_on_demand', name: 'Print On Demand' },
-  { code: 'bundle', name: 'Bundle Products' },
-  { code: 'service', name: 'Service Products' },
-  { code: 'subscription', name: 'Subscription Products' },
-  { code: 'gift_card', name: 'Gift Cards' },
-  { code: 'rental', name: 'Rental Products' },
 ];
 
 const PRODUCT_IMAGE_MAP: Record<string, string> = {
@@ -97,6 +91,7 @@ export const ProductListingPage: React.FC = () => {
     limit: 100,
     search,
     types: typesQuery,
+    sortBy,
     minPrice: minPrice ? Number(minPrice) : undefined,
     maxPrice: maxPrice ? Number(maxPrice) : undefined,
     tenant_id: tenantIdParam ? Number(tenantIdParam) : undefined,
@@ -128,19 +123,43 @@ export const ProductListingPage: React.FC = () => {
     toast.success(`${prod.name} added to cart`);
   };
 
-  // Real database rows only from MySQL (Zero mock / hardcoded fallback)
+  // Real database rows only from MySQL with active client & server-side sorting
   const rawProducts = data?.data?.products || data?.data || [];
-  const products = Array.isArray(rawProducts) ? rawProducts : [];
+  const initialProducts = useMemo(() => (Array.isArray(rawProducts) ? [...rawProducts] : []), [rawProducts]);
+
+  const products = useMemo(() => {
+    return [...initialProducts].sort((a: any, b: any) => {
+      const priceA = Number(a.price || 0);
+      const priceB = Number(b.price || 0);
+
+      if (sortBy === 'price-low') {
+        return priceA - priceB;
+      }
+      if (sortBy === 'price-high') {
+        return priceB - priceA;
+      }
+      if (sortBy === 'name-asc') {
+        return String(a.name || '').localeCompare(String(b.name || ''));
+      }
+      if (sortBy === 'name-desc') {
+        return String(b.name || '').localeCompare(String(a.name || ''));
+      }
+      if (sortBy === 'newest') {
+        return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+      }
+      return 0;
+    });
+  }, [initialProducts, sortBy]);
 
   return (
     <Container maxWidth="xl" sx={{ py: 5 }}>
       <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
         <Box>
           <Typography variant="h4" sx={{ fontWeight: 800, color: '#0F172A', mb: 0.5 }}>
-            Enterprise Storefront Catalog
+            Discover & Shop Premium Products
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            Browse all active products powered by MySQL backend database filtering.
+            Explore curated electronics, fashion, digital assets & print-on-demand essentials with fast delivery and buyer protection on Comzilo Store.
           </Typography>
         </Box>
       </Box>
@@ -242,12 +261,15 @@ export const ProductListingPage: React.FC = () => {
               {selectedTypes.length > 0 && (
                 <Chip label={`${selectedTypes.length} Product Types Filtered`} color="primary" size="small" sx={{ fontWeight: 700 }} />
               )}
-              <FormControl size="small" sx={{ minWidth: 160 }}>
+              <FormControl size="small" sx={{ minWidth: 170 }}>
                 <InputLabel>Sort By</InputLabel>
                 <Select value={sortBy} label="Sort By" onChange={(e) => setSortBy(e.target.value)}>
                   <MenuItem value="popular">Most Popular</MenuItem>
                   <MenuItem value="price-low">Price: Low to High</MenuItem>
                   <MenuItem value="price-high">Price: High to Low</MenuItem>
+                  <MenuItem value="name-asc">Name: A to Z</MenuItem>
+                  <MenuItem value="name-desc">Name: Z to A</MenuItem>
+                  <MenuItem value="newest">Newest Arrivals</MenuItem>
                 </Select>
               </FormControl>
             </Box>
@@ -262,8 +284,8 @@ export const ProductListingPage: React.FC = () => {
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
                 {selectedTypes.length > 0 || search || minPrice || maxPrice
-                  ? 'No products match your selected product type filters in MySQL database.'
-                  : 'There are currently no active products in the storefront catalog.'}
+                  ? 'No products match your selected filters. Try clearing some criteria to explore more items.'
+                  : 'There are currently no active products matching your search.'}
               </Typography>
             </Paper>
           ) : (

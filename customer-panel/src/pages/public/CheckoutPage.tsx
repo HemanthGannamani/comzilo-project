@@ -478,15 +478,26 @@ export const CheckoutPage: React.FC = () => {
             </Typography>
 
             {/* Items List */}
-            <Box sx={{ maxHeight: 220, overflowY: 'auto', pr: 1, mb: 2 }}>
+            <Box sx={{ maxHeight: 240, overflowY: 'auto', pr: 1, mb: 2 }}>
               {items.map((item) => (
-                <Box key={item.id} sx={{ display: 'flex', justifyContent: 'space-between', mb: 1.5 }}>
-                  <Typography variant="body2" noWrap sx={{ fontWeight: 700, maxWidth: '70%' }}>
-                    {item.quantity}x {item.name}
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 800 }}>
-                    {formatPrice(item.price * item.quantity)}
-                  </Typography>
+                <Box key={item.id} sx={{ mb: 1.5, pb: 1, borderBottom: '1px dashed #E2E8F0' }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <Typography variant="body2" sx={{ fontWeight: 700, maxWidth: '75%', color: '#0F172A' }}>
+                      {item.quantity}x {item.name}
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 800 }}>
+                      {formatPrice(item.price * item.quantity)}
+                    </Typography>
+                  </Box>
+                  {item.variantName && !item.name.includes('(') && (
+                    <Chip
+                      label={`Selected: ${item.variantName}`}
+                      size="small"
+                      color="primary"
+                      variant="outlined"
+                      sx={{ mt: 0.5, height: 20, fontSize: '0.68rem', fontWeight: 700 }}
+                    />
+                  )}
                 </Box>
               ))}
             </Box>

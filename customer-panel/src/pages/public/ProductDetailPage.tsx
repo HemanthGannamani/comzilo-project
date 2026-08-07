@@ -2,13 +2,14 @@ import React, { useState } from 'react';
 import { Container, Grid, Box, Typography, Button, Rating, Chip, Paper, Divider, TextField, Alert } from '@mui/material';
 import { ShoppingCart, Heart, ShieldCheck, Truck, RotateCcw } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useGetProductByIdQuery } from '../../api/catalogApi';
+import { useGetProductByIdQuery, useGetProductReviewsQuery } from '../../api/catalogApi';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { addToCart } from '../../store/cartSlice';
 import { toggleWishlist } from '../../store/wishlistSlice';
 import { formatPrice } from '../../utils/currencyService';
 import { getProductImage, API_BASE_URL } from '../../utils/productImageService';
 import { VariantSelector, VariantItem } from '../../components/products/VariantSelector';
+import { ProductReviewsSection } from '../../components/products/ProductReviewsSection';
 import toast from 'react-hot-toast';
 
 export const ProductDetailPage: React.FC = () => {
@@ -18,6 +19,7 @@ export const ProductDetailPage: React.FC = () => {
 
   const validId = id && id !== 'undefined' && id !== 'null' ? id : 1;
   const { data } = useGetProductByIdQuery(validId);
+  const { data: reviewData } = useGetProductReviewsQuery(validId);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { items: wishlistItems } = useAppSelector((state) => state.wishlist);
@@ -50,11 +52,39 @@ export const ProductDetailPage: React.FC = () => {
       return;
     }
 
+    let variantDetailsText = '';
+    if (selectedVariant) {
+      if (selectedVariant.attributes && Array.isArray(selectedVariant.attributes) && selectedVariant.attributes.length > 0) {
+        variantDetailsText = selectedVariant.attributes
+          .map((a: any) => `${a.name || a.attributeName || 'Option'}: ${a.value || a.attributeValue || ''}`)
+          .filter((str: string) => !str.endsWith(': '))
+          .join(', ');
+      }
+
+      if (!variantDetailsText && selectedVariant.sku && selectedVariant.sku.includes('-')) {
+        const parts = selectedVariant.sku.split('-');
+        if (parts.length >= 4) {
+          const potentialRam = parts[parts.length - 3];
+          const potentialMem = parts[parts.length - 2];
+          const potentialCol = parts[parts.length - 1];
+          variantDetailsText = `RAM: ${potentialRam}, Memory: ${potentialMem}, Colour: ${potentialCol}`;
+        } else {
+          variantDetailsText = `SKU: ${selectedVariant.sku}`;
+        }
+      }
+    }
+
+    const formattedName = variantDetailsText
+      ? `${product.name} (${variantDetailsText})`
+      : (selectedVariant ? `${product.name} (${selectedVariant.sku})` : product.name);
+
     const itemPayload = {
       id: selectedVariant ? `${product.id}-${selectedVariant.id}` : product.id,
       productId: product.id,
       variantId: selectedVariant?.id,
-      name: selectedVariant ? `${product.name} (${selectedVariant.sku})` : product.name,
+      name: formattedName,
+      variantName: variantDetailsText || (selectedVariant ? `SKU: ${selectedVariant.sku}` : undefined),
+      selectedAttributes: selectedVariant?.attributes || [],
       price: currentPrice,
       image: displayImage,
       quantity,
@@ -98,8 +128,10 @@ export const ProductDetailPage: React.FC = () => {
           </Typography>
 
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
-            <Rating value={product?.rating || 4.8} precision={0.5} readOnly />
-            <Typography variant="body2" color="text.secondary">(48 customer reviews)</Typography>
+            <Rating value={reviewData?.data?.averageRating || product?.rating || 4.8} precision={0.1} readOnly />
+            <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
+              ({reviewData?.data?.count ?? 0} verified customer review{(reviewData?.data?.count ?? 0) !== 1 ? 's' : ''})
+            </Typography>
           </Box>
 
           <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 2, mb: 2 }}>
@@ -200,6 +232,10 @@ export const ProductDetailPage: React.FC = () => {
           </Paper>
         </Grid>
       </Grid>
+
+      {/* CUSTOMER REVIEWS & RATINGS COMPONENT */}
+      <Divider sx={{ my: 6 }} />
+      {product?.id && <ProductReviewsSection productId={product.id} />}
     </Container>
   );
 };

@@ -39,12 +39,15 @@ import {
   Warehouse as WarehouseIcon,
   AlertTriangle,
   FolderTree,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { logout } from '../../store/authSlice';
 import { baseApi } from '../../api/baseApi';
 import { Chip } from '@mui/material';
+import { useCustomTheme } from '../../context/ThemeContext';
 
 const DRAWER_WIDTH = 270;
 
@@ -58,6 +61,7 @@ interface NavItem {
 }
 
 export const AdminLayout: React.FC = () => {
+  const { mode, toggleTheme } = useCustomTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
@@ -256,6 +260,12 @@ export const AdminLayout: React.FC = () => {
           </Box>
 
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: 'auto' }}>
+            <Tooltip title={mode === 'light' ? 'Switch to Dark / Night Mode' : 'Switch to White / Light Mode'}>
+              <IconButton onClick={toggleTheme} color="inherit">
+                {mode === 'light' ? <Moon size={20} /> : <Sun size={20} color="#F59E0B" />}
+              </IconButton>
+            </Tooltip>
+
             <Tooltip title="Super Admin Account">
               <IconButton onClick={handleUserMenuOpen} size="small">
                 <Avatar sx={{ width: 36, height: 36, bgcolor: '#DC2626', fontWeight: 700 }}>
@@ -274,6 +284,12 @@ export const AdminLayout: React.FC = () => {
                 </Typography>
               </Box>
               <Divider />
+              <MenuItem onClick={toggleTheme}>
+                <ListItemIcon sx={{ minWidth: 32 }}>
+                  {mode === 'light' ? <Moon size={18} /> : <Sun size={18} color="#F59E0B" />}
+                </ListItemIcon>
+                {mode === 'light' ? 'Dark / Night Mode' : 'Light Mode'}
+              </MenuItem>
               <MenuItem onClick={handleLogout} sx={{ color: 'error.main' }}>
                 <ListItemIcon sx={{ color: 'error.main', minWidth: 32 }}>
                   <LogOut size={18} />

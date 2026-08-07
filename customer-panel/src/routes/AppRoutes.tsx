@@ -62,6 +62,7 @@ export const AppRoutes: React.FC = () => {
           <Route path="/account/invoices" element={<CustomerInvoicesPage />} />
           <Route path="/account/change-password" element={<CustomerChangePasswordPage />} />
           <Route path="/account/privacy" element={<CustomerPrivacyPage />} />
+          <Route path="/privacy" element={<CustomerPrivacyPage />} />
           <Route path="/support" element={<SupportCenterPage />} />
           <Route path="/account/support" element={<SupportCenterPage />} />
         </Route>

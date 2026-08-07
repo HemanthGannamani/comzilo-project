@@ -18,12 +18,16 @@ export interface MarketplaceCheckoutSyncOptions {
   mainOrder: any;
   items: Array<{
     productId: number;
+    variantId?: number | null;
+    productVariantId?: number | null;
     quantity: number;
     unitPrice: number;
     subtotal: number;
     total: number;
     sku?: string;
+    variantSku?: string;
     productName?: string;
+    variantAttributes?: any;
   }>;
   customer: any;
   paymentDetails: {
@@ -166,8 +170,12 @@ export class MarketplaceCheckoutService {
             storeId: sellerStoreId,
             orderId: sellerOrder.id,
             productId: sItem.productId,
+            variantId: sItem.variantId || (sItem as any).productVariantId || null,
+            productVariantId: sItem.variantId || (sItem as any).productVariantId || null,
             sku: sItem.sku || `SKU-${sItem.productId}`,
+            variantSku: (sItem as any).variantSku || sItem.sku || null,
             productName: sItem.productName || 'Catalog Item',
+            variantAttributes: (sItem as any).variantAttributes || null,
             unitPrice: sItem.unitPrice,
             quantity: sItem.quantity,
             subtotal: sItem.subtotal,
@@ -185,15 +193,17 @@ export class MarketplaceCheckoutService {
           storeId: sellerStoreId,
           orderId: sellerOrder.id,
           invoiceNumber: invNum,
-          invoiceDate: new Date(),
-          dueDate: new Date(),
           invoiceStatus: 'issued',
-          currency: 'INR',
-          subtotalAmount: sellerSubtotal,
-          taxAmount: sellerTax,
-          discountAmount: sellerDiscount,
-          totalAmount: sellerTotal,
-          balanceAmount: 0,
+          subtotal: Number(sellerSubtotal || 0),
+          tax: Number(sellerTax || 0),
+          discount: Number(sellerDiscount || 0),
+          total: Number(sellerTotal || 0),
+          subtotalAmount: Number(sellerSubtotal || 0),
+          taxAmount: Number(sellerTax || 0),
+          discountAmount: Number(sellerDiscount || 0),
+          totalAmount: Number(sellerTotal || 0),
+          issuedAt: new Date(),
+          dueDate: new Date(),
         } as any,
         { transaction: t }
       );

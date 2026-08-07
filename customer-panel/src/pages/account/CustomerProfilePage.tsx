@@ -16,6 +16,7 @@ import { useAppDispatch } from '../../store/hooks';
 import { updateUser } from '../../store/authSlice';
 import { CustomerAccountLayout } from '../../components/layout/CustomerAccountLayout';
 import { useGetCustomerProfileQuery, useUpdateCustomerProfileMutation } from '../../api/customerPortalApi';
+import { UserAvatar } from '../../components/common/UserAvatar';
 import toast from 'react-hot-toast';
 
 export const CustomerProfilePage: React.FC = () => {
@@ -133,19 +134,13 @@ export const CustomerProfilePage: React.FC = () => {
                 accept="image/jpeg,image/png,image/webp"
                 onChange={handlePhotoSelect}
               />
-              <Avatar
-                src={avatarPreview || undefined}
-                sx={{
-                  width: 80,
-                  height: 80,
-                  bgcolor: '#2563EB',
-                  fontSize: '2rem',
-                  fontWeight: 800,
-                  border: '3px solid #38BDF8',
-                }}
-              >
-                {!avatarPreview && (formData.firstName?.[0] || 'C')}
-              </Avatar>
+              <UserAvatar
+                src={avatarPreview}
+                firstName={formData.firstName}
+                lastName={formData.lastName}
+                size={80}
+                border="3px solid #38BDF8"
+              />
               <Box>
                 <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
                   Profile Avatar

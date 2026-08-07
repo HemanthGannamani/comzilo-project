@@ -369,7 +369,7 @@ export const SellerFinancialDashboardPage: React.FC = () => {
                       <TableCell>{new Date(i.created_at || i.createdAt).toLocaleString()}</TableCell>
                       <TableCell sx={{ fontWeight: 700, fontFamily: 'monospace' }}>INV-{i.id}</TableCell>
                       <TableCell align="right" sx={{ fontWeight: 800, color: '#2563EB' }}>
-                        INR {Number(i.amount || 0).toFixed(2)}
+                        INR {Number(i.total ?? i.totalAmount ?? i.amount ?? 0).toFixed(2)}
                       </TableCell>
                       <TableCell>
                         <Chip label={(i.status || 'PAID').toUpperCase()} size="small" color="success" sx={{ fontWeight: 800 }} />

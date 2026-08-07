@@ -16,6 +16,7 @@ import {
 } from '@mui/material';
 import { Package, Clock, CheckCircle2, Heart, MapPin, ArrowRight, Eye, RefreshCw, XCircle } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
+import { UserAvatar } from '../../components/common/UserAvatar';
 import { CustomerAccountLayout } from '../../components/layout/CustomerAccountLayout';
 import { useGetCustomerDashboardQuery } from '../../api/customerPortalApi';
 import { formatPrice } from '../../utils/currencyService';
@@ -69,21 +70,13 @@ export const CustomerDashboardPage: React.FC = () => {
         <Grid container spacing={3} alignItems="center">
           <Grid item xs={12} sm={8}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
-              <Avatar
-                src={customer?.avatarUrl || customer?.profileImage || user?.avatarUrl || user?.profileImage || undefined}
-                imgProps={{ style: { objectFit: 'cover' } }}
-                sx={{
-                  width: 60,
-                  height: 60,
-                  bgcolor: '#2563EB',
-                  fontSize: '1.5rem',
-                  fontWeight: 800,
-                  border: '3px solid #38BDF8',
-                }}
-              >
-                {!(customer?.avatarUrl || customer?.profileImage || user?.avatarUrl || user?.profileImage) &&
-                  (customer?.firstName?.[0] || user?.firstName?.[0] || customer?.fullName?.[0] || 'A').toUpperCase()}
-              </Avatar>
+              <UserAvatar
+                src={customer?.avatarUrl || customer?.profileImage || user?.avatarUrl || user?.profileImage}
+                firstName={customer?.firstName || user?.firstName}
+                lastName={customer?.lastName || user?.lastName}
+                size={60}
+                border="3px solid #38BDF8"
+              />
               <Box>
                 <Typography variant="h5" sx={{ fontWeight: 800, color: '#FFFFFF' }}>
                   Hello, {customer?.firstName || user?.firstName || (customer?.fullName ? customer.fullName.split(' ')[0] : 'Customer')}!

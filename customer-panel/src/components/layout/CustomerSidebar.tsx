@@ -24,12 +24,15 @@ import {
   ShieldCheck,
   HelpCircle,
   LogOut,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { logout } from '../../store/authSlice';
 import { baseApi } from '../../api/baseApi';
-
+import { UserAvatar } from '../common/UserAvatar';
+import { useCustomTheme } from '../../context/ThemeContext';
 import { useGetCustomerProfileQuery } from '../../api/customerPortalApi';
 
 interface SidebarItem {
@@ -40,6 +43,7 @@ interface SidebarItem {
 }
 
 export const CustomerSidebar: React.FC = () => {
+  const { mode, toggleTheme } = useCustomTheme();
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useAppDispatch();
@@ -47,9 +51,10 @@ export const CustomerSidebar: React.FC = () => {
   const { items: wishlistItems } = useAppSelector((state) => state.wishlist);
   const { data: profileData } = useGetCustomerProfileQuery();
 
-  const avatarImage = profileData?.data?.avatarUrl || profileData?.data?.profileImage || user?.avatarUrl || user?.profileImage || undefined;
-  const firstName = profileData?.data?.firstName || user?.firstName || 'abhay';
-  const lastName = profileData?.data?.lastName || user?.lastName || 'ram';
+  const rawAvatar = profileData?.data?.avatarUrl || profileData?.data?.profileImage || user?.avatarUrl || user?.profileImage;
+  const avatarImage = rawAvatar && rawAvatar !== 'null' && rawAvatar !== 'undefined' ? rawAvatar : undefined;
+  const firstName = profileData?.data?.firstName || user?.firstName || 'Abhay';
+  const lastName = profileData?.data?.lastName || user?.lastName || 'Ram';
   const email = profileData?.data?.email || user?.email || 'maddipativikas130@gmail.com';
 
   const handleLogout = () => {
@@ -77,20 +82,13 @@ export const CustomerSidebar: React.FC = () => {
     <Paper sx={{ borderRadius: 3, border: '1px solid #E2E8F0', boxShadow: 'none', overflow: 'hidden' }}>
       {/* Customer Brief Header */}
       <Box sx={{ p: 3, bgcolor: '#0F172A', color: '#FFFFFF', display: 'flex', alignItems: 'center', gap: 2 }}>
-        <Avatar
+        <UserAvatar
           src={avatarImage}
-          imgProps={{ style: { objectFit: 'cover' } }}
-          sx={{
-            width: 52,
-            height: 52,
-            bgcolor: '#2563EB',
-            fontSize: '1.25rem',
-            fontWeight: 800,
-            border: '2px solid #38BDF8',
-          }}
-        >
-          {!avatarImage && (firstName?.[0] || 'A').toUpperCase()}
-        </Avatar>
+          firstName={firstName}
+          lastName={lastName}
+          size={52}
+          border="2px solid #38BDF8"
+        />
         <Box sx={{ overflow: 'hidden' }}>
           <Typography variant="subtitle1" noWrap sx={{ fontWeight: 800, lineHeight: 1.2 }}>
             {firstName} {lastName}
@@ -145,6 +143,33 @@ export const CustomerSidebar: React.FC = () => {
         })}
 
         <Divider sx={{ my: 1 }} />
+
+        <ListItemButton
+          onClick={toggleTheme}
+          sx={{
+            borderRadius: 2,
+            mb: 0.5,
+            color: mode === 'dark' ? '#F59E0B' : '#475569',
+            '&:hover': { bgcolor: mode === 'dark' ? 'rgba(245, 158, 11, 0.1)' : '#F1F5F9' },
+          }}
+        >
+          <ListItemIcon sx={{ minWidth: 36, color: mode === 'dark' ? '#F59E0B' : '#64748B' }}>
+            {mode === 'light' ? <Moon size={20} /> : <Sun size={20} />}
+          </ListItemIcon>
+          <ListItemText
+            primary={
+              <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                {mode === 'light' ? 'Dark Mode' : 'Light Mode'}
+              </Typography>
+            }
+          />
+          <Chip
+            label={mode.toUpperCase()}
+            size="small"
+            color={mode === 'dark' ? 'warning' : 'default'}
+            sx={{ height: 20, fontSize: '0.65rem', fontWeight: 800 }}
+          />
+        </ListItemButton>
 
         <ListItemButton
           onClick={handleLogout}

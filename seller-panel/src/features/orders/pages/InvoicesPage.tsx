@@ -14,7 +14,7 @@ export const InvoicesPage: React.FC = () => {
 
   const handleWhatsAppShare = (inv: any) => {
     const invNumber = inv.invoiceNumber || `INV-${inv.id}`;
-    const amount = formatCurrency(inv.amount || inv.total || 0);
+    const amount = formatCurrency(inv.total ?? inv.totalAmount ?? inv.amount ?? 0);
     const text = encodeURIComponent(
       `📄 Sales Tax Invoice #${invNumber}\nOrder ID: #${inv.orderId}\nTotal Amount: ${amount}\nStatus: ${inv.status || 'Issued'}\nView Invoice: ${window.location.origin}/invoices`
     );
@@ -27,6 +27,7 @@ export const InvoicesPage: React.FC = () => {
 
   const handleDownloadPdf = (inv: any) => {
     const invNumber = inv.invoiceNumber || `INV-${inv.id || 'DOC'}`;
+    const invAmount = inv.total ?? inv.totalAmount ?? inv.amount ?? 0;
     const htmlContent = `
       <!DOCTYPE html>
       <html>
@@ -64,7 +65,7 @@ export const InvoicesPage: React.FC = () => {
           <div class="row"><span class="label">Issued Date:</span><span class="value">${inv.createdAt ? new Date(inv.createdAt).toLocaleString() : 'N/A'}</span></div>
           <div class="row" style="margin-top: 12px; padding-top: 12px; border-top: 1px dashed #cbd5e1;">
             <span class="label" style="font-size: 16px;">Total Amount:</span>
-            <span class="amount">${formatCurrency(inv.amount || 0)}</span>
+            <span class="amount">${formatCurrency(invAmount)}</span>
           </div>
         </div>
 
@@ -90,7 +91,13 @@ export const InvoicesPage: React.FC = () => {
     { field: 'id', headerName: 'Invoice ID', width: 100 },
     { field: 'invoiceNumber', headerName: 'Invoice #', width: 180 },
     { field: 'orderId', headerName: 'Order ID', width: 100 },
-    { field: 'amount', headerName: 'Amount', width: 130, renderCell: (params) => formatCurrency(params.value || 0) },
+    {
+      field: 'amount',
+      headerName: 'Amount',
+      width: 130,
+      valueGetter: (_val, row) => row.total ?? row.totalAmount ?? row.amount ?? 0,
+      renderCell: (params) => formatCurrency(params.value || 0),
+    },
     {
       field: 'status',
       headerName: 'Status',

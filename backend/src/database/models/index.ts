@@ -33,6 +33,7 @@ import { Product } from './product';
 import { ProductMedia } from './productMedia';
 import { ProductType } from './productType';
 import { ProductImage } from './productImage';
+import { ProductReview } from './productReview';
 import { ProductVariant } from './productVariant';
 import { ProductOptionSet } from './productOptionSet';
 import { ProductOptionValue } from './productOptionValue';
@@ -956,7 +957,12 @@ export {
   CategoryAttribute,
   AttributeGroup,
   AttributeValue,
+  ProductReview,
 };
+
+// Product Review Associations
+Product.hasMany(ProductReview, { foreignKey: 'product_id', as: 'reviews' });
+ProductReview.belongsTo(Product, { foreignKey: 'product_id', as: 'product' });
 
 // Product Variant Associations
 ProductVariant.hasMany(VariantAttribute, { foreignKey: 'variant_id', as: 'attributes' });

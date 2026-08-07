@@ -190,10 +190,18 @@ export class CommissionEngineService {
   /**
    * Calculate and Save Breakdown Record for Order
    */
-  public async processAndSaveOrderCommission(tenantId: number, storeId: number, orderId: number, orderTotal: number, subtotal?: number): Promise<PayoutBreakdown> {
+  public async processAndSaveOrderCommission(
+    tenantId: number,
+    storeId: number,
+    orderId: number,
+    orderTotal: number,
+    subtotal?: number,
+    options?: { transaction?: any }
+  ): Promise<PayoutBreakdown> {
     await this.ensureTablesExist();
 
     const breakdown = await this.calculateOrderPayout(tenantId, orderId, orderTotal, subtotal);
+    const t = options?.transaction;
 
     await sequelize.query(
       `INSERT INTO order_commissions 
@@ -228,6 +236,7 @@ export class CommissionEngineService {
           payout: breakdown.netSellerPayout,
         },
         type: QueryTypes.INSERT,
+        ...(t ? { transaction: t } : {}),
       }
     );
 

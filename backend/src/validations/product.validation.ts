@@ -9,8 +9,8 @@ export const productValidation = {
     description: Joi.string().allow('', null).optional(),
     status: Joi.string().valid('draft', 'active', 'published', 'pending_approval', 'archived', 'deleted').default('draft'),
     visibility: Joi.string().valid('public', 'private', 'hidden').default('public'),
-    productType: Joi.string().max(50).optional(),
-    product_type: Joi.string().max(50).optional(),
+    productType: Joi.string().valid('physical', 'variable', 'virtual', 'downloadable', 'print_on_demand').optional(),
+    product_type: Joi.string().valid('physical', 'variable', 'virtual', 'downloadable', 'print_on_demand').optional(),
     brand: Joi.string().max(100).allow('', null).optional(),
     category: Joi.string().max(100).allow('', null).optional(),
     price: Joi.number().min(0).required(),
@@ -57,10 +57,6 @@ export const productValidation = {
       })
     ).optional(),
     dynamicAttributes: Joi.object().optional(),
-    subscription: Joi.object().optional(),
-    rental: Joi.object().optional(),
-    service: Joi.object().optional(),
-    digital: Joi.object().optional(),
   }),
 
   updateProduct: Joi.object({
@@ -103,5 +99,9 @@ export const productValidation = {
     types: Joi.string().allow('').optional(),
     minPrice: Joi.number().min(0).optional(),
     maxPrice: Joi.number().min(0).optional(),
+    sortBy: Joi.string().allow('').optional(),
+    sort: Joi.string().allow('').optional(),
+    sort_by: Joi.string().allow('').optional(),
+    sortOrder: Joi.string().allow('').optional(),
   }),
 };

@@ -13,9 +13,12 @@ const controller = new ProductController();
 // All product routes require tenant context resolution
 router.use(tenantResolver);
 
-// Public storefront catalog endpoints
+// Public storefront catalog & review endpoints
 router.get('/types', controller.getProductTypes);
 router.get('/', validateRequest({ query: productValidation.listProducts }), controller.listProducts);
+router.get('/:id/reviews', controller.getProductReviews);
+router.post('/:id/reviews', controller.createProductReview);
+router.post('/reviews/:reviewId/helpful', controller.markReviewHelpful);
 router.get('/:id', controller.getProduct);
 
 // Protected management endpoints (require authentication & authorization)

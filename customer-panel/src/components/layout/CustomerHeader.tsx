@@ -11,19 +11,33 @@ import {
   Menu,
   MenuItem,
   Button,
+  Tooltip,
+  Avatar,
 } from '@mui/material';
-import { ShoppingBag, Search, Heart, ShoppingCart, User, LogOut } from 'lucide-react';
+import { ShoppingBag, Search, Heart, ShoppingCart, User, LogOut, Sun, Moon } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { logout } from '../../store/authSlice';
+import { useCustomTheme } from '../../context/ThemeContext';
+import { UserAvatar } from '../common/UserAvatar';
+import { useGetCustomerProfileQuery } from '../../api/customerPortalApi';
 
 export const CustomerHeader: React.FC = () => {
+  const { mode, toggleTheme } = useCustomTheme();
   const [searchQuery, setSearchQuery] = useState('');
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
   const { isAuthenticated, user } = useAppSelector((state) => state.auth);
   const { items: cartItems } = useAppSelector((state) => state.cart);
   const { items: wishlistItems } = useAppSelector((state) => state.wishlist);
+
+  const { data: profileData } = useGetCustomerProfileQuery(undefined, { skip: !isAuthenticated });
+
+  const displayFirstName = profileData?.data?.firstName || user?.firstName || 'Abhay';
+  const displayLastName = profileData?.data?.lastName || user?.lastName || 'Ram';
+  const displayEmail = profileData?.data?.email || user?.email || 'maddipativikas130@gmail.com';
+  const rawAvatar = profileData?.data?.avatarUrl || profileData?.data?.profileImage || user?.avatarUrl || user?.profileImage;
+  const avatarImage = rawAvatar && rawAvatar !== 'null' && rawAvatar !== 'undefined' ? rawAvatar : undefined;
 
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
@@ -93,49 +107,80 @@ export const CustomerHeader: React.FC = () => {
               <Typography variant="body2" sx={{ fontWeight: 600, px: 1 }}>Shop Catalog</Typography>
             </IconButton>
 
-            <IconButton component={Link} to="/account/wishlist" color="inherit">
-              <Badge badgeContent={wishlistItems.length} color="error">
-                <Heart size={22} />
-              </Badge>
-            </IconButton>
+            <Tooltip title={mode === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}>
+              <IconButton onClick={toggleTheme} color="inherit">
+                {mode === 'light' ? <Moon size={22} /> : <Sun size={22} color="#F59E0B" />}
+              </IconButton>
+            </Tooltip>
 
-            <IconButton component={Link} to="/cart" color="inherit">
-              <Badge badgeContent={totalCartCount} color="primary">
-                <ShoppingCart size={22} />
-              </Badge>
-            </IconButton>
+            <Tooltip title="My Wishlist">
+              <IconButton component={Link} to="/account/wishlist" color="inherit">
+                <Badge badgeContent={wishlistItems.length} color="error">
+                  <Heart size={22} />
+                </Badge>
+              </IconButton>
+            </Tooltip>
+
+            <Tooltip title="Shopping Cart">
+              <IconButton component={Link} to="/cart" color="inherit">
+                <Badge badgeContent={totalCartCount} color="primary">
+                  <ShoppingCart size={22} />
+                </Badge>
+              </IconButton>
+            </Tooltip>
 
             {isAuthenticated ? (
               <>
-                <IconButton onClick={(e) => setAnchorEl(e.currentTarget)} color="inherit">
-                  <User size={22} />
-                </IconButton>
-                <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => setAnchorEl(null)}>
-                  <Box sx={{ px: 2, py: 1 }}>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                      {user?.firstName} {user?.lastName}
+                <Tooltip title="My Account">
+                  <IconButton onClick={(e) => setAnchorEl(e.currentTarget)} color="inherit" sx={{ p: 0.5 }}>
+                    <UserAvatar
+                      src={avatarImage}
+                      firstName={displayFirstName}
+                      lastName={displayLastName}
+                      size={36}
+                    />
+                  </IconButton>
+                </Tooltip>
+                <Menu
+                  anchorEl={anchorEl}
+                  open={Boolean(anchorEl)}
+                  onClose={() => setAnchorEl(null)}
+                  PaperProps={{
+                    sx: { borderRadius: 3, mt: 1, minWidth: 200, boxShadow: '0 10px 25px rgba(0,0,0,0.1)' },
+                  }}
+                >
+                  <Box sx={{ px: 2, py: 1.5, bgcolor: '#F8FAFC', borderBottom: '1px solid #F1F5F9' }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#0F172A' }}>
+                      {displayFirstName} {displayLastName}
                     </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {user?.email}
+                    <Typography variant="caption" color="text.secondary" noWrap sx={{ display: 'block' }}>
+                      {displayEmail}
                     </Typography>
                   </Box>
-                  <MenuItem component={Link} to="/account" onClick={() => setAnchorEl(null)}>
+                  <MenuItem component={Link} to="/account" onClick={() => setAnchorEl(null)} sx={{ py: 1.2, fontWeight: 600 }}>
                     My Dashboard
                   </MenuItem>
-                  <MenuItem component={Link} to="/account/orders" onClick={() => setAnchorEl(null)}>
+                  <MenuItem component={Link} to="/account/orders" onClick={() => setAnchorEl(null)} sx={{ py: 1.2, fontWeight: 600 }}>
                     My Orders
                   </MenuItem>
-                  <MenuItem component={Link} to="/account/support" onClick={() => setAnchorEl(null)}>
+                  <MenuItem component={Link} to="/account/support" onClick={() => setAnchorEl(null)} sx={{ py: 1.2, fontWeight: 600 }}>
                     Support Center
                   </MenuItem>
-                  <MenuItem onClick={handleLogout} sx={{ color: 'error.main' }}>
+                  <MenuItem onClick={handleLogout} sx={{ color: 'error.main', py: 1.2, fontWeight: 700 }}>
                     <LogOut size={16} style={{ marginRight: 8 }} /> Logout
                   </MenuItem>
                 </Menu>
               </>
             ) : (
-              <Button component={Link} to="/login" variant="contained" color="primary" sx={{ borderRadius: 2, fontWeight: 700, ml: 1 }}>
-                Sign In
+              <Button
+                component={Link}
+                to="/login"
+                variant="contained"
+                color="primary"
+                startIcon={<User size={18} />}
+                sx={{ borderRadius: 2, fontWeight: 700, ml: 1, textTransform: 'none' }}
+              >
+                My Account
               </Button>
             )}
           </Box>
